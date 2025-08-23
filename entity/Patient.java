@@ -1,36 +1,25 @@
 package entity;
 
 /**
- * Patient entity
- * Represents a patient in the clinic system.
- * Author: [Your Name]
+ * Abstract Patient class
+ * Represents a generic patient (student, tutor, lecturer, staff).
  */
-public class Patient {
-    private String id;
-    private String name;
-    private int age;
-    private String condition;
+public abstract class Patient extends Human {
+    protected String condition;
 
-    public Patient(String id, String name, int age, String condition) {
-        this.id = id;
-        this.name = name;
-        this.age = age;
+    public Patient(String id, String name, int age, String gender, String condition) {
+        super(id, name, age, gender);
         this.condition = condition;
     }
 
-    // Getters
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public int getAge() { return age; }
     public String getCondition() { return condition; }
-
-    // Setters
-    public void setName(String name) { this.name = name; }
-    public void setAge(int age) { this.age = age; }
     public void setCondition(String condition) { this.condition = condition; }
+
+    // Force subclasses to declare their type
+    public abstract String getType();
 
     @Override
     public String toString() {
-        return id + " - " + name + " (" + age + ") : " + condition;
+        return "[" + getType() + "] " + super.toString() + " | Condition: " + condition;
     }
 }
