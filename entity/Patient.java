@@ -1,25 +1,17 @@
 package entity;
 
-/**
- * Abstract Patient class
- * Represents a generic patient (student, tutor, lecturer, staff).
- */
 public abstract class Patient extends Human {
-    protected String condition;
+    protected String patientId; // system ID for patient
 
-    public Patient(String id, String name, int age, String gender, String condition) {
-        super(id, name, age, gender);
-        this.condition = condition;
+    public Patient(String patientId, String name, String gender, String birthdate, String phoneNumber) {
+        super(name, gender, birthdate, phoneNumber);
+        this.patientId = patientId;
     }
 
-    public String getCondition() { return condition; }
-    public void setCondition(String condition) { this.condition = condition; }
-
-    // Force subclasses to declare their type
-    public abstract String getType();
+    public String getPatientId() { return patientId; }
 
     @Override
     public String toString() {
-        return "[" + getType() + "] " + super.toString() + " | Condition: " + condition;
+        return String.format("PatientID: %s, %s", patientId, super.toString());
     }
 }
