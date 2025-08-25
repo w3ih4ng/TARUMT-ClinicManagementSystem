@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 
 public class PatientControl {
     private HashMapInterface<String, Patient> patientMap; // key = patientId
-    private ListADT<String> patientQueue; // store patient IDs in order
+    private ListInterface<String> patientQueue; // store patient IDs in order
     private Scanner sc;
     private int patientCounter = 1000; // re-initialized later
 
@@ -24,7 +24,7 @@ public class PatientControl {
     // Initialize counter by scanning existing patient IDs
     public void initCounterFromMap() {
         int max = 999; // so first patient will be P1000
-        ListADT<String> keys = patientMap.keySet();
+        ListInterface<String> keys = patientMap.keySet();
         for (int i = 0; i < keys.size(); i++) {
             String key = keys.get(i); // e.g., "P1050"
             try {
@@ -134,21 +134,52 @@ public class PatientControl {
         System.out.println("✅ Patient registered successfully! Patient ID: " + patientId);
     }
 
-    public void viewAllPatients() {
-        System.out.println("\n--- All Patients ---");
-        if (patientMap.isEmpty()) {
+    // patientmap
+    public HashMapInterface<String, Patient> getPatientMap() {
+        return this.patientMap;
+    }
+    
+
+    public void printPatientsTable(ListInterface<Patient> patients) {
+        if (patients.isEmpty()) {
             System.out.println("No patients found.");
             return;
         }
-
-        ListADT<String> keys = patientMap.keySet();
-        for (int i = 0; i < keys.size(); i++) {
-            Patient p = patientMap.get(keys.get(i));
-            if (!p.isDeleted()) {
-                System.out.println(p);
+    
+        System.out.printf("%-15s %-15s %-8s %-12s %-12s %-10s %-15s %-15s %-15s%n",
+                "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Role", "Role ID", "Faculty", "Department");
+    
+        for (int i = 0; i < patients.size(); i++) {
+            Patient p = patients.get(i);
+    
+            String role = "-", roleId = "-", faculty = "-", department = "-";
+    
+            if (p instanceof Student) {
+                role = "Student";
+                roleId = ((Student) p).getStudentId();
+            } else if (p instanceof Tutor) {
+                role = "Tutor";
+                roleId = ((Tutor) p).getTutorId();
+                faculty = ((Tutor) p).getFaculty();
+            } else if (p instanceof Staff) {
+                role = "Staff";
+                roleId = ((Staff) p).getStaffId();
+                department = ((Staff) p).getDepartment();
             }
+    
+            System.out.printf("%-15s %-15s %-8s %-12s %-12s %-10s %-15s %-15s %-15s%n",
+                    p.getPatientId(),
+                    p.getName(),
+                    p.getGender(),
+                    p.getBirthdate(),
+                    p.getPhoneNumber(),
+                    role,
+                    roleId,
+                    faculty,
+                    department);
         }
     }
+    
 
     public void updatePatient() {
         System.out.print("\nEnter Patient ID to update: ");
@@ -237,13 +268,16 @@ public class PatientControl {
     public void reportPatientsByRole() {
         int students = 0, tutors = 0, staff = 0;
 
-        ListADT<String> keys = patientMap.keySet();
+        ListInterface<String> keys = patientMap.keySet();
         for (int i = 0; i < keys.size(); i++) {
             Patient p = patientMap.get(keys.get(i));
             if (!p.isDeleted()) {
-                if (p instanceof Student) students++;
-                else if (p instanceof Tutor) tutors++;
-                else if (p instanceof Staff) staff++;
+                if (p instanceof Student)
+                    students++;
+                else if (p instanceof Tutor)
+                    tutors++;
+                else if (p instanceof Staff)
+                    staff++;
             }
         }
 

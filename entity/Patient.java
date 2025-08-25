@@ -11,10 +11,17 @@ public abstract class Patient extends Human {
         this.patientId = patientId;
     }
 
-    public String getPatientId() { return patientId; }
+    public String getPatientId() {
+        return patientId;
+    }
 
     @Override
     public String toString() {
-        return String.format("PatientID: %s, %s", patientId, super.toString());
+        return patientId + " " +
+                name + " " +
+                gender + " " +
+                phoneNumber + " " +
+                birthdate;
     }
+
 }

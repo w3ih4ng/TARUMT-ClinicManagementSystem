@@ -8,8 +8,8 @@ public class ClinicManagementSystem {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
 
-        StaffBoundary staffBoundary = new StaffBoundary(new StaffControl());
-        DoctorBoundary doctorBoundary = new DoctorBoundary(new DoctorControl());
+        StaffMenuBoundary staffMenuBoundary = new StaffMenuBoundary(new StaffControl());
+        DoctorMenuBoundary doctorMenuBoundary = new DoctorMenuBoundary(new DoctorControl());
 
         while (true) {
             System.out.println("====================================");
@@ -24,11 +24,11 @@ public class ClinicManagementSystem {
 
             switch (choice) {
                 case "1":
-                    staffBoundary.mainMenu();
+                    staffMenuBoundary.mainMenu();
                     break;
 
                 case "2":
-                    doctorBoundary.mainMenu();
+                    doctorMenuBoundary.mainMenu();
                     break;
 
                 case "0":

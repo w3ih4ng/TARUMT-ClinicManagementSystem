@@ -99,15 +99,23 @@ public class PatientDAO {
 
             Patient p = null;
             switch (type) {
-                case "Student":
-                    p = new Student(patientId, parts[7], name, gender, birthdate, phone);
+                case "Student": {
+                    String studentId = parts[7];
+                    p = new Student(patientId, studentId, name, gender, birthdate, phone);
                     break;
-                case "Tutor":
-                    p = new Tutor(patientId, parts[7], name, gender, birthdate, phone, parts[8]);
+                }
+                case "Tutor": {
+                    String tutorId = parts[7];
+                    String faculty = parts[8];
+                    p = new Tutor(patientId, tutorId, name, gender, birthdate, phone, faculty);
                     break;
-                case "Staff":
-                    p = new Staff(patientId, parts[7], name, gender, birthdate, phone, parts[8]);
+                }
+                case "Staff": {
+                    String staffId = parts[7];
+                    String department = parts[8];
+                    p = new Staff(patientId, staffId, name, gender, birthdate, phone, department);
                     break;
+                }
             }
 
             if (p != null && deleted) p.delete();

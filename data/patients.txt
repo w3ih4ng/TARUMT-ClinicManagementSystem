@@ -1,2 +1,10 @@
 Tutor|P1001|junwei|F|2000-11-11|6666666666|false|Tsadasd|FOCS
-Student|P1000|asd|M|2000-11-11|1231231|false|asd
+Student|P1000|asd|M|2000-11-11|1231231|false|asd|FOCS
+Staff|P1002|Alice Tan|F|1995-03-21|0123456789|false|asdasdad|HR
+Student|P1003|Michael Lee|M|2002-07-15|0112233445|false|asdasdasda|FOCS
+Tutor|P1004|Siti Nur|F|1988-12-05|0198765432|false|asdasd|FAFB
+Staff|P1005|Raj Kumar|M|1990-06-18|0161122334|false|asdasdasda|Finance
+Student|P1006|Chong Wei|M|2001-09-30|0189988776|false|asdasdasd|FOET
+Tutor|P1007|Karen Lim|F|1985-01-12|0174455667|false|asdasdasd|FOCS
+Staff|P1008|Hafiz Ahmad|M|1992-04-09|0145566778|true|asdasdad|Admin
+Student|P1009|Emily Wong|F|2003-05-22|0132244668|false|asdasdasd|FOCS

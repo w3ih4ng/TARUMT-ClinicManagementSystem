@@ -1,11 +1,13 @@
 package adt;
 
+import java.util.Iterator;
+
 /**
  * Array-based implementation of ListADT
  * Author: [Your Name]
  */
 @SuppressWarnings("unchecked")
-public class ArrayList<T> implements ListADT<T> {
+public class ArrayList<T> implements ListInterface<T>, Iterable<T>  {
     private T[] data;
     private int size;
     private static final int DEFAULT_CAPACITY = 10;
@@ -79,5 +81,22 @@ public class ArrayList<T> implements ListADT<T> {
             data[i] = null;
         }
         size = 0;
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new Iterator<T>() {
+            private int current = 0;
+
+            @Override
+            public boolean hasNext() {
+                return current < size();
+            }
+
+            @Override
+            public T next() {
+                return get(current++);
+            }
+        };
     }
 }

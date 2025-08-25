@@ -3,11 +3,11 @@ package boundary;
 import java.util.Scanner;
 import control.DoctorControl;
 
-public class DoctorBoundary {
+public class DoctorMenuBoundary {
     private Scanner sc;
     private DoctorControl doctorControl;
 
-    public DoctorBoundary(DoctorControl doctorControl) {
+    public DoctorMenuBoundary(DoctorControl doctorControl) {
         this.sc = new Scanner(System.in);
         this.doctorControl = doctorControl;
     }

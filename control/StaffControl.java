@@ -1,24 +1,24 @@
 package control;
 
-import boundary.PatientBoundary;
-import boundary.DoctorBoundary;
+import boundary.PatientManagementBoundary;
+import boundary.DoctorMenuBoundary;
 
 public class StaffControl {
-    private PatientBoundary patientBoundary;
-    private DoctorBoundary doctorBoundary;
+    private PatientManagementBoundary patientManagementBoundary;
+    private DoctorMenuBoundary doctorMenuBoundary;
 
     public StaffControl() {
         // Initialize modules staff can access
-        this.patientBoundary = new PatientBoundary(new PatientControl());
-        this.doctorBoundary = new DoctorBoundary(new DoctorControl());
+        this.patientManagementBoundary = new PatientManagementBoundary(new PatientControl());
+        this.doctorMenuBoundary = new DoctorMenuBoundary(new DoctorControl());
     }
 
     public void openPatientModule() {
-        patientBoundary.mainMenu();
+        patientManagementBoundary.mainMenu();
     }
 
     public void openDoctorModule() {
-        doctorBoundary.mainMenu();
+        doctorMenuBoundary.mainMenu();
     }
 
     public void openConsultationModule() {

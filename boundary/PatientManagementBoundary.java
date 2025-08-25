@@ -3,13 +3,15 @@ package boundary;
 import java.util.Scanner;
 import control.PatientControl;
 
-public class PatientBoundary {
+public class PatientManagementBoundary {
     private Scanner sc;
     private PatientControl patientControl;
+    private ViewAllPatientBoundary viewAllPatientBoundary;
 
-    public PatientBoundary(PatientControl patientControl) {
+    public PatientManagementBoundary(PatientControl patientControl) {
         this.sc = new Scanner(System.in);
         this.patientControl = patientControl;
+        this.viewAllPatientBoundary = new ViewAllPatientBoundary(patientControl);
     }
 
     public void mainMenu() {
@@ -29,7 +31,7 @@ public class PatientBoundary {
 
             switch (choice) {
                 case "1": patientControl.registerPatient(); break;
-                case "2": patientControl.viewAllPatients(); break;
+                case "2": viewAllPatientBoundary.show(); break;
                 case "3": patientControl.updatePatient(); break;
                 case "4": patientControl.deletePatient(); break;
                 case "5": patientControl.viewQueue(); break;

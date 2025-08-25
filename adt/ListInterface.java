@@ -5,7 +5,7 @@ package adt;
  * Defines operations for an ordered collection of elements.
  * Author: [Your Name]
  */
-public interface ListADT<T> {   
+public interface ListInterface<T> {   
     // add at end
     void add(T item);            
   
@@ -28,5 +28,7 @@ public interface ListADT<T> {
     boolean isEmpty();      
 
     // remove all elements
-    void clear();                   
+    void clear();      
+    
+    
 }
