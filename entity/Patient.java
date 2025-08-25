@@ -1,9 +1,12 @@
 package entity;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 public abstract class Patient extends Human {
     protected String patientId; // system ID for patient
 
-    public Patient(String patientId, String name, String gender, String birthdate, String phoneNumber) {
+    public Patient(String patientId, String name, String gender, LocalDate birthdate, String phoneNumber) {
         super(name, gender, birthdate, phoneNumber);
         this.patientId = patientId;
     }

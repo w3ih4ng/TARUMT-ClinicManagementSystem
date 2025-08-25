@@ -1,13 +1,16 @@
 package entity;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 public abstract class Human {
     protected String name;
     protected String gender;
-    protected String birthdate;
+    protected LocalDate birthdate;   // changed from String → LocalDate
     protected String phoneNumber;
-    protected boolean isDeleted; // NEW field
+    protected boolean isDeleted; // soft delete flag
 
-    public Human(String name, String gender, String birthdate, String phoneNumber) {
+    public Human(String name, String gender, LocalDate birthdate, String phoneNumber) {
         this.name = name;
         this.gender = gender;
         this.birthdate = birthdate;
@@ -17,24 +20,24 @@ public abstract class Human {
 
     public String getName() { return name; }
     public String getGender() { return gender; }
-    public String getBirthdate() { return birthdate; }
+    public LocalDate getBirthdate() { return birthdate; }
     public String getPhoneNumber() { return phoneNumber; }
     public boolean isDeleted() { return isDeleted; }
 
     public void setName(String name) { this.name = name; }
     public void setGender(String gender) { this.gender = gender; }
-    public void setBirthdate(String birthdate) { this.birthdate = birthdate; }
+    public void setBirthdate(LocalDate birthdate) { this.birthdate = birthdate; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
     // soft delete
     public void delete() { this.isDeleted = true; }
-
     // restore
     public void restore() { this.isDeleted = false; }
 
     @Override
     public String toString() {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return String.format("Name: %s, Gender: %s, Birthdate: %s, Phone: %s, Deleted: %s",
-                name, gender, birthdate, phoneNumber, isDeleted ? "Yes" : "No");
+                name, gender, birthdate.format(fmt), phoneNumber, isDeleted ? "Yes" : "No");
     }
 }

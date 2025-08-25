@@ -1,10 +1,8 @@
 package main;
 
 import java.util.Scanner;
-import boundary.StaffBoundary;
-import control.StaffControl;
-import boundary.DoctorBoundary;
-import control.DoctorControl;
+import boundary.*;
+import control.*;
 
 public class ClinicManagementSystem {
     public static void main(String[] args) {

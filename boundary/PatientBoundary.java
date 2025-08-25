@@ -32,7 +32,7 @@ public class PatientBoundary {
                 case "2": patientControl.viewAllPatients(); break;
                 case "3": patientControl.updatePatient(); break;
                 case "4": patientControl.deletePatient(); break;
-                case "5": patientControl.manageQueue(); break;
+                case "5": patientControl.viewQueue(); break;
                 case "0": return; // back to Staff menu
                 default: System.out.println("Invalid choice, try again.");
             }
