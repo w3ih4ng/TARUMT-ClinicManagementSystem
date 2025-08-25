@@ -1,8 +1,6 @@
 package adt;
 
 import java.util.function.Predicate;
-import java.util.Comparator;
-
 /**
  * Hash table implementation of HashMapInterface
  * Uses separate chaining for collision resolution
