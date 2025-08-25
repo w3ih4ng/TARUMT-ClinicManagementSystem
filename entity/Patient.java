@@ -1,7 +1,6 @@
 package entity;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 public abstract class Patient extends Human {
     protected String patientId; // system ID for patient

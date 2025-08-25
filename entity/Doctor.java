@@ -1,7 +1,6 @@
 package entity;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 public class Doctor extends Human {
     private String doctorId;  // system doctor ID

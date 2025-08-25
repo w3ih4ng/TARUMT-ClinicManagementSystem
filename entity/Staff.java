@@ -1,7 +1,6 @@
 package entity;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 public class Staff extends Patient {
     private String staffId; // staff identity

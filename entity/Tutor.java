@@ -1,7 +1,6 @@
 package entity;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 public class Tutor extends Patient {
     private String tutorId; // school identity
