@@ -117,19 +117,27 @@ public class DoctorControl {
         }
         System.out.println();
 
-        System.out.printf("%-10s %-20s %-8s %-12s %-12s %-20s%n",
-                "Doctor ID", "Name", "Gender", "Birthdate", "Phone", "Specialty");
+        // Format
+        String leftAlignFormat = "| %-10s | %-20s | %-6s | %-10s | %-12s | %-18s |%n";
+        String borderLine = "+------------+----------------------+--------+------------+--------------+--------------------+";
 
+        // Header
+        System.out.println(borderLine);
+        System.out.printf(leftAlignFormat,
+                "Doctor ID", "Name", "Gender", "Birthdate", "Phone", "Specialty");
+        System.out.println(borderLine);
+
+        // Rows
         for (int i = 0; i < doctors.size(); i++) {
             Doctor d = doctors.get(i);
-
-            System.out.printf("%-10s %-20s %-8s %-12s %-12s %-20s%n",
+            System.out.printf(leftAlignFormat,
                     d.getDoctorId(),
                     d.getName(),
                     d.getGender(),
                     d.getBirthdate(),
                     d.getPhoneNumber(),
                     d.getSpecialty());
+            System.out.println(borderLine);
         }
     }
 

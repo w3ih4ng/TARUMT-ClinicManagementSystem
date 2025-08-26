@@ -1,6 +1,7 @@
 package adt;
 
 import java.util.Iterator;
+import java.util.Comparator;
 
 /**
  * Array-based implementation of ListADT
@@ -111,5 +112,18 @@ public class ArrayList<T> implements ListInterface<T>, Iterable<T> {
                 return get(current++);
             }
         };
+    }
+
+    @Override
+    public void sort(Comparator<T> comparator) {
+        for (int i = 0; i < size - 1; i++) {
+            for (int j = 0; j < size - i - 1; j++) {
+                if (comparator.compare(data[j], data[j + 1]) > 0) {
+                    T temp = data[j];
+                    data[j] = data[j + 1];
+                    data[j + 1] = temp;
+                }
+            }
+        }
     }
 }

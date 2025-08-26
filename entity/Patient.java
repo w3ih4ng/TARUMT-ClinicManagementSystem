@@ -1,6 +1,7 @@
 package entity;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 public abstract class Patient extends Human {
     protected String patientId; // system ID for patient
@@ -16,11 +17,12 @@ public abstract class Patient extends Human {
 
     @Override
     public String toString() {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return patientId + " " +
                 name + " " +
                 gender + " " +
                 phoneNumber + " " +
-                birthdate;
+                birthdate.format(fmt);
     }
 
 }

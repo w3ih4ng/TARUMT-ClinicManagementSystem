@@ -52,8 +52,11 @@ public class ViewAllDoctorBoundary {
 
     private HashMapInterface<String, Doctor> handleFilter(Scanner sc, HashMapInterface<String, Doctor> map) {
         System.out.println("\nFilter Options:");
-        System.out.println("1. Specialty");
-        System.out.println("Enter to exit.");
+        System.out.println("1. By Specialty");
+        System.out.println("2. By Gender");
+        System.out.println("3. Show Deleted Only");
+        System.out.println("4. Hide Deleted");
+        System.out.println("Enter to cancel.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
@@ -62,6 +65,16 @@ public class ViewAllDoctorBoundary {
                 System.out.print("\nEnter Specialty: ");
                 String specialty = sc.nextLine().trim();
                 return viewDoctorControl.filterBySpecialty(map, specialty);
+            case "2":
+                System.out.print("\nEnter Gender (M/F): ");
+                String gender = sc.nextLine().trim();
+                return viewDoctorControl.filterByGender(map, gender);
+            case "3":
+                return viewDoctorControl.filterShowDeleted(map);
+            case "4":
+                return viewDoctorControl.filterNotDeleted(map);
+            case "":
+                return map;
             default:
                 System.out.println("\nInvalid filter option.");
                 return map;

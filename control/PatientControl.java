@@ -137,30 +137,44 @@ public class PatientControl {
     public HashMapInterface<String, Patient> getPatientMap() {
         return this.patientMap;
     }
-    
 
     public void printPatientsTable(ListInterface<Patient> patients, String criteriaSummary) {
         if (patients.isEmpty()) {
-            System.out.println("--------------------------------------------- No patients found. ---------------------------------------------");
+            System.out.println(
+                    "------------------------------------------------ No patients found. ------------------------------------------------");
             return;
         }
 
-        if (!criteriaSummary.isEmpty()){
+        if (!criteriaSummary.isEmpty()) {
             System.out.println(criteriaSummary);
-        } 
-        else {
-            System.out.println("--------------------------------------------- No active filter ---------------------------------------------");  
-        } 
-        System.out.println(); 
-    
-        System.out.printf("%-15s %-15s %-8s %-12s %-12s %-10s %-15s %-15s %-15s%n",
+        } else {
+            System.out.println(
+                    "------------------------------------------------ No active filter ------------------------------------------------");
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-15s | %-6s | %-10s | %-12s | %-8s | %-12s | %-12s | %-12s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+-----------------+--------+------------+--------------+----------+--------------+--------------+--------------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
                 "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Role", "Role ID", "Faculty", "Department");
-    
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
         for (int i = 0; i < patients.size(); i++) {
             Patient p = patients.get(i);
-    
+
             String role = "-", roleId = "-", faculty = "-", department = "-";
-    
+
             if (p instanceof Student) {
                 role = "Student";
                 roleId = ((Student) p).getStudentId();
@@ -173,8 +187,9 @@ public class PatientControl {
                 roleId = ((Staff) p).getStaffId();
                 department = ((Staff) p).getDepartment();
             }
-    
-            System.out.printf("%-15s %-15s %-8s %-12s %-12s %-10s %-15s %-15s %-15s%n",
+
+            // Print row
+            System.out.printf(leftAlignFormat,
                     p.getPatientId(),
                     p.getName(),
                     p.getGender(),
@@ -184,21 +199,24 @@ public class PatientControl {
                     roleId,
                     faculty,
                     department);
+
+            // Print row separator after each row
+            System.out.println(borderLine);
         }
     }
-    
+
     public void updatePatient() {
         System.out.print("\nEnter Patient ID to update: ");
         String id = sc.nextLine().trim();
         Patient p = patientMap.get(id);
-    
+
         if (p == null || p.isDeleted()) {
             System.out.println("Patient not found.");
             return;
         }
-    
+
         System.out.println("\nUpdating patient: " + p.getName());
-    
+
         // --- Name ---
         System.out.print("New name (leave blank to keep): ");
         String name = sc.nextLine().trim();
@@ -206,7 +224,7 @@ public class PatientControl {
             p.setName(name);
             System.out.println("Name updated.");
         }
-    
+
         // --- Gender ---
         System.out.print("New gender (M/F, leave blank to keep): ");
         String gender = sc.nextLine().trim().toUpperCase();
@@ -218,7 +236,7 @@ public class PatientControl {
                 System.out.println("Invalid gender. Not updated.");
             }
         }
-    
+
         // --- Birthdate ---
         System.out.print("New birthdate (yyyy-mm-dd, leave blank to keep): ");
         String birthdate = sc.nextLine().trim();
@@ -230,7 +248,7 @@ public class PatientControl {
                 System.out.println("Invalid date format. Not updated.");
             }
         }
-    
+
         // --- Phone ---
         System.out.print("New phone number (leave blank to keep): ");
         String phone = sc.nextLine().trim();
@@ -242,45 +260,45 @@ public class PatientControl {
                 System.out.println("Invalid phone number. Not updated.");
             }
         }
-    
+
         // --- Role-specific fields ---
         if (p instanceof Student) {
             Student s = (Student) p;
-    
+
             System.out.print("New student ID (leave blank to keep): ");
             String sid = sc.nextLine().trim();
             if (!sid.isEmpty()) {
                 s.setStudentId(sid);
                 System.out.println("Student ID updated.");
             }
-    
+
         } else if (p instanceof Tutor) {
             Tutor t = (Tutor) p;
-    
+
             System.out.print("New tutor ID (leave blank to keep): ");
             String tid = sc.nextLine().trim();
             if (!tid.isEmpty()) {
                 t.setTutorId(tid);
                 System.out.println("Tutor ID updated.");
             }
-    
+
             System.out.print("New faculty (leave blank to keep): ");
             String faculty = sc.nextLine().trim();
             if (!faculty.isEmpty()) {
                 t.setFaculty(faculty);
                 System.out.println("Faculty updated.");
             }
-    
+
         } else if (p instanceof Staff) {
             Staff st = (Staff) p;
-    
+
             System.out.print("New staff ID (leave blank to keep): ");
             String stid = sc.nextLine().trim();
             if (!stid.isEmpty()) {
                 st.setStaffId(stid);
                 System.out.println("Staff ID updated.");
             }
-    
+
             System.out.print("New department (leave blank to keep): ");
             String dept = sc.nextLine().trim();
             if (!dept.isEmpty()) {
@@ -288,12 +306,11 @@ public class PatientControl {
                 System.out.println("Department updated.");
             }
         }
-    
+
         // --- Save changes ---
         PatientDAO.savePatients(patientMap);
         System.out.println("\nPatient updated successfully.");
     }
-    
 
     public void deletePatient() {
         System.out.print("\nEnter Patient ID to delete: ");

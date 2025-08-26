@@ -3,3 +3,4 @@ D1002|Bob Lim|M|1975-11-20|0198765432|Neurology
 D1003|Catherine Wong|F|1985-07-08|0171234567|Pediatrics
 D1004|David Lee|M|1990-03-15|0169876543|Orthopedics
 D1005|Evelyn Ng|F|1982-09-30|0145678901|Dermatology
+D1006|Wei Hang|M|2005-05-23|0199540523|Cardiology

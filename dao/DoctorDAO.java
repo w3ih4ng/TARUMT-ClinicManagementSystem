@@ -63,7 +63,8 @@ public class DoctorDAO {
                 d.getGender(),
                 d.getBirthdate().format(formatter),
                 d.getPhoneNumber(),
-                d.getSpecialty()
+                d.getSpecialty(),
+                Boolean.toString(d.isDeleted())   // ✅ include deleted flag
         );
     }
 
@@ -77,8 +78,12 @@ public class DoctorDAO {
             LocalDate birthdate = LocalDate.parse(parts[3], formatter);
             String phone = parts[4];
             String specialty = parts[5];
+            boolean deleted = (parts.length > 6) && Boolean.parseBoolean(parts[6]); // ✅ handle isDeleted
 
-            return new Doctor(doctorId, name, gender, birthdate, phone, specialty);
+            Doctor d = new Doctor(doctorId, name, gender, birthdate, phone, specialty);
+            if (deleted) d.delete(); // mark as deleted if flag is true
+
+            return d;
         } catch (Exception e) {
             System.out.println("Error parsing doctor line: " + line);
             return null;

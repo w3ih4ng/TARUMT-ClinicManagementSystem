@@ -1,5 +1,7 @@
 package adt;
 
+import java.util.Comparator;
+
 /**
  * List Abstract Data Type (ADT)
  * Defines operations for an ordered collection of elements.
@@ -30,5 +32,5 @@ public interface ListInterface<T> extends Iterable<T>{
     // remove all elements
     void clear();      
     
-    
+    void sort(Comparator<T> comparator);
 }

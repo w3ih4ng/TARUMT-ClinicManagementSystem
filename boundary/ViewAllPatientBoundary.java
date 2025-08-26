@@ -28,6 +28,7 @@ public class ViewAllPatientBoundary {
             System.out.println("1. Filter");
             System.out.println("2. Search");
             System.out.println("3. Reset");
+            System.out.println("4. Sort");
             System.out.println("0. Back");
             System.out.print("Choose: ");
             String choice = sc.nextLine().trim();
@@ -42,6 +43,9 @@ public class ViewAllPatientBoundary {
                 case "3":
                     currentView = baseView; // reset
                     viewPatientControl.clearCriteria();
+                    break;
+                case "4":
+                    currentView = handleSort(sc, currentView);
                     break;
                 case "0":
                     viewPatientControl.clearCriteria();
@@ -87,4 +91,21 @@ public class ViewAllPatientBoundary {
         HashMapInterface<String, Patient> results = viewPatientControl.searchPatients(map, keyword);
         return results;
     }
+
+    private HashMapInterface<String, Patient> handleSort(Scanner sc, HashMapInterface<String, Patient> map) {
+        System.out.println("\nSort Options:");
+        System.out.println("1. Patient ID");
+        System.out.println("2. Name");
+        System.out.println("3. Gender");
+        System.out.println("4. Birthdate");
+        System.out.println("Enter to cancel.");
+        System.out.print("Choose: ");
+        String choice = sc.nextLine().trim();
+    
+        ListInterface<Patient> sortedList = viewPatientControl.sortPatients(map, choice);
+        viewPatientControl.printPatientsFromList(sortedList); // new method to print from list
+    
+        return map; // sorting doesn’t change the map, just the display
+    }
+    
 }

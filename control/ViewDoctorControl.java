@@ -36,6 +36,21 @@ public class ViewDoctorControl {
         return map.filter(d -> d.getSpecialty().equalsIgnoreCase(specialty));
     }
 
+    public HashMapInterface<String, Doctor> filterByGender(HashMapInterface<String, Doctor> map, String gender) {
+        addCriteria("Gender = " + gender);
+        return map.filter(d -> d.getGender().equalsIgnoreCase(gender));
+    }
+
+    public HashMapInterface<String, Doctor> filterShowDeleted(HashMapInterface<String, Doctor> map) {
+        addCriteria("Show Deleted");
+        return map.filter(Doctor::isDeleted);
+    }
+
+    public HashMapInterface<String, Doctor> filterNotDeleted(HashMapInterface<String, Doctor> map) {
+        addCriteria("Hide Deleted");
+        return map.filter(d -> !d.isDeleted());
+    }
+
     // --- Search ---
     public HashMapInterface<String, Doctor> searchDoctors(HashMapInterface<String, Doctor> map, String keyword) {
         addCriteria("Search = \"" + keyword + "\"");
@@ -45,6 +60,8 @@ public class ViewDoctorControl {
 
     // --- Display wrapper ---
     public void printDoctors(HashMapInterface<String, Doctor> map) {
-        doctorControl.printDoctorsTable(map.toList(), getCriteriaSummary()); // convert to list just for printing
+        ListInterface<Doctor> list = map.toList();
+        list.sort((p1, p2) -> p1.getDoctorId().compareTo(p2.getDoctorId()));
+        doctorControl.printDoctorsTable(map.toList(), getCriteriaSummary());
     }
 }

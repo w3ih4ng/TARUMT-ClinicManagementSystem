@@ -1,16 +1,17 @@
 package control;
 
-import boundary.PatientManagementBoundary;
-import boundary.DoctorManagementBoundary;
+import boundary.*;
 
 public class StaffControl {
     private PatientManagementBoundary patientManagementBoundary;
     private DoctorManagementBoundary doctorManagementBoundary;
+    private PharmacyBoundary pharmacyBoundary;
 
     public StaffControl() {
         // Initialize modules staff can access
         this.patientManagementBoundary = new PatientManagementBoundary(new PatientControl(),new PatientQueueControl());
         this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorControl());
+        this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
     }
 
     public void openPatientModule() {
@@ -32,7 +33,6 @@ public class StaffControl {
     }
 
     public void openPharmacyModule() {
-        System.out.println("[Pharmacy Module - placeholder]");
-        // later: new PharmacyBoundary(new PharmacyControl()).mainMenu();
+        pharmacyBoundary.mainMenu();
     }
 }

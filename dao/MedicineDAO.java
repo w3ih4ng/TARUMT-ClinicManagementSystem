@@ -4,11 +4,11 @@ import entity.Medicine;
 import adt.*;
 
 import java.io.*;
-import java.util.*;
 
-public class PharmacyDAO {
+public class MedicineDAO {
     private static final String FILE_NAME = "data/medicines.txt";
 
+    // Ensure file exists
     private static void ensureFile() {
         try {
             File file = new File(FILE_NAME);
@@ -21,15 +21,13 @@ public class PharmacyDAO {
     }
 
     // Save all medicines
-    public static void saveMedicines(HashMapInterface<String, Medicine> map) {
+    public static void saveMedicines(HashMapInterface<String, Medicine> medicineMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
-            for (int i = 0; i < map.keySet().size(); i++) {
-                String key = map.keySet().get(i);
-                Medicine m = map.get(key);
-                if (m != null) {
-                    pw.println(toFileString(m));
-                }
+            for (int i = 0; i < medicineMap.keySet().size(); i++) {
+                String key = medicineMap.keySet().get(i);
+                Medicine m = medicineMap.get(key);
+                if (m != null) pw.println(toFileString(m));
             }
         } catch (IOException e) {
             System.out.println("Error saving medicines: " + e.getMessage());
@@ -40,6 +38,7 @@ public class PharmacyDAO {
     public static HashMapInterface<String, Medicine> loadMedicines() {
         ensureFile();
         HashMapInterface<String, Medicine> map = new HashMapADT<>();
+
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -49,28 +48,36 @@ public class PharmacyDAO {
         } catch (IOException e) {
             System.out.println("Error loading medicines: " + e.getMessage());
         }
+
         return map;
     }
 
+    // Convert Medicine to file line
     private static String toFileString(Medicine m) {
         return String.join("|",
                 m.getMedicineId(),
                 m.getName(),
                 m.getDosage(),
-                Integer.toString(m.getQuantity()),
-                Double.toString(m.getPrice())
+                String.valueOf(m.getQuantity()),
+                String.valueOf(m.getPrice()),
+                Boolean.toString(m.isDeleted())   // <-- Added deleted flag
         );
     }
 
+    // Convert file line to Medicine
     private static Medicine fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            String id = parts[0];
+            String medicineId = parts[0];
             String name = parts[1];
             String dosage = parts[2];
-            int qty = Integer.parseInt(parts[3]);
+            int quantity = Integer.parseInt(parts[3]);
             double price = Double.parseDouble(parts[4]);
-            return new Medicine(id, name, dosage, qty, price);
+            boolean deleted = parts.length > 5 && Boolean.parseBoolean(parts[5]);
+
+            Medicine m = new Medicine(medicineId, name, dosage, quantity, price);
+            if (deleted) m.delete();  // mark as deleted
+            return m;
         } catch (Exception e) {
             System.out.println("Error parsing medicine line: " + line);
             return null;
