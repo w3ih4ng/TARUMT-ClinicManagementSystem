@@ -1,17 +1,21 @@
 package boundary;
 
 import java.util.Scanner;
-import control.PatientControl;
+import control.*;
 
 public class PatientManagementBoundary {
     private Scanner sc;
     private PatientControl patientControl;
     private ViewAllPatientBoundary viewAllPatientBoundary;
+    private PatientQueueBoundary queueBoundary;
+    private PatientQueueControl queueControl;
 
-    public PatientManagementBoundary(PatientControl patientControl) {
+    public PatientManagementBoundary(PatientControl patientControl, PatientQueueControl queueControl) {
         this.sc = new Scanner(System.in);
         this.patientControl = patientControl;
         this.viewAllPatientBoundary = new ViewAllPatientBoundary(patientControl);
+        this.queueControl = queueControl;
+        this.queueBoundary = new PatientQueueBoundary(queueControl);
     }
 
     public void mainMenu() {
@@ -34,7 +38,8 @@ public class PatientManagementBoundary {
                 case "2": viewAllPatientBoundary.show(); break;
                 case "3": patientControl.updatePatient(); break;
                 case "4": patientControl.deletePatient(); break;
-                case "5": patientControl.viewQueue(); break;
+                case "5": queueBoundary.menu(); break;
+
                 case "0": return; // back to Staff menu
                 default: System.out.println("Invalid choice, try again.");
             }

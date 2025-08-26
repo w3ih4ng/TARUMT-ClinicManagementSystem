@@ -1,0 +1,5 @@
+D1001|Alice Tan|F|1980-05-12|0123456789|Cardiology
+D1002|Bob Lim|M|1975-11-20|0198765432|Neurology
+D1003|Catherine Wong|F|1985-07-08|0171234567|Pediatrics
+D1004|David Lee|M|1990-03-15|0169876543|Orthopedics
+D1005|Evelyn Ng|F|1982-09-30|0145678901|Dermatology

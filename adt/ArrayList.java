@@ -7,7 +7,7 @@ import java.util.Iterator;
  * Author: [Your Name]
  */
 @SuppressWarnings("unchecked")
-public class ArrayList<T> implements ListInterface<T>, Iterable<T>  {
+public class ArrayList<T> implements ListInterface<T>, Iterable<T> {
     private T[] data;
     private int size;
     private static final int DEFAULT_CAPACITY = 10;
@@ -35,7 +35,8 @@ public class ArrayList<T> implements ListInterface<T>, Iterable<T>  {
 
     @Override
     public void add(int index, T item) {
-        if (index < 0 || index > size) throw new IndexOutOfBoundsException();
+        if (index < 0 || index > size)
+            throw new IndexOutOfBoundsException();
         ensureCapacity();
         for (int i = size; i > index; i--) {
             data[i] = data[i - 1];
@@ -45,23 +46,35 @@ public class ArrayList<T> implements ListInterface<T>, Iterable<T>  {
     }
 
     @Override
-    public void remove(int index) {
-        if (index < 0 || index >= size) throw new IndexOutOfBoundsException();
+    public T remove(int index) {
+        if (index < 0 || index >= size)
+            throw new IndexOutOfBoundsException();
+
+        // Save the element to return
+        T removed = (T) data[index];
+
+        // Shift elements left
         for (int i = index; i < size - 1; i++) {
             data[i] = data[i + 1];
         }
-        data[--size] = null; // clear last slot
+
+        // Clear the last slot & update size
+        data[--size] = null;
+
+        return removed;
     }
 
     @Override
     public T get(int index) {
-        if (index < 0 || index >= size) throw new IndexOutOfBoundsException();
+        if (index < 0 || index >= size)
+            throw new IndexOutOfBoundsException();
         return data[index];
     }
 
     @Override
     public void set(int index, T item) {
-        if (index < 0 || index >= size) throw new IndexOutOfBoundsException();
+        if (index < 0 || index >= size)
+            throw new IndexOutOfBoundsException();
         data[index] = item;
     }
 

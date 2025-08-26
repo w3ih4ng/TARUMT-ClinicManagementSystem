@@ -16,7 +16,6 @@ public class PatientControl {
 
     public PatientControl() {
         this.patientMap = PatientDAO.loadPatients();
-        this.patientQueue = new ArrayList<>();
         this.sc = new Scanner(System.in);
         initCounterFromMap();
     }
@@ -95,7 +94,7 @@ public class PatientControl {
         // Role validation
         String roleChoice = "";
         while (true) {
-            System.out.println("Role: 1. Student  2. Tutor  3. Staff");
+            System.out.println("Role: \n1. Student  \n2. Tutor  \n3. Staff");
             System.out.print("Choose: ");
             roleChoice = sc.nextLine().trim();
             if (roleChoice.equals("1") || roleChoice.equals("2") || roleChoice.equals("3")) {
@@ -131,7 +130,7 @@ public class PatientControl {
 
         patientMap.put(patientId, patient);
         PatientDAO.savePatients(patientMap); // save immediately
-        System.out.println("✅ Patient registered successfully! Patient ID: " + patientId);
+        System.out.println("\nPatient registered successfully! Patient ID: " + patientId);
     }
 
     // patientmap
@@ -140,11 +139,19 @@ public class PatientControl {
     }
     
 
-    public void printPatientsTable(ListInterface<Patient> patients) {
+    public void printPatientsTable(ListInterface<Patient> patients, String criteriaSummary) {
         if (patients.isEmpty()) {
-            System.out.println("No patients found.");
+            System.out.println("--------------------------------------------- No patients found. ---------------------------------------------");
             return;
         }
+
+        if (!criteriaSummary.isEmpty()){
+            System.out.println(criteriaSummary);
+        } 
+        else {
+            System.out.println("--------------------------------------------- No active filter ---------------------------------------------");  
+        } 
+        System.out.println(); 
     
         System.out.printf("%-15s %-15s %-8s %-12s %-12s %-10s %-15s %-15s %-15s%n",
                 "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Role", "Role ID", "Faculty", "Department");
@@ -180,19 +187,51 @@ public class PatientControl {
         }
     }
     
-
     public void updatePatient() {
         System.out.print("\nEnter Patient ID to update: ");
         String id = sc.nextLine().trim();
         Patient p = patientMap.get(id);
-
+    
         if (p == null || p.isDeleted()) {
             System.out.println("Patient not found.");
             return;
         }
-
-        System.out.println("Updating patient: " + p.getName());
-
+    
+        System.out.println("\nUpdating patient: " + p.getName());
+    
+        // --- Name ---
+        System.out.print("New name (leave blank to keep): ");
+        String name = sc.nextLine().trim();
+        if (!name.isEmpty()) {
+            p.setName(name);
+            System.out.println("Name updated.");
+        }
+    
+        // --- Gender ---
+        System.out.print("New gender (M/F, leave blank to keep): ");
+        String gender = sc.nextLine().trim().toUpperCase();
+        if (!gender.isEmpty()) {
+            if (gender.equals("M") || gender.equals("F")) {
+                p.setGender(gender);
+                System.out.println("Gender updated.");
+            } else {
+                System.out.println("Invalid gender. Not updated.");
+            }
+        }
+    
+        // --- Birthdate ---
+        System.out.print("New birthdate (yyyy-mm-dd, leave blank to keep): ");
+        String birthdate = sc.nextLine().trim();
+        if (!birthdate.isEmpty()) {
+            try {
+                p.setBirthdate(java.time.LocalDate.parse(birthdate));
+                System.out.println("Birthdate updated.");
+            } catch (Exception e) {
+                System.out.println("Invalid date format. Not updated.");
+            }
+        }
+    
+        // --- Phone ---
         System.out.print("New phone number (leave blank to keep): ");
         String phone = sc.nextLine().trim();
         if (!phone.isEmpty()) {
@@ -203,10 +242,58 @@ public class PatientControl {
                 System.out.println("Invalid phone number. Not updated.");
             }
         }
-
-        PatientDAO.savePatients(patientMap); // persist changes
-        System.out.println("Patient updated successfully.");
+    
+        // --- Role-specific fields ---
+        if (p instanceof Student) {
+            Student s = (Student) p;
+    
+            System.out.print("New student ID (leave blank to keep): ");
+            String sid = sc.nextLine().trim();
+            if (!sid.isEmpty()) {
+                s.setStudentId(sid);
+                System.out.println("Student ID updated.");
+            }
+    
+        } else if (p instanceof Tutor) {
+            Tutor t = (Tutor) p;
+    
+            System.out.print("New tutor ID (leave blank to keep): ");
+            String tid = sc.nextLine().trim();
+            if (!tid.isEmpty()) {
+                t.setTutorId(tid);
+                System.out.println("Tutor ID updated.");
+            }
+    
+            System.out.print("New faculty (leave blank to keep): ");
+            String faculty = sc.nextLine().trim();
+            if (!faculty.isEmpty()) {
+                t.setFaculty(faculty);
+                System.out.println("Faculty updated.");
+            }
+    
+        } else if (p instanceof Staff) {
+            Staff st = (Staff) p;
+    
+            System.out.print("New staff ID (leave blank to keep): ");
+            String stid = sc.nextLine().trim();
+            if (!stid.isEmpty()) {
+                st.setStaffId(stid);
+                System.out.println("Staff ID updated.");
+            }
+    
+            System.out.print("New department (leave blank to keep): ");
+            String dept = sc.nextLine().trim();
+            if (!dept.isEmpty()) {
+                st.setDepartment(dept);
+                System.out.println("Department updated.");
+            }
+        }
+    
+        // --- Save changes ---
+        PatientDAO.savePatients(patientMap);
+        System.out.println("\nPatient updated successfully.");
     }
+    
 
     public void deletePatient() {
         System.out.print("\nEnter Patient ID to delete: ");
@@ -220,48 +307,7 @@ public class PatientControl {
 
         p.delete();
         PatientDAO.savePatients(patientMap); // persist deletion
-        System.out.println("Patient soft-deleted successfully.");
-    }
-
-    // ========== Queue Management ==========
-    public void enqueuePatient() {
-        System.out.print("\nEnter Patient ID to enqueue: ");
-        String id = sc.nextLine().trim();
-        Patient p = patientMap.get(id);
-
-        if (p == null || p.isDeleted()) {
-            System.out.println("Patient not found.");
-            return;
-        }
-
-        patientQueue.add(id);
-        System.out.println("Patient " + id + " added to queue.");
-    }
-
-    public void dequeuePatient() {
-        if (patientQueue.isEmpty()) {
-            System.out.println("Queue is empty.");
-            return;
-        }
-
-        String id = patientQueue.get(0);
-        patientQueue.remove(0);
-        System.out.println("Patient " + id + " dequeued.");
-    }
-
-    public void viewQueue() {
-        System.out.println("\n--- Patient Queue ---");
-        if (patientQueue.isEmpty()) {
-            System.out.println("Queue is empty.");
-            return;
-        }
-
-        for (int i = 0; i < patientQueue.size(); i++) {
-            Patient p = patientMap.get(patientQueue.get(i));
-            if (p != null && !p.isDeleted()) {
-                System.out.println((i + 1) + ". " + p);
-            }
-        }
+        System.out.println("Patient deleted successfully.");
     }
 
     // ========== Reports ==========

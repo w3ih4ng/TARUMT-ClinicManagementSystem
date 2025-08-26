@@ -29,7 +29,7 @@ public class StaffMenuBoundary {
 
             switch (choice) {
                 case "1": staffControl.openPatientModule(); break;
-                case "2": staffControl.openDoctorModule(); break;   // NEW
+                case "2": staffControl.openDoctorManagementModule(); break;   // NEW
                 case "3": staffControl.openConsultationModule(); break;
                 case "4": staffControl.openTreatmentModule(); break;
                 case "5": staffControl.openPharmacyModule(); break;

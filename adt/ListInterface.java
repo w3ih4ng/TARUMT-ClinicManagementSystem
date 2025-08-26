@@ -5,7 +5,7 @@ package adt;
  * Defines operations for an ordered collection of elements.
  * Author: [Your Name]
  */
-public interface ListInterface<T> {   
+public interface ListInterface<T> extends Iterable<T>{   
     // add at end
     void add(T item);            
   
@@ -13,7 +13,7 @@ public interface ListInterface<T> {
     void add(int index, T item);  
       
     // remove element at index
-    void remove(int index);   
+    T remove(int index);   
 
     // retrieve element
     T get(int index);               

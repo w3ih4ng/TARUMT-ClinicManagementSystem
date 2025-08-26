@@ -28,13 +28,13 @@ public class DoctorMenuBoundary {
             String choice = sc.nextLine();
 
             switch (choice) {
-                case "1": doctorControl.viewQueue(); break;
-                case "2": doctorControl.startConsultation(); break;
-                case "3": doctorControl.recordTreatment(); break;
-                case "4": doctorControl.viewTreatmentHistory(); break;
-                case "5": doctorControl.manageSchedule(); break;
-                case "0": return;
-                default: System.out.println("Invalid choice, try again.");
+                //case "1": doctorControl.viewQueue(); break;
+                //case "2": doctorControl.startConsultation(); break;
+                //case "3": doctorControl.recordTreatment(); break;
+                //case "4": doctorControl.viewTreatmentHistory(); break;
+                //case "5": doctorControl.manageSchedule(); break;
+                //case "0": return;
+                //default: System.out.println("Invalid choice, try again.");
             }
         }
     }
