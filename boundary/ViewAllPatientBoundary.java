@@ -17,35 +17,41 @@ public class ViewAllPatientBoundary {
 
     public void show() {
         HashMapInterface<String, Patient> baseView = viewPatientControl.getPatientMap();
-        HashMapInterface<String, Patient> currentView = baseView;
+        HashMapInterface<String, Patient> currentMap = baseView;
+        ListInterface<Patient> currentList = viewPatientControl.toList(currentMap);
+
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println("\n---------------------------------------- Patient List ----------------------------------------\n");
-            viewPatientControl.printPatients(currentView);
+            System.out.println(
+                    "\n---------------------------------------- Patient List ----------------------------------------\n");
+            viewPatientControl.printPatientsFromList(currentList);
 
             System.out.println("\nOptions:");
             System.out.println("1. Filter");
             System.out.println("2. Search");
-            System.out.println("3. Reset");
-            System.out.println("4. Sort");
+            System.out.println("3. Sort");
+            System.out.println("4. Reset");
             System.out.println("0. Back");
             System.out.print("Choose: ");
             String choice = sc.nextLine().trim();
 
             switch (choice) {
                 case "1":
-                    currentView = handleFilter(sc, currentView);
+                    currentMap = handleFilter(sc, currentMap);
+                    currentList = viewPatientControl.toList(currentMap);
                     break;
                 case "2":
-                    currentView = handleSearch(sc, currentView);
+                    currentMap = handleSearch(sc, currentMap);
+                    currentList = viewPatientControl.toList(currentMap);
                     break;
                 case "3":
-                    currentView = baseView; // reset
-                    viewPatientControl.clearCriteria();
+                    handleSort(sc, currentList);
                     break;
                 case "4":
-                    currentView = handleSort(sc, currentView);
+                    currentMap = baseView; // reset
+                    currentList = viewPatientControl.toList(currentMap);
+                    viewPatientControl.clearCriteria();
                     break;
                 case "0":
                     viewPatientControl.clearCriteria();
@@ -92,7 +98,7 @@ public class ViewAllPatientBoundary {
         return results;
     }
 
-    private HashMapInterface<String, Patient> handleSort(Scanner sc, HashMapInterface<String, Patient> map) {
+    private void handleSort(Scanner sc, ListInterface<Patient> list) {
         System.out.println("\nSort Options:");
         System.out.println("1. Patient ID");
         System.out.println("2. Name");
@@ -101,11 +107,28 @@ public class ViewAllPatientBoundary {
         System.out.println("Enter to cancel.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
-    
-        ListInterface<Patient> sortedList = viewPatientControl.sortPatients(map, choice);
-        viewPatientControl.printPatientsFromList(sortedList); // new method to print from list
-    
-        return map; // sorting doesn’t change the map, just the display
+
+        if (choice.isEmpty())
+            return;
+
+        System.out.println("Sort Order:");
+        System.out.println("1. Ascending");
+        System.out.println("2. Descending");
+        System.out.print("Choose: ");
+        String orderChoice = sc.nextLine().trim();
+
+        switch (orderChoice) {
+            case "1":
+                viewPatientControl.sortPatients(list, choice); // ascending
+                break;
+            case "2":
+                viewPatientControl.reverseSortPatients(list, choice); // descending
+                break;
+            default:
+                System.out.println("Invalid order. Defaulting to ascending.");
+                viewPatientControl.sortPatients(list, choice);
+                break;
+        }
     }
-    
+
 }

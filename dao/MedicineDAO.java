@@ -1,6 +1,7 @@
 package dao;
 
 import entity.Medicine;
+import entity.Medicine.Unit;
 import adt.*;
 
 import java.io.*;
@@ -57,10 +58,11 @@ public class MedicineDAO {
         return String.join("|",
                 m.getMedicineId(),
                 m.getName(),
-                m.getDosage(),
+                String.valueOf(m.getDosage()),
+                m.getUnit().name(),  // save enum name
                 String.valueOf(m.getQuantity()),
                 String.valueOf(m.getPrice()),
-                Boolean.toString(m.isDeleted())   // <-- Added deleted flag
+                Boolean.toString(m.isDeleted())
         );
     }
 
@@ -70,13 +72,14 @@ public class MedicineDAO {
             String[] parts = line.split("\\|");
             String medicineId = parts[0];
             String name = parts[1];
-            String dosage = parts[2];
-            int quantity = Integer.parseInt(parts[3]);
-            double price = Double.parseDouble(parts[4]);
-            boolean deleted = parts.length > 5 && Boolean.parseBoolean(parts[5]);
+            double dosage = Double.parseDouble(parts[2]);
+            Unit unit = Unit.valueOf(parts[3]); // parse enum
+            int quantity = Integer.parseInt(parts[4]);
+            double price = Double.parseDouble(parts[5]);
+            boolean deleted = parts.length > 6 && Boolean.parseBoolean(parts[6]);
 
-            Medicine m = new Medicine(medicineId, name, dosage, quantity, price);
-            if (deleted) m.delete();  // mark as deleted
+            Medicine m = new Medicine(medicineId, name, dosage, unit, quantity, price);
+            if (deleted) m.delete();
             return m;
         } catch (Exception e) {
             System.out.println("Error parsing medicine line: " + line);

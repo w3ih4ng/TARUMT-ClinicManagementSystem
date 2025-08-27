@@ -1,11 +1,11 @@
-MED001|Aspirin|100mg|250|0.4|false
-MED002|Insulin|10ml|40|5.5|false
-MED003|Metformin|500mg|80|1.1|false
-MED004|Antihistamine|10mg|120|0.9|false
-MED005|Vitamin C|1000mg|300|0.3|false
-MED006|Cough Syrup|100ml|50|2.5|false
-MED007|Ibuprofen|200mg|100|0.8|false
-MED008|Amoxicillin|250mg|150|1.2|false
-MED009|Paracetamol|500mg|200|0.5|false
-MED010|asd|1|1|1.0|true
-MED011|Omeprazole|20mg|60|1.7|false
+MED001|Aspirin|100|MG|250|0.4|false
+MED002|Insulin|10|ML|40|5.5|false
+MED003|Metformin|500|MG|80|1.1|false
+MED004|Antihistamine|10|MG|120|0.9|false
+MED005|Vitamin C|1000|MG|300|0.3|false
+MED006|Cough Syrup|100|ML|50|2.5|false
+MED007|Ibuprofen|200|MG|100|0.8|false
+MED008|Amoxicillin|250|MG|150|1.2|false
+MED009|Paracetamol|500|MG|200|0.5|false
+MED010|asd|1|TABLET|1|1.0|true
+MED011|Omeprazole|20|MG|60|1.7|false

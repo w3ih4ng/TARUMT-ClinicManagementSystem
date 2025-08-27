@@ -1,6 +1,7 @@
 package control;
 
 import entity.Medicine;
+import entity.Medicine.Unit;
 import adt.*;
 import dao.MedicineDAO;
 
@@ -17,24 +18,22 @@ public class MedicineControl {
         initCounterFromMap();
     }
 
-    // Initialize counter by scanning existing medicine IDs
     private void initCounterFromMap() {
         int max = 0;
         ListInterface<String> keys = medicineMap.keySet();
         for (int i = 0; i < keys.size(); i++) {
-            String key = keys.get(i); // e.g., "MED010"
+            String key = keys.get(i);
             try {
                 int num = Integer.parseInt(key.substring(3));
                 if (num > max)
                     max = num;
             } catch (NumberFormatException e) {
-                // ignore
+                // ignore invalid keys
             }
         }
         medicineCounter = max + 1;
     }
 
-    // Generate new Medicine ID
     private String generateMedicineId() {
         String id;
         do {
@@ -50,8 +49,47 @@ public class MedicineControl {
         System.out.print("Name: ");
         String name = sc.nextLine().trim();
 
-        System.out.print("Dosage (e.g., 500mg, 10ml): ");
-        String dosage = sc.nextLine().trim();
+        double dosage = 0;
+        while (true) {
+            System.out.print("Dosage (numeric): ");
+            String input = sc.nextLine().trim();
+            try {
+                dosage = Double.parseDouble(input);
+                if (dosage > 0)
+                    break;
+                System.out.println("Dosage must be positive.");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Enter a number.");
+            }
+        }
+
+        Unit unit = null;
+        while (unit == null) {
+            System.out.println("Select Unit:");
+            System.out.println("1. MG");
+            System.out.println("2. ML");
+            System.out.println("3. TABLET");
+            System.out.println("4. CAPSULE");
+            System.out.print("Choose: ");
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    unit = Unit.MG;
+                    break;
+                case "2":
+                    unit = Unit.ML;
+                    break;
+                case "3":
+                    unit = Unit.TABLET;
+                    break;
+                case "4":
+                    unit = Unit.CAPSULE;
+                    break;
+                default:
+                    System.out.println("Invalid choice. Try again.");
+            }
+        }
 
         int quantity = 0;
         while (true) {
@@ -82,15 +120,14 @@ public class MedicineControl {
         }
 
         String medicineId = generateMedicineId();
-        Medicine med = new Medicine(medicineId, name, dosage, quantity, price);
-
+        Medicine med = new Medicine(medicineId, name, dosage, unit, quantity, price);
         medicineMap.put(medicineId, med);
-        MedicineDAO.saveMedicines(medicineMap); // persist
+        MedicineDAO.saveMedicines(medicineMap);
         System.out.println("\nMedicine added successfully! Medicine ID: " + medicineId);
     }
 
     public HashMapInterface<String, Medicine> getMedicineMap() {
-        return this.medicineMap;
+        return medicineMap;
     }
 
     public void printMedicinesTable(ListInterface<Medicine> medicines, String criteriaSummary) {
@@ -100,38 +137,32 @@ public class MedicineControl {
             return;
         }
 
-        if (!criteriaSummary.isEmpty()) {
-            System.out.println(criteriaSummary);
-        } else {
-            System.out.println(
-                    "--------------------------------------------- No active filter ---------------------------------------------");
-        }
+        System.out.println(criteriaSummary.isEmpty()
+                ? "--------------------------------------------- No active filter ---------------------------------------------"
+                : criteriaSummary);
         System.out.println();
 
-        // Format
-        String leftAlignFormat = "| %-8s | %-20s | %-12s | %-8d | $%-9.2f |%n";
-        String borderLine = "+----------+----------------------+--------------+----------+------------+";
-
-        // Header
+        // Updated column widths
+        String borderLine = "+------------+---------------------------+------------+------------+------------+------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-8s | %-20s | %-12s | %-8s | %-10s |%n",
-                "Med ID", "Name", "Dosage", "Quantity", "Price");
+        System.out.printf("| %-10s | %-25s | %-10s | %-10s | %-10s | %-10s |%n",
+                "Med ID", "Name", "Dosage", "Unit", "Quantity", "Price");
         System.out.println(borderLine);
 
-        // Rows
         for (int i = 0; i < medicines.size(); i++) {
             Medicine m = medicines.get(i);
-            System.out.printf("| %-8s | %-20s | %-12s | %-8d | $%-9.2f |%n",
+            int dosageInt = (int) m.getDosage(); // cast to int to remove decimal
+            System.out.printf("| %-10s | %-25s | %10d | %-10s | %-10d | $%-9.2f |%n",
                     m.getMedicineId(),
                     m.getName(),
-                    m.getDosage(),
+                    dosageInt,
+                    m.getUnit(),
                     m.getQuantity(),
                     m.getPrice());
             System.out.println(borderLine);
         }
     }
 
-    // --- Update ---
     public void updateMedicine() {
         System.out.print("\nEnter Medicine ID to update: ");
         String id = sc.nextLine().trim();
@@ -150,15 +181,44 @@ public class MedicineControl {
             m.setName(name);
 
         System.out.print("New dosage (leave blank to keep): ");
-        String dosage = sc.nextLine().trim();
-        if (!dosage.isEmpty())
-            m.setDosage(dosage);
+        String dosageStr = sc.nextLine().trim();
+        if (!dosageStr.isEmpty()) {
+            try {
+                double d = Double.parseDouble(dosageStr);
+                if (d > 0)
+                    m.setDosage(d);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number. Dosage not updated.");
+            }
+        }
+
+        System.out.println("Select new Unit (leave blank to keep):");
+        System.out.println("1. MG  2. ML  3. TABLET  4. CAPSULE");
+        String unitChoice = sc.nextLine().trim();
+        switch (unitChoice) {
+            case "1":
+                m.setUnit(Unit.MG);
+                break;
+            case "2":
+                m.setUnit(Unit.ML);
+                break;
+            case "3":
+                m.setUnit(Unit.TABLET);
+                break;
+            case "4":
+                m.setUnit(Unit.CAPSULE);
+                break;
+            case "":
+                break; // keep current
+            default:
+                System.out.println("Invalid choice. Unit not updated.");
+        }
 
         System.out.print("New quantity (leave blank to keep): ");
-        String quantityStr = sc.nextLine().trim();
-        if (!quantityStr.isEmpty()) {
+        String qtyStr = sc.nextLine().trim();
+        if (!qtyStr.isEmpty()) {
             try {
-                int qty = Integer.parseInt(quantityStr);
+                int qty = Integer.parseInt(qtyStr);
                 if (qty >= 0)
                     m.setQuantity(qty);
             } catch (NumberFormatException e) {
@@ -182,7 +242,6 @@ public class MedicineControl {
         System.out.println("Medicine updated successfully.");
     }
 
-    // --- Delete ---
     public void deleteMedicine() {
         System.out.print("\nEnter Medicine ID to delete: ");
         String id = sc.nextLine().trim();
@@ -198,24 +257,23 @@ public class MedicineControl {
         System.out.println("Medicine deleted successfully.");
     }
 
-    // --- Reports ---
     public void reportLowStock(int threshold) {
         System.out.println("\n--- Medicines Below Stock Threshold (" + threshold + ") ---");
 
         ListInterface<String> keys = medicineMap.keySet();
         boolean found = false;
 
-        System.out.printf("%-8s %-20s %-12s %-10s %-10s%n",
-                "Med ID", "Name", "Dosage", "Quantity", "Price");
+        System.out.printf("%-8s %-20s %-12s %-10s %-10s%n", "Med ID", "Name", "Dosage", "Quantity", "Price");
 
         for (int i = 0; i < keys.size(); i++) {
             Medicine m = medicineMap.get(keys.get(i));
             if (m.getQuantity() < threshold) {
                 found = true;
-                System.out.printf("%-8s %-20s %-12s %-10d $%-10.2f%n",
+                System.out.printf("%-8s %-20s %6.2f%-1s %-10d $%-10.2f%n",
                         m.getMedicineId(),
                         m.getName(),
                         m.getDosage(),
+                        m.getUnit(),
                         m.getQuantity(),
                         m.getPrice());
             }

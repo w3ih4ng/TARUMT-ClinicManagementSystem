@@ -33,4 +33,6 @@ public interface ListInterface<T> extends Iterable<T>{
     void clear();      
     
     void sort(Comparator<T> comparator);
+
+    void reverseSort(Comparator<T> comparator);
 }

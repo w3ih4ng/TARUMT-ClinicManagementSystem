@@ -3,8 +3,7 @@ package boundary;
 import control.MedicineControl;
 import control.ViewMedicineControl;
 import entity.Medicine;
-import adt.HashMapInterface;
-
+import adt.*;
 import java.util.Scanner;
 
 public class ViewAllMedicineBoundary {
@@ -15,31 +14,41 @@ public class ViewAllMedicineBoundary {
     }
 
     public void show() {
-        HashMapInterface<String, Medicine> baseView = viewMedicineControl.getMedicineMap();
-        HashMapInterface<String, Medicine> currentView = baseView;
+        HashMapInterface<String, Medicine> baseMap = viewMedicineControl.getMedicineMap();
+        HashMapInterface<String, Medicine> currentMap = baseMap;
+        ListInterface<Medicine> currentList = viewMedicineControl.toList(currentMap);
+
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println("\n---------------------------------------- Medicine List ----------------------------------------\n");
-            viewMedicineControl.printMedicines(currentView);
+            System.out.println(
+                    "\n---------------------------------------- Medicine List ----------------------------------------\n");
+            viewMedicineControl.printMedicinesFromList(currentList);
 
             System.out.println("\nOptions:");
             System.out.println("1. Filter");
             System.out.println("2. Search");
-            System.out.println("3. Reset");
+            System.out.println("3. Sort");
+            System.out.println("4. Reset");
             System.out.println("0. Back");
             System.out.print("Choose: ");
             String choice = sc.nextLine().trim();
 
             switch (choice) {
                 case "1":
-                    currentView = handleFilter(sc, currentView);
+                    currentMap = handleFilter(sc, currentMap);
+                    currentList = viewMedicineControl.toList(currentMap);
                     break;
                 case "2":
-                    currentView = handleSearch(sc, currentView);
+                    currentMap = handleSearch(sc, currentMap);
+                    currentList = viewMedicineControl.toList(currentMap);
                     break;
                 case "3":
-                    currentView = baseView; // reset
+                    handleSort(sc, currentList);
+                    break;
+                case "4":
+                    currentMap = baseMap;
+                    currentList = viewMedicineControl.toList(currentMap);
                     viewMedicineControl.clearCriteria();
                     break;
                 case "0":
@@ -53,20 +62,61 @@ public class ViewAllMedicineBoundary {
 
     private HashMapInterface<String, Medicine> handleFilter(Scanner sc, HashMapInterface<String, Medicine> map) {
         System.out.println("\nFilter Options:");
-        System.out.println("1. By Dosage");
-        System.out.println("2. By Stock Less Than");
-        System.out.println("3. Show Active Medicines");
-        System.out.println("4. Show Deleted Medicines");
-        System.out.println("Enter to exit.");
+        System.out.println("1. By Dosage Value");
+        System.out.println("2. By Unit");
+        System.out.println("3. By Stock Less Than");
+        System.out.println("4. Show Active Medicines");
+        System.out.println("5. Show Deleted Medicines");
+        System.out.println("Enter to cancel.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
         switch (choice) {
             case "1":
-                System.out.print("\nEnter Dosage (e.g., 500mg): ");
-                String dosage = sc.nextLine().trim();
-                return viewMedicineControl.filterByDosage(map, dosage);
+                double dosage = 0;
+                while (true) {
+                    System.out.print("\nEnter Dosage value: ");
+                    String input = sc.nextLine().trim();
+                    try {
+                        dosage = Double.parseDouble(input);
+                        if (dosage >= 0)
+                            break;
+                        System.out.println("Dosage must be non-negative.");
+                    } catch (NumberFormatException e) {
+                        System.out.println("Invalid number.");
+                    }
+                }
+                return viewMedicineControl.filterByDosageValue(map, dosage);
+
             case "2":
+                System.out.println("Select Unit:");
+                System.out.println("1. MG");
+                System.out.println("2. ML");
+                System.out.println("3. TABLET");
+                System.out.println("4. CAPSULE");
+                System.out.print("Choose: ");
+                String unitChoice = sc.nextLine().trim();
+                Medicine.Unit unit;
+                switch (unitChoice) {
+                    case "1":
+                        unit = Medicine.Unit.MG;
+                        break;
+                    case "2":
+                        unit = Medicine.Unit.ML;
+                        break;
+                    case "3":
+                        unit = Medicine.Unit.TABLET;
+                        break;
+                    case "4":
+                        unit = Medicine.Unit.CAPSULE;
+                        break;
+                    default:
+                        System.out.println("Invalid unit. Returning without filtering.");
+                        return map;
+                }
+                return viewMedicineControl.filterByUnit(map, unit);
+
+            case "3":
                 System.out.print("\nEnter maximum stock quantity: ");
                 try {
                     int qty = Integer.parseInt(sc.nextLine().trim());
@@ -75,10 +125,16 @@ public class ViewAllMedicineBoundary {
                     System.out.println("Invalid number. Returning without filtering.");
                     return map;
                 }
-            case "3":
-                return viewMedicineControl.filterNotDeleted(map);
+
             case "4":
+                return viewMedicineControl.filterNotDeleted(map);
+
+            case "5":
                 return viewMedicineControl.filterShowDeleted(map);
+
+            case "":
+                return map;
+
             default:
                 System.out.println("\nInvalid filter option.");
                 return map;
@@ -90,4 +146,40 @@ public class ViewAllMedicineBoundary {
         String keyword = sc.nextLine().trim();
         return viewMedicineControl.searchMedicines(map, keyword);
     }
+
+    private void handleSort(Scanner sc, ListInterface<Medicine> list) {
+        System.out.println("\nSort Options:");
+        System.out.println("1. Medicine ID");
+        System.out.println("2. Name");
+        System.out.println("3. Dosage");
+        System.out.println("4. Unit");
+        System.out.println("5. Stock Quantity");
+        System.out.println("6. Price");
+        System.out.println("Enter to cancel.");
+        System.out.print("Choose: ");
+        String choice = sc.nextLine().trim();
+
+        if (choice.isEmpty())
+            return;
+
+        System.out.println("Sort Order:");
+        System.out.println("1. Ascending");
+        System.out.println("2. Descending");
+        System.out.print("Choose: ");
+        String orderChoice = sc.nextLine().trim();
+
+        switch (orderChoice) {
+            case "1":
+                viewMedicineControl.sortMedicines(list, choice); // ascending
+                break;
+            case "2":
+                viewMedicineControl.reverseSortMedicines(list, choice); // descending
+                break;
+            default:
+                System.out.println("Invalid order. Defaulting to ascending.");
+                viewMedicineControl.sortMedicines(list, choice);
+                break;
+        }
+    }
+
 }
