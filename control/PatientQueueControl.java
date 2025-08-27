@@ -71,11 +71,11 @@ public class PatientQueueControl {
 
         System.out.println("\n--- Current Patient Queue ---");
         
-        // Beautiful table header
-        String borderLine = "+---------+------------+---------------------------+----------------------+-----------------+-----------------+------------+";
+        // Beautiful table header with assigned doctor column
+        String borderLine = "+---------+------------+---------------------------+----------------------+-----------------+-----------------+------------+------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-7s | %-10s | %-25s | %-20s | %-15s | %-15s | %-10s |%n",
-                "QueueID", "PatientID", "Patient Name", "Specialty", "Type", "Status", "Arrival");
+        System.out.printf("| %-7s | %-10s | %-25s | %-20s | %-15s | %-15s | %-10s | %-10s |%n",
+                "QueueID", "PatientID", "Patient Name", "Specialty", "Type", "Status", "Arrival", "Doctor");
         System.out.println(borderLine);
 
         // Get all queue entries and sort by arrival time
@@ -90,14 +90,26 @@ public class PatientQueueControl {
             DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
             String arrivalTime = entry.getArrivalTime().format(timeFormatter);
             
-            System.out.printf("| %-7s | %-10s | %-25s | %-20s | %-15s | %-15s | %-10s |%n",
+            // Get doctor name if assigned
+            String doctorInfo = "N/A";
+            if (entry.getAssignedDoctorId() != null) {
+                Doctor doctor = doctorMap.get(entry.getAssignedDoctorId());
+                if (doctor != null) {
+                    doctorInfo = doctor.getName();
+                } else {
+                    doctorInfo = entry.getAssignedDoctorId(); // Show ID if name not found
+                }
+            }
+            
+            System.out.printf("| %-7s | %-10s | %-25s | %-20s | %-15s | %-15s | %-10s | %-10s |%n",
                     entry.getQueueId(),
                     entry.getPatientId(),
                     patientName,
                     entry.getSpecialty(),
                     entry.getQueueType(),
                     entry.getQueueStatus(),
-                    arrivalTime);
+                    arrivalTime,
+                    doctorInfo);
             System.out.println(borderLine);
         }
     }
@@ -286,10 +298,10 @@ public class PatientQueueControl {
     }
 
     private void displayWaitingPatients(ListInterface<PatientQueueEntry> waiting) {
-        String borderLine = "+--------+------------+---------------------------+----------------+----------+";
+        String borderLine = "+--------+------------+---------------------------+----------------+----------+------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-6s | %-10s | %-25s | %-14s | %-8s |%n",
-                "QueueID", "PatientID", "Patient Name", "Specialty", "Type");
+        System.out.printf("| %-6s | %-10s | %-25s | %-14s | %-8s | %-10s |%n",
+                "QueueID", "PatientID", "Patient Name", "Specialty", "Type", "Doctor");
         System.out.println(borderLine);
 
         for (int i = 0; i < waiting.size(); i++) {
@@ -297,12 +309,24 @@ public class PatientQueueControl {
             Patient patient = patientMap.get(entry.getPatientId());
             String patientName = (patient != null) ? patient.getName() : "Unknown";
             
-            System.out.printf("| %-6s | %-10s | %-25s | %-14s | %-8s |%n",
+            // Get doctor name if assigned (should be N/A for waiting patients)
+            String doctorInfo = "N/A";
+            if (entry.getAssignedDoctorId() != null) {
+                Doctor doctor = doctorMap.get(entry.getAssignedDoctorId());
+                if (doctor != null) {
+                    doctorInfo = doctor.getName();
+                } else {
+                    doctorInfo = entry.getAssignedDoctorId();
+                }
+            }
+            
+            System.out.printf("| %-6s | %-10s | %-25s | %-14s | %-8s | %-10s |%n",
                     entry.getQueueId(),
                     entry.getPatientId(),
                     patientName,
                     entry.getSpecialty(),
-                    entry.getQueueType());
+                    entry.getQueueType(),
+                    doctorInfo);
             System.out.println(borderLine);
         }
     }

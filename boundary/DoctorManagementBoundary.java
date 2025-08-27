@@ -16,7 +16,9 @@ public class DoctorManagementBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n--- Doctor Management ---");
+            System.out.println("\n==============================");
+            System.out.println("      Doctor Management");
+            System.out.println("==============================");
             System.out.println("1. Add Doctor");
             System.out.println("2. View Doctors");
             System.out.println("3. Update Doctor");
