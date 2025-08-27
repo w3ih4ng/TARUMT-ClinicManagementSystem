@@ -1,18 +1,19 @@
 package control;
 
 import entity.Doctor;
+import entity.Specialty;
 import adt.*;
-import java.time.format.DateTimeFormatter;
+import utility.FilterCriteriaUtil;
+ 
 
 public class ViewDoctorControl {
-    private DoctorControl doctorControl;
+    private DoctorRecordControl doctorRecordControl;
     private HashMapInterface<String, Doctor> doctorMap;
-    private final ListInterface<String> activeCriteria = new ArrayList<>();
-    private String currentSortOption = null;
+    private final FilterCriteriaUtil criteriaUtil = new FilterCriteriaUtil();
 
-    public ViewDoctorControl(DoctorControl doctorControl) {
-        this.doctorControl = doctorControl;
-        this.doctorMap = doctorControl.getDoctorMap();
+    public ViewDoctorControl(DoctorRecordControl doctorRecordControl) {
+        this.doctorRecordControl = doctorRecordControl;
+        this.doctorMap = doctorRecordControl.getDoctorMap();
     }
 
     public HashMapInterface<String, Doctor> getDoctorMap() {
@@ -20,33 +21,26 @@ public class ViewDoctorControl {
     }
 
     public void clearCriteria() {
-        activeCriteria.clear();
-        currentSortOption = null;
+        criteriaUtil.clearCriteria();
     }
 
     public void addCriteria(String text) {
-        activeCriteria.add(text);
+        criteriaUtil.addCriteria(text);
     }
 
     private void removeOldSortCriteria() {
-        for (int i = 0; i < activeCriteria.size(); i++) {
-            if (activeCriteria.get(i).startsWith("Sort =")) {
-                activeCriteria.remove(i);
-                i--;
-            }
-        }
+        criteriaUtil.removeOldSortCriteria();
     }
 
     public String getCriteriaSummary() {
-        if (activeCriteria.isEmpty())
-            return "Filters : None";
-        return "Filters : " + String.join(" | ", activeCriteria);
+        return criteriaUtil.getCriteriaSummary();
     }
 
     // --- Filter ---
-    public HashMapInterface<String, Doctor> filterBySpecialty(HashMapInterface<String, Doctor> map, String specialty) {
-        addCriteria("Specialty = " + specialty);
-        return map.filter(d -> d.getSpecialty().equalsIgnoreCase(specialty));
+    public HashMapInterface<String, Doctor> filterBySpecialty(HashMapInterface<String, Doctor> map,
+            Specialty specialty) {
+        addCriteria("Specialty = " + specialty.name());
+        return map.filter(d -> d.getSpecialty() == specialty);
     }
 
     public HashMapInterface<String, Doctor> filterByGender(HashMapInterface<String, Doctor> map, String gender) {
@@ -70,13 +64,13 @@ public class ViewDoctorControl {
         String lower = keyword.toLowerCase();
 
         return map.filter(d -> {
-            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             String searchText = String.join(" ",
                     d.getDoctorId(),
                     d.getName(),
                     d.getGender(),
-                    d.getSpecialty(),
+                    d.getSpecialty().name(),
                     d.getPhoneNumber(),
+                    String.valueOf(d.getConsultationFee()),
                     d.isDeleted() ? "deleted" : "active").toLowerCase();
             return searchText.contains(lower);
         });
@@ -85,7 +79,7 @@ public class ViewDoctorControl {
     // --- Sort ---
     public void sortDoctors(ListInterface<Doctor> list, String option) {
         removeOldSortCriteria();
-        currentSortOption = option;
+        criteriaUtil.setCurrentSortOption(option);
 
         switch (option) {
             case "1":
@@ -101,18 +95,26 @@ public class ViewDoctorControl {
                 addCriteria("Sort = Gender (Asc)");
                 break;
             case "4":
-                list.sort((d1, d2) -> d1.getSpecialty().compareToIgnoreCase(d2.getSpecialty()));
+                list.sort((d1, d2) -> d1.getSpecialty().name().compareToIgnoreCase(d2.getSpecialty().name()));
                 addCriteria("Sort = Specialty (Asc)");
                 break;
+            case "5":
+                list.sort((d1, d2) -> Double.compare(d1.getConsultationFee(), d2.getConsultationFee()));
+                addCriteria("Sort = Consultation Fee (Asc)");
+                break;
+            case "6":
+                list.sort((d1, d2) -> d1.getBirthdate().compareTo(d2.getBirthdate()));
+                addCriteria("Sort = Birthdate (Asc)");
+                break;
             default:
-                currentSortOption = null;
+                criteriaUtil.setCurrentSortOption(null);
                 break;
         }
     }
 
     public void reverseSortDoctors(ListInterface<Doctor> list, String option) {
         removeOldSortCriteria();
-        currentSortOption = option;
+        criteriaUtil.setCurrentSortOption(option);
 
         switch (option) {
             case "1":
@@ -128,19 +130,27 @@ public class ViewDoctorControl {
                 addCriteria("Sort = Gender (Desc)");
                 break;
             case "4":
-                list.sort((d1, d2) -> d2.getSpecialty().compareToIgnoreCase(d1.getSpecialty()));
+                list.sort((d1, d2) -> d2.getSpecialty().name().compareToIgnoreCase(d1.getSpecialty().name()));
                 addCriteria("Sort = Specialty (Desc)");
                 break;
+            case "5":
+                list.sort((d1, d2) -> Double.compare(d2.getConsultationFee(), d1.getConsultationFee()));
+                addCriteria("Sort = Consultation Fee (Desc)");
+                break;
+            case "6":
+                list.sort((d1, d2) -> d2.getBirthdate().compareTo(d1.getBirthdate()));
+                addCriteria("Sort = Birthdate (Desc)");
+                break;
             default:
-                currentSortOption = null;
+                criteriaUtil.setCurrentSortOption(null);
                 break;
         }
     }
 
     public ListInterface<Doctor> toList(HashMapInterface<String, Doctor> map) {
         ListInterface<Doctor> list = map.toList();
-        if (currentSortOption != null) {
-            sortDoctors(list, currentSortOption);
+        if (criteriaUtil.getCurrentSortOption() != null) {
+            sortDoctors(list, criteriaUtil.getCurrentSortOption());
         } else {
             // Default ascending sort by Doctor ID
             list.sort((d1, d2) -> d1.getDoctorId().compareTo(d2.getDoctorId()));
@@ -152,10 +162,10 @@ public class ViewDoctorControl {
     public void printDoctors(HashMapInterface<String, Doctor> map) {
         ListInterface<Doctor> list = map.toList();
         list.sort((d1, d2) -> d1.getDoctorId().compareTo(d2.getDoctorId()));
-        doctorControl.printDoctorsTable(list, getCriteriaSummary());
+        doctorRecordControl.printDoctorsTable(list, getCriteriaSummary());
     }
 
     public void printDoctorsFromList(ListInterface<Doctor> list) {
-        doctorControl.printDoctorsTable(list, getCriteriaSummary());
+        doctorRecordControl.printDoctorsTable(list, getCriteriaSummary());
     }
 }

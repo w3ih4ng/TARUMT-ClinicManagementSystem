@@ -64,10 +64,9 @@ public class ViewAllMedicineBoundary {
         System.out.println("\nFilter Options:");
         System.out.println("1. By Dosage Value");
         System.out.println("2. By Unit");
-        System.out.println("3. By Stock Less Than");
-        System.out.println("4. Show Active Medicines");
-        System.out.println("5. Show Deleted Medicines");
-        System.out.println("Enter to cancel.");
+        System.out.println("3. Show Active Medicines");
+        System.out.println("4. Show Deleted Medicines");
+        System.out.println("Enter 0 to exit.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
@@ -117,22 +116,12 @@ public class ViewAllMedicineBoundary {
                 return viewMedicineControl.filterByUnit(map, unit);
 
             case "3":
-                System.out.print("\nEnter maximum stock quantity: ");
-                try {
-                    int qty = Integer.parseInt(sc.nextLine().trim());
-                    return viewMedicineControl.filterByStockLessThan(map, qty);
-                } catch (NumberFormatException e) {
-                    System.out.println("Invalid number. Returning without filtering.");
-                    return map;
-                }
-
-            case "4":
                 return viewMedicineControl.filterNotDeleted(map);
 
-            case "5":
+            case "4":
                 return viewMedicineControl.filterShowDeleted(map);
 
-            case "":
+            case "0":
                 return map;
 
             default:
@@ -155,13 +144,16 @@ public class ViewAllMedicineBoundary {
         System.out.println("4. Unit");
         System.out.println("5. Stock Quantity");
         System.out.println("6. Price");
-        System.out.println("Enter to cancel.");
+        System.out.println("Enter 0 to exit.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
-        if (choice.isEmpty())
+        if (choice == "0") {
             return;
-
+        } else if (choice.isEmpty()){
+            return;
+        }   
+        
         System.out.println("Sort Order:");
         System.out.println("1. Ascending");
         System.out.println("2. Descending");

@@ -1,6 +1,6 @@
 package boundary;
 
-import control.PatientControl;
+import control.PatientRecordControl;
 import control.ViewPatientControl;
 import entity.*;
 import adt.*;
@@ -11,8 +11,8 @@ import java.util.Scanner;
 public class ViewAllPatientBoundary {
     private final ViewPatientControl viewPatientControl;
 
-    public ViewAllPatientBoundary(PatientControl patientControl) {
-        this.viewPatientControl = new ViewPatientControl(patientControl);
+    public ViewAllPatientBoundary(PatientRecordControl patientRecordControl) {
+        this.viewPatientControl = new ViewPatientControl(patientRecordControl);
     }
 
     public void show() {
@@ -68,7 +68,7 @@ public class ViewAllPatientBoundary {
         System.out.println("2. Gender (M/F)");
         System.out.println("3. Show Deleted");
         System.out.println("4. Do Not Show Deleted");
-        System.out.println("Enter to exit.");
+        System.out.println("Enter 0 to exit.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
@@ -85,6 +85,8 @@ public class ViewAllPatientBoundary {
                 return viewPatientControl.filterShowDeleted(map);
             case "4":
                 return viewPatientControl.filterNotDeleted(map);
+            case "0":
+                return map;
             default:
                 System.out.println("\nInvalid filter option.");
                 return map;
@@ -104,12 +106,15 @@ public class ViewAllPatientBoundary {
         System.out.println("2. Name");
         System.out.println("3. Gender");
         System.out.println("4. Birthdate");
-        System.out.println("Enter to cancel.");
+        System.out.println("Enter 0 to exit.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
-        if (choice.isEmpty())
+        if (choice == "0"){
             return;
+        } else if (choice.isEmpty()){
+            return;
+        }
 
         System.out.println("Sort Order:");
         System.out.println("1. Ascending");

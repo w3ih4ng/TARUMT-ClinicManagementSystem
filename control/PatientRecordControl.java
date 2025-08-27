@@ -8,13 +8,13 @@ import java.util.Scanner;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public class PatientControl {
+public class PatientRecordControl {
     private HashMapInterface<String, Patient> patientMap; // key = patientId
     private ListInterface<String> patientQueue; // store patient IDs in order
     private Scanner sc;
     private int patientCounter = 1000; // re-initialized later
 
-    public PatientControl() {
+    public PatientRecordControl() {
         this.patientMap = PatientDAO.loadPatients();
         this.sc = new Scanner(System.in);
         initCounterFromMap();
@@ -51,27 +51,34 @@ public class PatientControl {
 
     public void registerPatient() {
         System.out.println("\n--- Register New Patient ---");
+        System.out.println("Type 'exit' at any point to cancel.\n");
 
+        // --- Name ---
         System.out.print("Name: ");
         String name = sc.nextLine().trim();
+        if (name.equalsIgnoreCase("exit"))
+            return;
 
-        // Gender validation
+        // --- Gender validation ---
         String gender = "";
         while (true) {
             System.out.print("Gender (M/F): ");
             gender = sc.nextLine().trim().toUpperCase();
-            if (gender.equals("M") || gender.equals("F")) {
+            if (gender.equalsIgnoreCase("exit"))
+                return;
+            if (gender.equals("M") || gender.equals("F"))
                 break;
-            }
             System.out.println("Invalid gender. Please enter M or F.");
         }
 
-        // Birthdate validation
+        // --- Birthdate validation ---
         LocalDate birthdate = null;
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         while (true) {
             System.out.print("Birthdate (yyyy-MM-dd): ");
             String input = sc.nextLine().trim();
+            if (input.equalsIgnoreCase("exit"))
+                return;
             try {
                 birthdate = LocalDate.parse(input, formatter);
                 break;
@@ -80,26 +87,28 @@ public class PatientControl {
             }
         }
 
-        // Phone number validation
+        // --- Phone number validation ---
         String phone = "";
         while (true) {
             System.out.print("Phone (digits only): ");
             phone = sc.nextLine().trim();
-            if (phone.matches("\\d{7,}")) {
+            if (phone.equalsIgnoreCase("exit"))
+                return;
+            if (phone.matches("\\d{7,}"))
                 break;
-            }
             System.out.println("Invalid phone number. Use digits only, min 7 digits.");
         }
 
-        // Role validation
+        // --- Role selection ---
         String roleChoice = "";
         while (true) {
             System.out.println("Role: \n1. Student  \n2. Tutor  \n3. Staff");
             System.out.print("Choose: ");
             roleChoice = sc.nextLine().trim();
-            if (roleChoice.equals("1") || roleChoice.equals("2") || roleChoice.equals("3")) {
+            if (roleChoice.equalsIgnoreCase("exit"))
+                return;
+            if (roleChoice.equals("1") || roleChoice.equals("2") || roleChoice.equals("3"))
                 break;
-            }
             System.out.println("Invalid choice. Enter 1, 2, or 3.");
         }
 
@@ -107,23 +116,35 @@ public class PatientControl {
         String patientId = generatePatientId();
 
         switch (roleChoice) {
-            case "1":
+            case "1": // Student
                 System.out.print("Student ID: ");
                 String studentId = sc.nextLine().trim();
+                if (studentId.equalsIgnoreCase("exit"))
+                    return;
                 patient = new Student(patientId, studentId, name, gender, birthdate, phone);
                 break;
-            case "2":
+
+            case "2": // Tutor
                 System.out.print("Tutor ID: ");
                 String tutorId = sc.nextLine().trim();
+                if (tutorId.equalsIgnoreCase("exit"))
+                    return;
                 System.out.print("Faculty: ");
                 String faculty = sc.nextLine().trim();
+                if (faculty.equalsIgnoreCase("exit"))
+                    return;
                 patient = new Tutor(patientId, tutorId, name, gender, birthdate, phone, faculty);
                 break;
-            case "3":
+
+            case "3": // Staff
                 System.out.print("Staff ID: ");
                 String staffId = sc.nextLine().trim();
+                if (staffId.equalsIgnoreCase("exit"))
+                    return;
                 System.out.print("Department: ");
                 String department = sc.nextLine().trim();
+                if (department.equalsIgnoreCase("exit"))
+                    return;
                 patient = new Staff(patientId, staffId, name, gender, birthdate, phone, department);
                 break;
         }
@@ -215,7 +236,9 @@ public class PatientControl {
             return;
         }
 
-        System.out.println("\nUpdating patient: " + p.getName());
+        System.out.println("\nUpdating patient:");
+
+        patientDetailsTable(p);
 
         // --- Name ---
         System.out.print("New name (leave blank to keep): ");
@@ -255,7 +278,7 @@ public class PatientControl {
         if (!phone.isEmpty()) {
             if (phone.matches("\\d{7,}")) {
                 p.setPhoneNumber(phone);
-                System.out.println("Phone updated.");
+                System.out.println("Phone number updated.");
             } else {
                 System.out.println("Invalid phone number. Not updated.");
             }
@@ -264,7 +287,6 @@ public class PatientControl {
         // --- Role-specific fields ---
         if (p instanceof Student) {
             Student s = (Student) p;
-
             System.out.print("New student ID (leave blank to keep): ");
             String sid = sc.nextLine().trim();
             if (!sid.isEmpty()) {
@@ -274,7 +296,6 @@ public class PatientControl {
 
         } else if (p instanceof Tutor) {
             Tutor t = (Tutor) p;
-
             System.out.print("New tutor ID (leave blank to keep): ");
             String tid = sc.nextLine().trim();
             if (!tid.isEmpty()) {
@@ -291,7 +312,6 @@ public class PatientControl {
 
         } else if (p instanceof Staff) {
             Staff st = (Staff) p;
-
             System.out.print("New staff ID (leave blank to keep): ");
             String stid = sc.nextLine().trim();
             if (!stid.isEmpty()) {
@@ -322,9 +342,92 @@ public class PatientControl {
             return;
         }
 
-        p.delete();
-        PatientDAO.savePatients(patientMap); // persist deletion
-        System.out.println("Patient deleted successfully.");
+        patientDetailsTable(p);
+
+        // Confirm deletion
+        System.out.print("Are you sure you want to delete this patient? (Y/N): ");
+        String confirm = sc.nextLine().trim().toUpperCase();
+        if (confirm.equals("Y")) {
+            p.delete();
+            PatientDAO.savePatients(patientMap);
+            System.out.println("Patient deleted successfully.");
+        } else {
+            System.out.println("Deletion cancelled.");
+        }
+    }
+
+    public void restorePatient() {
+        System.out.print("\nEnter Patient ID to restore: ");
+        String id = sc.nextLine().trim();
+        Patient p = patientMap.get(id);
+
+        if (p == null) {
+            System.out.println("Patient not found.");
+            return;
+        }
+
+        if (!p.isDeleted()) {
+            System.out.println("Patient is already active.");
+            return;
+        }
+
+        p.restore();
+        PatientDAO.savePatients(patientMap);
+        System.out.println("Patient restored successfully.");
+    }
+
+    public void patientDetailsTable(Patient p) {
+        System.out.println("\nPatient details:");
+
+        if (p instanceof Student) {
+            System.out.println("+------------+----------------+--------+------------+----------------+------------+");
+            System.out.printf("| %-10s | %-14s | %-6s | %-10s | %-14s | %-10s |%n",
+                    "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Student ID");
+            System.out.println("+------------+----------------+--------+------------+----------------+------------+");
+            System.out.printf("| %-10s | %-14s | %-6s | %-10s | %-14s | %-10s |%n",
+                    p.getPatientId(),
+                    p.getName(),
+                    p.getGender(),
+                    p.getBirthdate(),
+                    p.getPhoneNumber(),
+                    ((Student) p).getStudentId());
+            System.out.println("+------------+----------------+--------+------------+----------------+------------+");
+        } else if (p instanceof Tutor) {
+            System.out.println(
+                    "+------------+----------------+--------+------------+----------------+------------+----------------+");
+            System.out.printf("| %-10s | %-14s | %-6s | %-10s | %-14s | %-10s | %-14s |%n",
+                    "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Tutor ID", "Faculty");
+            System.out.println(
+                    "+------------+----------------+--------+------------+----------------+------------+----------------+");
+            System.out.printf("| %-10s | %-14s | %-6s | %-10s | %-14s | %-10s | %-14s |%n",
+                    p.getPatientId(),
+                    p.getName(),
+                    p.getGender(),
+                    p.getBirthdate(),
+                    p.getPhoneNumber(),
+                    ((Tutor) p).getTutorId(),
+                    ((Tutor) p).getFaculty());
+            System.out.println(
+                    "+------------+----------------+--------+------------+----------------+------------+----------------+");
+        } else if (p instanceof Staff) {
+            System.out.println(
+                    "+------------+----------------+--------+------------+----------------+------------+----------------+");
+            System.out.printf("| %-10s | %-14s | %-6s | %-10s | %-14s | %-10s | %-14s |%n",
+                    "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Staff ID", "Department");
+            System.out.println(
+                    "+------------+----------------+--------+------------+----------------+------------+----------------+");
+            System.out.printf("| %-10s | %-14s | %-6s | %-10s | %-14s | %-10s | %-14s |%n",
+                    p.getPatientId(),
+                    p.getName(),
+                    p.getGender(),
+                    p.getBirthdate(),
+                    p.getPhoneNumber(),
+                    ((Staff) p).getStaffId(),
+                    ((Staff) p).getDepartment());
+            System.out.println(
+                    "+------------+----------------+--------+------------+----------------+------------+----------------+");
+        }
+
     }
 
     // ========== Reports ==========

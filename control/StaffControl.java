@@ -9,8 +9,8 @@ public class StaffControl {
 
     public StaffControl() {
         // Initialize modules staff can access
-        this.patientManagementBoundary = new PatientManagementBoundary(new PatientControl(),new PatientQueueControl());
-        this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorControl());
+        this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(),new PatientQueueControl());
+        this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorRecordControl());
         this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
     }
 

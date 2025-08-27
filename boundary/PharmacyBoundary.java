@@ -19,6 +19,7 @@ public class PharmacyBoundary {
             System.out.println("==============================");
             System.out.println("1. Medicine Management");
             System.out.println("2. Dispensing Management");
+            System.out.println("3. Stock Management");
             System.out.println("0. Back to Staff Menu");
             System.out.print("Enter choice: ");
 
@@ -30,6 +31,9 @@ public class PharmacyBoundary {
                     break;
                 case "2": 
                     System.out.println("[Dispensing Module - placeholder]");
+                    break;
+                case "3":
+                    pharmacyControl.openStockModule();
                     break;
                 case "0": 
                     return; // back to Staff Menu

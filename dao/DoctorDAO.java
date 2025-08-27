@@ -1,6 +1,7 @@
 package dao;
 
 import entity.Doctor;
+import entity.Specialty;
 import adt.*;
 
 import java.io.*;
@@ -11,33 +12,33 @@ public class DoctorDAO {
     private static final String FILE_NAME = "data/doctors.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    // Ensure file exists
     private static void ensureFile() {
         try {
             File file = new File(FILE_NAME);
             File parent = file.getParentFile();
-            if (parent != null && !parent.exists()) parent.mkdirs();
-            if (!file.exists()) file.createNewFile();
+            if (parent != null && !parent.exists())
+                parent.mkdirs();
+            if (!file.exists())
+                file.createNewFile();
         } catch (IOException e) {
             System.out.println("Error ensuring doctors file: " + e.getMessage());
         }
     }
 
-    // Save all doctors
     public static void saveDoctors(HashMapInterface<String, Doctor> doctorMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
             for (int i = 0; i < doctorMap.keySet().size(); i++) {
                 String key = doctorMap.keySet().get(i);
                 Doctor d = doctorMap.get(key);
-                if (d != null) pw.println(toFileString(d));
+                if (d != null)
+                    pw.println(toFileString(d));
             }
         } catch (IOException e) {
             System.out.println("Error saving doctors: " + e.getMessage());
         }
     }
 
-    // Load all doctors
     public static HashMapInterface<String, Doctor> loadDoctors() {
         ensureFile();
         HashMapInterface<String, Doctor> map = new HashMapADT<>();
@@ -46,7 +47,8 @@ public class DoctorDAO {
             String line;
             while ((line = br.readLine()) != null) {
                 Doctor d = fromFileString(line);
-                if (d != null) map.put(d.getDoctorId(), d);
+                if (d != null)
+                    map.put(d.getDoctorId(), d);
             }
         } catch (IOException e) {
             System.out.println("Error loading doctors: " + e.getMessage());
@@ -55,7 +57,6 @@ public class DoctorDAO {
         return map;
     }
 
-    // Convert Doctor to file line
     private static String toFileString(Doctor d) {
         return String.join("|",
                 d.getDoctorId(),
@@ -63,12 +64,12 @@ public class DoctorDAO {
                 d.getGender(),
                 d.getBirthdate().format(formatter),
                 d.getPhoneNumber(),
-                d.getSpecialty(),
-                Boolean.toString(d.isDeleted())   // ✅ include deleted flag
+                d.getSpecialty().name(),         // save enum name
+                String.valueOf(d.getConsultationFee()),
+                Boolean.toString(d.isDeleted())
         );
     }
 
-    // Convert file line to Doctor
     private static Doctor fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
@@ -77,15 +78,17 @@ public class DoctorDAO {
             String gender = parts[2];
             LocalDate birthdate = LocalDate.parse(parts[3], formatter);
             String phone = parts[4];
-            String specialty = parts[5];
-            boolean deleted = (parts.length > 6) && Boolean.parseBoolean(parts[6]); // ✅ handle isDeleted
+            Specialty specialty = Specialty.valueOf(parts[5]); // parse enum
+            double fee = Double.parseDouble(parts[6]);
+            boolean deleted = (parts.length > 7) && Boolean.parseBoolean(parts[7]);
 
-            Doctor d = new Doctor(doctorId, name, gender, birthdate, phone, specialty);
-            if (deleted) d.delete(); // mark as deleted if flag is true
+            Doctor d = new Doctor(doctorId, name, gender, birthdate, phone, specialty, fee);
+            if (deleted)
+                d.delete();
 
             return d;
         } catch (Exception e) {
-            System.out.println("Error parsing doctor line: " + line);
+            System.out.println("Error parsing doctor line: " + line + " -> " + e.getMessage());
             return null;
         }
     }

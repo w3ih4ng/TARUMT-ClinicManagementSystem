@@ -1,16 +1,17 @@
 package boundary;
 
-import control.DoctorControl;
+import control.DoctorRecordControl;
 import control.ViewDoctorControl;
 import entity.Doctor;
+import entity.Specialty;
 import adt.*;
 import java.util.Scanner;
 
 public class ViewAllDoctorBoundary {
     private final ViewDoctorControl viewDoctorControl;
 
-    public ViewAllDoctorBoundary(DoctorControl doctorControl) {
-        this.viewDoctorControl = new ViewDoctorControl(doctorControl);
+    public ViewAllDoctorBoundary(DoctorRecordControl doctorRecordControl) {
+        this.viewDoctorControl = new ViewDoctorControl(doctorRecordControl);
     }
 
     public void show() {
@@ -21,8 +22,7 @@ public class ViewAllDoctorBoundary {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println(
-                    "\n---------------------------------------- Doctor List ----------------------------------------\n");
+            System.out.println("\n---------------------------------------- Doctor List ----------------------------------------\n");
             viewDoctorControl.printDoctorsFromList(currentList);
 
             System.out.println("\nOptions:");
@@ -66,15 +66,31 @@ public class ViewAllDoctorBoundary {
         System.out.println("2. Gender");
         System.out.println("3. Show Deleted Only");
         System.out.println("4. Hide Deleted");
-        System.out.println("Enter to cancel.");
+        System.out.println("Enter 0 to exit.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
         switch (choice) {
             case "1":
-                System.out.print("\nEnter Specialty: ");
-                String specialty = sc.nextLine().trim();
-                return viewDoctorControl.filterBySpecialty(map, specialty);
+                System.out.println("\nSelect Specialty:");
+                Specialty[] specialties = Specialty.values();
+                for (int i = 0; i < specialties.length; i++) {
+                    System.out.printf("%d. %s%n", i + 1, specialties[i].name());
+                }
+                System.out.print("Choose: ");
+                String specChoice = sc.nextLine().trim();
+                try {
+                    int idx = Integer.parseInt(specChoice);
+                    if (idx >= 1 && idx <= specialties.length) {
+                        return viewDoctorControl.filterBySpecialty(map, specialties[idx - 1]);
+                    } else {
+                        System.out.println("Invalid choice. Filter cancelled.");
+                        return map;
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input. Filter cancelled.");
+                    return map;
+                }
             case "2":
                 System.out.print("\nEnter Gender (M/F): ");
                 String gender = sc.nextLine().trim();
@@ -83,7 +99,7 @@ public class ViewAllDoctorBoundary {
                 return viewDoctorControl.filterShowDeleted(map);
             case "4":
                 return viewDoctorControl.filterNotDeleted(map);
-            case "":
+            case "0":
                 return map;
             default:
                 System.out.println("\nInvalid filter option.");
@@ -103,12 +119,17 @@ public class ViewAllDoctorBoundary {
         System.out.println("2. Name");
         System.out.println("3. Gender");
         System.out.println("4. Specialty");
-        System.out.println("Enter to cancel.");
+        System.out.println("5. Consultation Fee");
+        System.out.println("6. Birthdate");
+        System.out.println("Enter 0 to exit.");
         System.out.print("Choose: ");
         String choice = sc.nextLine().trim();
 
-        if (choice.isEmpty())
+        if (choice == "0"){
             return;
+        } else if (choice.isEmpty()) {
+            return;
+        }
 
         System.out.println("Sort Order:");
         System.out.println("1. Ascending");
@@ -129,5 +150,4 @@ public class ViewAllDoctorBoundary {
                 break;
         }
     }
-
 }

@@ -14,8 +14,10 @@ public class MedicineDAO {
         try {
             File file = new File(FILE_NAME);
             File parent = file.getParentFile();
-            if (parent != null && !parent.exists()) parent.mkdirs();
-            if (!file.exists()) file.createNewFile();
+            if (parent != null && !parent.exists())
+                parent.mkdirs();
+            if (!file.exists())
+                file.createNewFile();
         } catch (IOException e) {
             System.out.println("Error ensuring medicines file: " + e.getMessage());
         }
@@ -28,7 +30,8 @@ public class MedicineDAO {
             for (int i = 0; i < medicineMap.keySet().size(); i++) {
                 String key = medicineMap.keySet().get(i);
                 Medicine m = medicineMap.get(key);
-                if (m != null) pw.println(toFileString(m));
+                if (m != null)
+                    pw.println(toFileString(m));
             }
         } catch (IOException e) {
             System.out.println("Error saving medicines: " + e.getMessage());
@@ -44,7 +47,8 @@ public class MedicineDAO {
             String line;
             while ((line = br.readLine()) != null) {
                 Medicine m = fromFileString(line);
-                if (m != null) map.put(m.getMedicineId(), m);
+                if (m != null)
+                    map.put(m.getMedicineId(), m);
             }
         } catch (IOException e) {
             System.out.println("Error loading medicines: " + e.getMessage());
@@ -59,11 +63,9 @@ public class MedicineDAO {
                 m.getMedicineId(),
                 m.getName(),
                 String.valueOf(m.getDosage()),
-                m.getUnit().name(),  // save enum name
-                String.valueOf(m.getQuantity()),
+                m.getUnit().name(), // save enum name
                 String.valueOf(m.getPrice()),
-                Boolean.toString(m.isDeleted())
-        );
+                Boolean.toString(m.isDeleted()));
     }
 
     // Convert file line to Medicine
@@ -74,12 +76,12 @@ public class MedicineDAO {
             String name = parts[1];
             double dosage = Double.parseDouble(parts[2]);
             Unit unit = Unit.valueOf(parts[3]); // parse enum
-            int quantity = Integer.parseInt(parts[4]);
-            double price = Double.parseDouble(parts[5]);
-            boolean deleted = parts.length > 6 && Boolean.parseBoolean(parts[6]);
+            double price = Double.parseDouble(parts[4]);
+            boolean deleted = parts.length > 5 && Boolean.parseBoolean(parts[5]);
 
-            Medicine m = new Medicine(medicineId, name, dosage, unit, quantity, price);
-            if (deleted) m.delete();
+            Medicine m = new Medicine(medicineId, name, dosage, unit, price);
+            if (deleted)
+                m.delete();
             return m;
         } catch (Exception e) {
             System.out.println("Error parsing medicine line: " + line);

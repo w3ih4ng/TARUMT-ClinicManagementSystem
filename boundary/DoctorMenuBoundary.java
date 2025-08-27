@@ -1,15 +1,15 @@
 package boundary;
 
 import java.util.Scanner;
-import control.DoctorControl;
+import control.DoctorRecordControl;
 
 public class DoctorMenuBoundary {
     private Scanner sc;
-    private DoctorControl doctorControl;
+    private DoctorRecordControl doctorRecordControl;
 
-    public DoctorMenuBoundary(DoctorControl doctorControl) {
+    public DoctorMenuBoundary(DoctorRecordControl doctorRecordControl) {
         this.sc = new Scanner(System.in);
-        this.doctorControl = doctorControl;
+        this.doctorRecordControl = doctorRecordControl;
     }
 
     public void mainMenu() {

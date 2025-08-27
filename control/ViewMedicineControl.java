@@ -3,13 +3,12 @@ package control;
 import entity.Medicine;
 import entity.Medicine.Unit;
 import adt.*;
-import java.util.List;
+import utility.FilterCriteriaUtil;
 
 public class ViewMedicineControl {
     private MedicineControl medicineControl;
     private HashMapInterface<String, Medicine> medicineMap;
-    private final ListInterface<String> activeCriteria = new ArrayList<>();
-    private String currentSortOption = null;
+    private final FilterCriteriaUtil criteriaUtil = new FilterCriteriaUtil();
 
     public ViewMedicineControl(MedicineControl medicineControl) {
         this.medicineControl = medicineControl;
@@ -21,27 +20,19 @@ public class ViewMedicineControl {
     }
 
     public void clearCriteria() {
-        activeCriteria.clear();
-        currentSortOption = null;
+        criteriaUtil.clearCriteria();
     }
 
     public void addCriteria(String text) {
-        activeCriteria.add(text);
+        criteriaUtil.addCriteria(text);
     }
 
     private void removeOldSortCriteria() {
-        for (int i = 0; i < activeCriteria.size(); i++) {
-            if (activeCriteria.get(i).startsWith("Sort =")) {
-                activeCriteria.remove(i);
-                i--;
-            }
-        }
+        criteriaUtil.removeOldSortCriteria();
     }
 
     public String getCriteriaSummary() {
-        if (activeCriteria.isEmpty())
-            return "Filters : None";
-        return "Filters : " + String.join(" | ", activeCriteria);
+        return criteriaUtil.getCriteriaSummary();
     }
 
     // Filter by numeric dosage only
@@ -55,11 +46,6 @@ public class ViewMedicineControl {
     public HashMapInterface<String, Medicine> filterByUnit(HashMapInterface<String, Medicine> map, Unit unit) {
         addCriteria("Unit = " + unit.name());
         return map.filter(m -> !m.isDeleted() && m.getUnit() == unit);
-    }
-
-    public HashMapInterface<String, Medicine> filterByStockLessThan(HashMapInterface<String, Medicine> map, int qty) {
-        addCriteria("Stock < " + qty);
-        return map.filter(m -> !m.isDeleted() && m.getQuantity() < qty);
     }
 
     public HashMapInterface<String, Medicine> filterShowDeleted(HashMapInterface<String, Medicine> map) {
@@ -89,7 +75,6 @@ public class ViewMedicineControl {
                     m.getMedicineId(),
                     m.getName(),
                     dosageStr + m.getUnit().name(), // e.g., "500MG"
-                    String.valueOf(m.getQuantity()),
                     m.isDeleted() ? "deleted" : "active").toLowerCase();
 
             return searchText.contains(lower);
@@ -98,7 +83,7 @@ public class ViewMedicineControl {
 
     public void sortMedicines(ListInterface<Medicine> list, String option) {
         removeOldSortCriteria();
-        currentSortOption = option;
+        criteriaUtil.setCurrentSortOption(option);
 
         switch (option) {
             case "1":
@@ -117,23 +102,19 @@ public class ViewMedicineControl {
                 list.sort((m1, m2) -> m1.getUnit().compareTo(m2.getUnit()));
                 addCriteria("Sort = Unit (Asc)");
                 break;
-            case "5": // Sort by stock quantity
-                list.sort((m1, m2) -> Integer.compare(m1.getQuantity(), m2.getQuantity()));
-                addCriteria("Sort = Stock Quantity (Asc)");
-                break;
-            case "6": // Sort by price
+            case "5": // Sort by price
                 list.sort((m1, m2) -> Double.compare(m1.getPrice(), m2.getPrice()));
                 addCriteria("Sort = Price (Asc)");
                 break;
             default:
-                currentSortOption = null;
+                criteriaUtil.setCurrentSortOption(null);
                 break;
         }
     }
 
     public void reverseSortMedicines(ListInterface<Medicine> list, String option) {
         removeOldSortCriteria();
-        currentSortOption = option;
+        criteriaUtil.setCurrentSortOption(option);
 
         switch (option) {
             case "1":
@@ -153,23 +134,19 @@ public class ViewMedicineControl {
                 addCriteria("Sort = Unit (Desc)");
                 break;
             case "5":
-                list.sort((m1, m2) -> Integer.compare(m2.getQuantity(), m1.getQuantity()));
-                addCriteria("Sort = Stock Quantity (Desc)");
-                break;
-            case "6":
                 list.sort((m1, m2) -> Double.compare(m2.getPrice(), m1.getPrice()));
                 addCriteria("Sort = Price (Desc)");
                 break;
             default:
-                currentSortOption = null;
+                criteriaUtil.setCurrentSortOption(null);
                 break;
         }
     }
 
     public ListInterface<Medicine> toList(HashMapInterface<String, Medicine> map) {
         ListInterface<Medicine> list = map.toList();
-        if (currentSortOption != null) {
-            sortMedicines(list, currentSortOption);
+        if (criteriaUtil.getCurrentSortOption() != null) {
+            sortMedicines(list, criteriaUtil.getCurrentSortOption());
         } else {
             // Default ascending sort by Medicine ID
             list.sort((m1, m2) -> m1.getMedicineId().compareTo(m2.getMedicineId()));

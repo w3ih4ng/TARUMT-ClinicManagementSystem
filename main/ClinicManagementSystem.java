@@ -9,7 +9,7 @@ public class ClinicManagementSystem {
         Scanner sc = new Scanner(System.in);
 
         StaffMenuBoundary staffMenuBoundary = new StaffMenuBoundary(new StaffControl());
-        DoctorMenuBoundary doctorMenuBoundary = new DoctorMenuBoundary(new DoctorControl());
+        DoctorMenuBoundary doctorMenuBoundary = new DoctorMenuBoundary(new DoctorRecordControl());
 
         while (true) {
             System.out.println("====================================");

@@ -1,19 +1,17 @@
 package boundary;
 
-import control.DoctorControl;
-import entity.Doctor;
+import control.DoctorRecordControl;
 import java.util.Scanner;
-import java.time.LocalDate;
 
 public class DoctorManagementBoundary {
     private Scanner sc;
-    private DoctorControl doctorControl;
+    private DoctorRecordControl doctorRecordControl;
     private ViewAllDoctorBoundary viewAllDoctorBoundary;
 
-    public DoctorManagementBoundary(DoctorControl doctorControl) {
+    public DoctorManagementBoundary(DoctorRecordControl doctorRecordControl) {
         this.sc = new Scanner(System.in);
-        this.doctorControl = doctorControl;
-        this.viewAllDoctorBoundary = new ViewAllDoctorBoundary(doctorControl);
+        this.doctorRecordControl = doctorRecordControl;
+        this.viewAllDoctorBoundary = new ViewAllDoctorBoundary(doctorRecordControl);
     }
 
     public void mainMenu() {
@@ -23,15 +21,17 @@ public class DoctorManagementBoundary {
             System.out.println("2. View Doctors");
             System.out.println("3. Update Doctor");
             System.out.println("4. Delete Doctor");
+            System.out.println("5. Restore Doctor");
             System.out.println("0. Back");
             System.out.print("Choose: ");
             String choice = sc.nextLine().trim();
 
             switch (choice) {
-                case "1": doctorControl.registerDoctor(); break;
+                case "1": doctorRecordControl.registerDoctor(); break;
                 case "2": viewAllDoctorBoundary.show(); break;
-                case "3": doctorControl.updateDoctor(); break;
-                case "4": doctorControl.deleteDoctor(); break;
+                case "3": doctorRecordControl.updateDoctor(); break;
+                case "4": doctorRecordControl.deleteDoctor(); break;
+                case "5": doctorRecordControl.restoreDoctor(); break;
                 case "0": return;
                 default: System.out.println("Invalid choice.");
             }

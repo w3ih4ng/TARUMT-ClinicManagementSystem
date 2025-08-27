@@ -5,20 +5,18 @@ public class Medicine {
         MG, ML, TABLET, CAPSULE
     }
 
-    private String medicineId; // unique ID
-    private String name; // medicine name
-    private double dosage; // numeric dosage
-    private Unit unit; // dosage unit
-    private int quantity; // units in stock
-    private double price; // per unit
+    private String medicineId;
+    private String name;
+    private double dosage;
+    private Unit unit;
+    private double price;
     private boolean isDeleted;
 
-    public Medicine(String medicineId, String name, double dosage, Unit unit, int quantity, double price) {
+    public Medicine(String medicineId, String name, double dosage, Unit unit, double price) {
         this.medicineId = medicineId;
         this.name = name;
         this.dosage = dosage;
         this.unit = unit;
-        this.quantity = quantity;
         this.price = price;
         this.isDeleted = false;
     }
@@ -40,10 +38,6 @@ public class Medicine {
         return unit;
     }
 
-    public int getQuantity() {
-        return quantity;
-    }
-
     public double getPrice() {
         return price;
     }
@@ -53,10 +47,6 @@ public class Medicine {
     }
 
     // Setters
-    public void setMedicineId(String medicineId) {
-        this.medicineId = medicineId;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
@@ -67,10 +57,6 @@ public class Medicine {
 
     public void setUnit(Unit unit) {
         this.unit = unit;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
     }
 
     public void setPrice(double price) {
@@ -91,9 +77,7 @@ public class Medicine {
         return medicineId + " " +
                 name + " " +
                 dosage + unit + " " +
-                quantity + " " +
                 price + " " +
                 (isDeleted ? "deleted" : "active");
     }
-
 }

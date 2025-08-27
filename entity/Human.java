@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter;
 public abstract class Human {
     protected String name;
     protected String gender;
-    protected LocalDate birthdate;   // changed from String → LocalDate
+    protected LocalDate birthdate; // changed from String → LocalDate
     protected String phoneNumber;
     protected boolean isDeleted; // soft delete flag
 
@@ -18,21 +18,51 @@ public abstract class Human {
         this.isDeleted = false; // default = active
     }
 
-    public String getName() { return name; }
-    public String getGender() { return gender; }
-    public LocalDate getBirthdate() { return birthdate; }
-    public String getPhoneNumber() { return phoneNumber; }
-    public boolean isDeleted() { return isDeleted; }
+    public String getName() {
+        return name;
+    }
 
-    public void setName(String name) { this.name = name; }
-    public void setGender(String gender) { this.gender = gender; }
-    public void setBirthdate(LocalDate birthdate) { this.birthdate = birthdate; }
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    public String getGender() {
+        return gender;
+    }
+
+    public LocalDate getBirthdate() {
+        return birthdate;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public void setBirthdate(LocalDate birthdate) {
+        this.birthdate = birthdate;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 
     // soft delete
-    public void delete() { this.isDeleted = true; }
+    public void delete() {
+        this.isDeleted = true;
+    }
+
     // restore
-    public void restore() { this.isDeleted = false; }
+    public void restore() {
+        this.isDeleted = false;
+    }
 
     @Override
     public String toString() {

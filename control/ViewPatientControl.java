@@ -2,17 +2,17 @@ package control;
 
 import entity.*;
 import adt.*;
+import utility.FilterCriteriaUtil;
 import java.time.format.DateTimeFormatter;
 
 public class ViewPatientControl {
-    private PatientControl patientControl;
+    private PatientRecordControl patientRecordControl;
     private HashMapInterface<String, Patient> patientMap;
-    private final ListInterface<String> activeCriteria = new ArrayList<>();
-    private String currentSortOption = null;
+    private final FilterCriteriaUtil criteriaUtil = new FilterCriteriaUtil();
 
-    public ViewPatientControl(PatientControl patientControl) {
-        this.patientControl = patientControl;
-        this.patientMap = patientControl.getPatientMap();
+    public ViewPatientControl(PatientRecordControl patientRecordControl) {
+        this.patientRecordControl = patientRecordControl;
+        this.patientMap = patientRecordControl.getPatientMap();
     }
 
     public HashMapInterface<String, Patient> getPatientMap() {
@@ -20,29 +20,19 @@ public class ViewPatientControl {
     }
 
     public void clearCriteria() {
-        activeCriteria.clear();
-        currentSortOption = null;
+        criteriaUtil.clearCriteria();
     }
 
     public void addCriteria(String text) {
-        activeCriteria.add(text);
+        criteriaUtil.addCriteria(text);
     }
 
     private void removeOldSortCriteria() {
-        for (int i = 0; i < activeCriteria.size(); i++) {
-            if (activeCriteria.get(i).startsWith("Sort =")) {
-                activeCriteria.remove(i);
-                i--; // adjust index since list shrinks
-            }
-        }
+        criteriaUtil.removeOldSortCriteria();
     }
 
     public String getCriteriaSummary() {
-        if (activeCriteria.isEmpty()) {
-            return "Filters : None";
-        } else {
-            return "Filters : " + String.join(" | ", activeCriteria);
-        }
+        return criteriaUtil.getCriteriaSummary();
     }
 
     // --- Filter ---
@@ -113,7 +103,7 @@ public class ViewPatientControl {
     // Ascending sort
     public void sortPatients(ListInterface<Patient> list, String option) {
         removeOldSortCriteria();
-        currentSortOption = option;
+        criteriaUtil.setCurrentSortOption(option);
 
         switch (option) {
             case "1":
@@ -133,7 +123,7 @@ public class ViewPatientControl {
                 addCriteria("Sort = Birthdate (Asc)");
                 break;
             default:
-                currentSortOption = null;
+                criteriaUtil.setCurrentSortOption(null);
                 break;
         }
     }
@@ -141,7 +131,7 @@ public class ViewPatientControl {
     // Descending sort
     public void reverseSortPatients(ListInterface<Patient> list, String option) {
         removeOldSortCriteria();
-        currentSortOption = option + "_desc"; // mark as descending
+        criteriaUtil.setCurrentSortOption(option + "_desc"); // mark as descending
 
         switch (option) {
             case "1":
@@ -161,19 +151,19 @@ public class ViewPatientControl {
                 addCriteria("Sort = Birthdate (Desc)");
                 break;
             default:
-                currentSortOption = null;
+                criteriaUtil.setCurrentSortOption(null);
                 break;
         }
     }
 
     public ListInterface<Patient> toList(HashMapInterface<String, Patient> map) {
         ListInterface<Patient> list = map.toList();
-        if (currentSortOption != null) {
-            if (currentSortOption.endsWith("_desc")) {
-                String originalOption = currentSortOption.replace("_desc", "");
+        if (criteriaUtil.getCurrentSortOption() != null) {
+            if (criteriaUtil.getCurrentSortOption().endsWith("_desc")) {
+                String originalOption = criteriaUtil.getCurrentSortOption().replace("_desc", "");
                 reverseSortPatients(list, originalOption);
             } else {
-                sortPatients(list, currentSortOption);
+                sortPatients(list, criteriaUtil.getCurrentSortOption());
             }
         } else {
             // Default sort by Patient ID ascending
@@ -186,11 +176,11 @@ public class ViewPatientControl {
     public void printPatients(HashMapInterface<String, Patient> map) {
         ListInterface<Patient> list = map.toList();
         list.sort((p1, p2) -> p1.getPatientId().compareTo(p2.getPatientId()));
-        patientControl.printPatientsTable(list, getCriteriaSummary());
+        patientRecordControl.printPatientsTable(list, getCriteriaSummary());
     }
 
     public void printPatientsFromList(ListInterface<Patient> list) {
-        patientControl.printPatientsTable(list, getCriteriaSummary());
+        patientRecordControl.printPatientsTable(list, getCriteriaSummary());
     }
 
 }
