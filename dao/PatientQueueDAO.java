@@ -78,7 +78,11 @@ public class PatientQueueDAO {
                 String queueId = parts[0];
                 String patientId = parts[1];
                 String specialty = parts[2];
-                QueueType queueType = QueueType.valueOf(parts[3]);
+                
+                // Handle QueueType with spaces (e.g., "WALK IN" -> "WALK_IN")
+                String queueTypeStr = parts[3].replace(" ", "_");
+                QueueType queueType = QueueType.valueOf(queueTypeStr);
+                
                 LocalDateTime arrivalTime = LocalDateTime.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
                 QueueStatus status = QueueStatus.valueOf(parts[5]);
                 String doctorId = parts[6].equals("NONE") ? null : parts[6];
@@ -91,7 +95,7 @@ public class PatientQueueDAO {
                 return entry;
             }
         } catch (Exception e) {
-            System.out.println("Error parsing patient queue entry: " + line);
+            System.out.println("Error parsing patient queue entry: " + line + " -> " + e.getMessage());
         }
         return null;
     }

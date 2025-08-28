@@ -1,0 +1,283 @@
+package boundary;
+
+import adt.*;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Scanner;
+
+import control.DoctorRecordControl;
+import control.DoctorScheduleControl;
+import entity.Doctor;
+
+public class DoctorScheduleBoundary {
+    private DoctorScheduleControl scheduleControl;
+    private DoctorRecordControl doctorControl;
+    private Scanner sc;
+
+    public DoctorScheduleBoundary(DoctorScheduleControl scheduleControl, DoctorRecordControl doctorControl) {
+        this.scheduleControl = scheduleControl;
+        this.doctorControl = doctorControl;
+        this.sc = new Scanner(System.in);
+    }
+
+    public void mainMenu() {
+        while (true) {
+            System.out.println("\n=== Doctor Schedule Management ===");
+            System.out.println("1. View Doctor's Booked Appointments");
+            System.out.println("2. Book Appointment");
+            System.out.println("3. Cancel Appointment");
+            System.out.println("4. View Booked Appointments by Specialty");
+            System.out.println("5. Back to Main Menu");
+            System.out.print("Enter your choice: ");
+
+            String choice = sc.nextLine();
+            switch (choice) {
+                case "1":
+                    viewDoctorBookedAppointments();
+                    break;
+                case "2":
+                    bookAppointment();
+                    break;
+                case "3":
+                    cancelAppointment();
+                    break;
+                case "4":
+                    viewBookedAppointmentsBySpecialty();
+                    break;
+                case "5":
+                    return;
+                default:
+                    System.out.println("❌ Invalid choice. Please try again.");
+            }
+        }
+    }
+
+    private void viewDoctorBookedAppointments() {
+        System.out.println("\n--- View Doctor's Booked Appointments ---");
+        
+        // Display available doctors
+        System.out.println("Available Doctors:");
+        ListInterface<Doctor> doctors = doctorControl.getAllDoctors();
+        if (doctors.isEmpty()) {
+            System.out.println("❌ No doctors found.");
+            return;
+        }
+
+        for (int i = 0; i < doctors.size(); i++) {
+            Doctor doctor = doctors.get(i);
+            System.out.printf("%d. %s (%s) - %s%n", 
+                i + 1, 
+                doctor.getName(), 
+                doctor.getDoctorId(), 
+                doctor.getSpecialty());
+        }
+
+        System.out.print("Select doctor number: ");
+        try {
+            int doctorIndex = Integer.parseInt(sc.nextLine().trim()) - 1;
+            if (doctorIndex >= 0 && doctorIndex < doctors.size()) {
+                Doctor selectedDoctor = doctors.get(doctorIndex);
+                scheduleControl.displayBookedAppointments(selectedDoctor.getDoctorId());
+            } else {
+                System.out.println("❌ Invalid doctor number.");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Please enter a valid number.");
+        }
+    }
+
+    private void bookAppointment() {
+        System.out.println("\n--- Book Appointment ---");
+        
+        // Display available doctors
+        System.out.println("Available Doctors:");
+        ListInterface<Doctor> doctors = doctorControl.getAllDoctors();
+        if (doctors.isEmpty()) {
+            System.out.println("❌ No doctors found.");
+            return;
+        }
+
+        for (int i = 0; i < doctors.size(); i++) {
+            Doctor doctor = doctors.get(i);
+            System.out.printf("%d. %s (%s) - %s%n", 
+                i + 1, 
+                doctor.getName(), 
+                doctor.getDoctorId(), 
+                doctor.getSpecialty());
+        }
+
+        System.out.print("Select doctor number: ");
+        try {
+            int doctorIndex = Integer.parseInt(sc.nextLine().trim()) - 1;
+            if (doctorIndex >= 0 && doctorIndex < doctors.size()) {
+                Doctor selectedDoctor = doctors.get(doctorIndex);
+                System.out.println("\nBooking appointment with Dr. " + selectedDoctor.getName());
+                
+                // Get patient ID
+                System.out.print("Enter Patient ID: ");
+                String patientId = sc.nextLine().trim();
+                
+                // Get appointment date
+                System.out.print("Enter appointment date (YYYY-MM-DD): ");
+                String dateStr = sc.nextLine().trim();
+                LocalDate appointmentDate;
+                try {
+                    appointmentDate = LocalDate.parse(dateStr);
+                } catch (DateTimeParseException e) {
+                    System.out.println("❌ Invalid date format. Please use YYYY-MM-DD.");
+                    return;
+                }
+                
+                // Get time selection
+                System.out.println("\nSelect Time Slot:");
+                System.out.println("1. 9:00 AM - 10:00 AM");
+                System.out.println("2. 10:00 AM - 11:00 AM");
+                System.out.println("3. 11:00 AM - 12:00 PM");
+                System.out.println("4. 1:00 PM - 2:00 PM");
+                System.out.println("5. 2:00 PM - 3:00 PM");
+                System.out.println("6. 3:00 PM - 4:00 PM");
+                System.out.println("7. 4:00 PM - 5:00 PM");
+                System.out.print("Enter time slot number: ");
+                
+                int timeChoice = Integer.parseInt(sc.nextLine().trim());
+                LocalTime selectedTime = null;
+                
+                switch (timeChoice) {
+                    case 1: selectedTime = LocalTime.of(9, 0); break;
+                    case 2: selectedTime = LocalTime.of(10, 0); break;
+                    case 3: selectedTime = LocalTime.of(11, 0); break;
+                    case 4: selectedTime = LocalTime.of(13, 0); break;
+                    case 5: selectedTime = LocalTime.of(14, 0); break;
+                    case 6: selectedTime = LocalTime.of(15, 0); break;
+                    case 7: selectedTime = LocalTime.of(16, 0); break;
+                    default:
+                        System.out.println("❌ Invalid time selection.");
+                        return;
+                }
+                
+                // Book the appointment
+                scheduleControl.bookAppointment(selectedDoctor.getDoctorId(), patientId, appointmentDate, selectedTime);
+                
+            } else {
+                System.out.println("❌ Invalid doctor number.");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Please enter a valid number.");
+        }
+    }
+
+    private void cancelAppointment() {
+        System.out.println("\n--- Cancel Appointment ---");
+        
+        // Display available doctors
+        System.out.println("Available Doctors:");
+        ListInterface<Doctor> doctors = doctorControl.getAllDoctors();
+        if (doctors.isEmpty()) {
+            System.out.println("❌ No doctors found.");
+            return;
+        }
+
+        for (int i = 0; i < doctors.size(); i++) {
+            Doctor doctor = doctors.get(i);
+            System.out.printf("%d. %s (%s) - %s%n", 
+                i + 1, 
+                doctor.getName(), 
+                doctor.getDoctorId(), 
+                doctor.getSpecialty());
+        }
+
+        System.out.print("Select doctor number: ");
+        try {
+            int doctorIndex = Integer.parseInt(sc.nextLine().trim()) - 1;
+            if (doctorIndex >= 0 && doctorIndex < doctors.size()) {
+                Doctor selectedDoctor = doctors.get(doctorIndex);
+                System.out.println("\nCancelling appointment with Dr. " + selectedDoctor.getName());
+                
+                // Show doctor's booked appointments first
+                scheduleControl.displayBookedAppointments(selectedDoctor.getDoctorId());
+                
+                // Get appointment date
+                System.out.print("Enter appointment date (YYYY-MM-DD): ");
+                String dateStr = sc.nextLine().trim();
+                LocalDate appointmentDate;
+                try {
+                    appointmentDate = LocalDate.parse(dateStr);
+                } catch (DateTimeParseException e) {
+                    System.out.println("❌ Invalid date format. Please use YYYY-MM-DD.");
+                    return;
+                }
+                
+                // Get time selection
+                System.out.println("\nSelect Time Slot:");
+                System.out.println("1. 9:00 AM - 10:00 AM");
+                System.out.println("2. 10:00 AM - 11:00 AM");
+                System.out.println("3. 11:00 AM - 12:00 PM");
+                System.out.println("4. 1:00 PM - 2:00 PM");
+                System.out.println("5. 2:00 PM - 3:00 PM");
+                System.out.println("6. 3:00 PM - 4:00 PM");
+                System.out.println("7. 4:00 PM - 5:00 PM");
+                System.out.print("Enter time slot number: ");
+                
+                int timeChoice = Integer.parseInt(sc.nextLine().trim());
+                LocalTime selectedTime = null;
+                
+                switch (timeChoice) {
+                    case 1: selectedTime = LocalTime.of(9, 0); break;
+                    case 2: selectedTime = LocalTime.of(10, 0); break;
+                    case 3: selectedTime = LocalTime.of(11, 0); break;
+                    case 4: selectedTime = LocalTime.of(13, 0); break;
+                    case 5: selectedTime = LocalTime.of(14, 0); break;
+                    case 6: selectedTime = LocalTime.of(15, 0); break;
+                    case 7: selectedTime = LocalTime.of(16, 0); break;
+                    default:
+                        System.out.println("❌ Invalid time selection.");
+                        return;
+                }
+                
+                // Cancel the appointment
+                scheduleControl.cancelAppointment(selectedDoctor.getDoctorId(), appointmentDate, selectedTime);
+                
+            } else {
+                System.out.println("❌ Invalid doctor number.");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Please enter a valid number.");
+        }
+    }
+
+    private void viewBookedAppointmentsBySpecialty() {
+        System.out.println("\n--- View Booked Appointments by Specialty ---");
+        System.out.println("Available Specialties:");
+        System.out.println("1. CARDIOLOGY");
+        System.out.println("2. NEUROLOGY");
+        System.out.println("3. PEDIATRICS");
+        System.out.println("4. ORTHOPEDICS");
+        System.out.println("5. DERMATOLOGY");
+        System.out.println("6. GENERAL MEDICINE");
+        System.out.print("Select specialty number: ");
+        
+        try {
+            int specialtyChoice = Integer.parseInt(sc.nextLine().trim());
+            String selectedSpecialty = null;
+            
+            switch (specialtyChoice) {
+                case 1: selectedSpecialty = "CARDIOLOGY"; break;
+                case 2: selectedSpecialty = "NEUROLOGY"; break;
+                case 3: selectedSpecialty = "PEDIATRICS"; break;
+                case 4: selectedSpecialty = "ORTHOPEDICS"; break;
+                case 5: selectedSpecialty = "DERMATOLOGY"; break;
+                case 6: selectedSpecialty = "GENERAL MEDICINE"; break;
+                default:
+                    System.out.println("❌ Invalid specialty selection.");
+                    return;
+            }
+            
+            scheduleControl.displayBookedAppointmentsBySpecialty(selectedSpecialty);
+            
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Please enter a valid number.");
+        }
+    }
+}

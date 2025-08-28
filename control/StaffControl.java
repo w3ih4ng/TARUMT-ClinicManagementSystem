@@ -6,12 +6,15 @@ public class StaffControl {
     private PatientManagementBoundary patientManagementBoundary;
     private DoctorManagementBoundary doctorManagementBoundary;
     private PharmacyBoundary pharmacyBoundary;
+    private DoctorScheduleBoundary doctorScheduleBoundary;
 
     public StaffControl() {
         // Initialize modules staff can access
-        this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(),new PatientQueueControl());
+        ConsultationControl consultationControl = new ConsultationControl();
+        this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(), new PatientQueueControl(consultationControl));
         this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorRecordControl());
         this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
+        this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl());
     }
 
     public void openPatientModule() {
@@ -23,8 +26,11 @@ public class StaffControl {
     }
 
     public void openConsultationModule() {
-        System.out.println("[Consultation Module - placeholder]");
-        // later: new ConsultationBoundary(new ConsultationControl()).mainMenu();
+        new ConsultationMenuBoundary(new ConsultationControl()).mainMenu();
+    }
+
+    public void openDoctorScheduleModule() {
+        doctorScheduleBoundary.mainMenu();
     }
 
     public void openTreatmentModule() {

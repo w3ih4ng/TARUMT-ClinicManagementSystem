@@ -13,12 +13,14 @@ public class PatientQueueControl {
     private HashMapInterface<String, PatientQueueEntry> queueMap;
     private HashMapInterface<String, Doctor> doctorMap;
     private HashMapInterface<String, Patient> patientMap;
+    private ConsultationControl consultationControl;
     private Scanner sc;
 
-    public PatientQueueControl() {
+    public PatientQueueControl(ConsultationControl consultationControl) {
         this.queueMap = PatientQueueDAO.loadPatientQueue();
         this.doctorMap = DoctorDAO.loadDoctors();
         this.patientMap = PatientDAO.loadPatients();
+        this.consultationControl = consultationControl;
         this.sc = new Scanner(System.in);
     }
 
@@ -135,6 +137,16 @@ public class PatientQueueControl {
         PatientQueueEntry entry = queueMap.get(queueId);
         String specialty = entry.getSpecialty();
 
+        // Check if this is an appointment patient
+        if (entry.getQueueType() == QueueType.APPOINTMENT) {
+            System.out.println("📅 This is an appointment patient. They should already be assigned to a doctor.");
+            System.out.println("   If no doctor is assigned, please check the appointment booking in Doctor Schedule Management.");
+            return;
+        }
+
+        // For walk-in patients, proceed with manual assignment
+        System.out.println("🚶 This is a walk-in patient. Proceeding with manual doctor assignment...");
+
         // --- Show available doctors for specialty ---
         ListInterface<Doctor> availableDoctors = getAvailableDoctors(specialty);
         if (availableDoctors.isEmpty()) {
@@ -153,7 +165,10 @@ public class PatientQueueControl {
         entry.assignToDoctor(doctorId);
         PatientQueueDAO.savePatientQueue(queueMap);
 
-        System.out.println("\n✅ Doctor assigned successfully!");
+        // --- Create consultation automatically ---
+        consultationControl.createConsultationForQueue(queueId);
+
+        System.out.println("\n✅ Walk-in patient assigned to doctor successfully!");
         System.out.println("Patient: " + entry.getPatientId());
         System.out.println("Doctor: " + doctorId);
         System.out.println("Specialty: " + specialty);

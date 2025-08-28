@@ -138,6 +138,19 @@ public class DoctorRecordControl {
         return this.doctorMap;
     }
 
+    // Get all doctors as a list
+    public ListInterface<Doctor> getAllDoctors() {
+        ListInterface<Doctor> doctors = new ArrayList<>();
+        for (int i = 0; i < doctorMap.keySet().size(); i++) {
+            String key = doctorMap.keySet().get(i);
+            Doctor doctor = doctorMap.get(key);
+            if (doctor != null) {
+                doctors.add(doctor);
+            }
+        }
+        return doctors;
+    }
+
     public void printDoctorsTable(ListInterface<Doctor> doctors, String criteriaSummary) {
         if (doctors.isEmpty()) {
             System.out.println(

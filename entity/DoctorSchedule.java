@@ -1,24 +1,30 @@
 package entity;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public class DoctorSchedule {
     private String scheduleId;
     private String doctorId;
     private String specialty;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private LocalDate appointmentDate;
+    private LocalTime startTime;
+    private LocalTime endTime;
     private boolean isBooked;
     private String consultationId; // link if booked
+    private String patientId; // patient for this appointment
 
-    public DoctorSchedule(String scheduleId, String doctorId, String specialty, LocalDateTime startTime,
-            LocalDateTime endTime) {
+    public DoctorSchedule(String scheduleId, String doctorId, String specialty, LocalDate appointmentDate, 
+                         LocalTime startTime, LocalTime endTime) {
         this.scheduleId = scheduleId;
         this.doctorId = doctorId;
         this.specialty = specialty;
+        this.appointmentDate = appointmentDate;
         this.startTime = startTime;
         this.endTime = endTime;
         this.isBooked = false;
+        this.consultationId = null;
+        this.patientId = null;
     }
 
     public String getScheduleId() {
@@ -33,11 +39,15 @@ public class DoctorSchedule {
         return specialty;
     }
 
-    public LocalDateTime getStartTime() {
+    public LocalDate getAppointmentDate() {
+        return appointmentDate;
+    }
+
+    public LocalTime getStartTime() {
         return startTime;
     }
 
-    public LocalDateTime getEndTime() {
+    public LocalTime getEndTime() {
         return endTime;
     }
 
@@ -49,13 +59,40 @@ public class DoctorSchedule {
         return consultationId;
     }
 
-    public void bookSlot(String consultationId) {
+    public String getPatientId() {
+        return patientId;
+    }
+
+    public void bookSlot(String consultationId, String patientId) {
         this.isBooked = true;
         this.consultationId = consultationId;
+        this.patientId = patientId;
     }
 
     public void freeSlot() {
         this.isBooked = false;
         this.consultationId = null;
+        this.patientId = null;
+    }
+
+    public boolean isAvailable() {
+        return !isBooked;
+    }
+
+    public String getTimeSlotString() {
+        return startTime.toString() + " - " + endTime.toString();
+    }
+
+    public String getDateString() {
+        return appointmentDate.toString();
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s %s (%s) - %s", 
+            appointmentDate.toString(), 
+            getTimeSlotString(), 
+            specialty, 
+            isBooked ? "Booked" : "Available");
     }
 }
