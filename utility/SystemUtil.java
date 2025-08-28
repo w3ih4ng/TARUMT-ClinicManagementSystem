@@ -1,5 +1,9 @@
 package utility;
 
+/**
+ * System utility class with helper methods
+ * @author Your Name
+ */
 public class SystemUtil {
     public static void clearScreen() {
         try {

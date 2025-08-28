@@ -6,10 +6,13 @@ import adt.HashMapADT;
 import adt.HashMapInterface;
 import adt.ListInterface;
 import java.time.*;
-import java.util.Random;
 
 import java.io.*;
 
+/**
+ * Data Access Object for Stock persistence
+ * @author Your Name
+ */
 public class StockDAO {
     private static final String FILE_NAME = "data/stocks.txt";
     private static int stockCounter = 1001; // Start from S1001
@@ -122,10 +125,11 @@ public class StockDAO {
     }
     
     private static LocalDate generateRandomPastDate() {
-        Random random = new Random();
-        int year = 2023 + random.nextInt(2); // 2023 or 2024
-        int month = 1 + random.nextInt(12);  // 1-12
-        int day = 1 + random.nextInt(28);    // 1-28 (safe for all months)
+        // Simple pseudo-random using current time instead of java.util.Random
+        long seed = System.currentTimeMillis();
+        int year = 2023 + (int)(seed % 2); // 2023 or 2024
+        int month = 1 + (int)(seed % 12);  // 1-12
+        int day = 1 + (int)(seed % 28);    // 1-28 (safe for all months)
         return LocalDate.of(year, month, day);
     }
     

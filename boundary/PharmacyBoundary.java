@@ -3,6 +3,10 @@ package boundary;
 import control.PharmacyControl;
 import java.util.Scanner;
 
+/**
+ * Boundary class for pharmacy operations interface
+ * @author Your Name
+ */
 public class PharmacyBoundary {
     private Scanner sc;
     private PharmacyControl pharmacyControl;

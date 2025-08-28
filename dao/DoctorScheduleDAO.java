@@ -8,6 +8,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Data Access Object for DoctorSchedule persistence
+ * @author Your Name
+ */
 public class DoctorScheduleDAO {
     private static final String FILE_NAME = "data/doctor_schedules.txt";
     private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");

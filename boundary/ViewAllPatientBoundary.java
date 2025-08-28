@@ -8,6 +8,10 @@ import utility.*;
 
 import java.util.Scanner;
 
+/**
+ * Boundary class for viewing all patient data interface
+ * @author Your Name
+ */
 public class ViewAllPatientBoundary {
     private final ViewPatientControl viewPatientControl;
 

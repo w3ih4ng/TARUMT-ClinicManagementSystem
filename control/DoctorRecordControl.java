@@ -11,6 +11,10 @@ import java.util.Scanner;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Control class for doctor record management
+ * @author Your Name
+ */
 public class DoctorRecordControl {
     private HashMapInterface<String, Doctor> doctorMap; // key = doctorId
     private Scanner sc;

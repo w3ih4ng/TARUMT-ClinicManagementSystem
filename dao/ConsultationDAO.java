@@ -7,6 +7,10 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Data Access Object for Consultation persistence
+ * @author Your Name
+ */
 public class ConsultationDAO {
     private static final String FILE_NAME = "data/consultations.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -83,7 +87,7 @@ public class ConsultationDAO {
         String paymentId = c.getPaymentId() != null ? c.getPaymentId() : "NONE";
         String consultationTime = c.getConsultationTime() != null ? 
             c.getConsultationTime().format(formatter) : "NONE";
-        
+        String queueId = c.getQueueId() != null ? c.getQueueId() : "NONE"; // new
         return String.join("|",
                 c.getConsultationId(),
                 c.getPatientId(),
@@ -93,14 +97,14 @@ public class ConsultationDAO {
                 consultationTime,
                 treatmentId,
                 paymentId,
-                c.getStatus()
-        );
+                c.getStatus(),
+                queueId); // column 10
     }
 
     private static Consultation fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length == 9) {
+            if (parts.length == 10) {
                 String consultationId = parts[0];
                 String patientId = parts[1];
                 String doctorId = parts[2].equals("NONE") ? null : parts[2];
@@ -111,21 +115,14 @@ public class ConsultationDAO {
                 String treatmentId = parts[6].equals("NONE") ? null : parts[6];
                 String paymentId = parts[7].equals("NONE") ? null : parts[7];
                 String status = parts[8];
+                String queueId = parts[9].equals("NONE") ? null : parts[9];
 
-                Consultation c = new Consultation(consultationId, patientId, specialty);
-                
+                Consultation c = new Consultation(consultationId, patientId, specialty, queueId);
                 if (doctorId != null && consultationTime != null) {
                     c.assignDoctor(doctorId, scheduleId, consultationTime);
                 }
-                
-                if (treatmentId != null) {
-                    c.completeConsultation(treatmentId);
-                }
-                
-                if (paymentId != null) {
-                    c.setPayment(paymentId);
-                }
-                
+                if (treatmentId != null) c.completeConsultation(treatmentId);
+                if (paymentId != null) c.setPayment(paymentId);
                 return c;
             }
         } catch (Exception e) {

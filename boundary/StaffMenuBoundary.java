@@ -3,6 +3,10 @@ package boundary;
 import java.util.Scanner;
 import control.StaffControl;
 
+/**
+ * Boundary class for staff menu interface
+ * @author Your Name
+ */
 public class StaffMenuBoundary {
     private Scanner sc;
     private StaffControl staffControl;

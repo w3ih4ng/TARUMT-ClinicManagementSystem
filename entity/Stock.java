@@ -2,6 +2,10 @@ package entity;
 
 import java.time.LocalDate;
 
+/**
+ * Stock entity representing medicine inventory
+ * @author Your Name
+ */
 public class Stock {
     private String stockId;        // Unique batch ID (S1001, S1002...)
     private String medicineId;     // links to Medicine

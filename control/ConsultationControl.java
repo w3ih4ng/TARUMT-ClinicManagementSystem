@@ -10,6 +10,10 @@ import dao.PatientDAO;
 import java.time.LocalDateTime;
 import java.util.Scanner;
 
+/**
+ * Control class for consultation management
+ * @author Your Name
+ */
 public class ConsultationControl {
     private HashMapInterface<String, Consultation> consultationMap;
     private HashMapInterface<String, PatientQueueEntry> queueMap;
@@ -33,7 +37,7 @@ public class ConsultationControl {
         PatientQueueEntry entry = queueMap.get(queueId);
         if (entry != null && entry.isAssigned() && entry.getAssignedDoctorId() != null) {
             String consultationId = ConsultationDAO.generateConsultationId();
-            Consultation consultation = new Consultation(consultationId, entry.getPatientId(), entry.getSpecialty());
+            Consultation consultation = new Consultation(consultationId, entry.getPatientId(), entry.getSpecialty(), queueId);
             
             // Assign doctor and set consultation time
             consultation.assignDoctor(entry.getAssignedDoctorId(), null, LocalDateTime.now());
@@ -43,6 +47,50 @@ public class ConsultationControl {
             
             System.out.println("✅ Consultation created: " + consultationId);
         }
+    }
+
+    // --- Complete consultation with treatment ---
+    public void completeConsultation(String consultationId, String diagnosis, double treatmentFee, 
+                                   ListInterface<entity.MedicinePrescribed> medicines) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation == null) {
+            System.out.println("❌ Consultation not found: " + consultationId);
+            return;
+        }
+
+        // Create treatment
+        String treatmentId = dao.TreatmentDAO.generateTreatmentId();
+        entity.Treatment treatment = new entity.Treatment(treatmentId, consultation.getDoctorId(), 
+                                                         consultation.getPatientId(), consultationId, 
+                                                         diagnosis, treatmentFee);
+        
+        // Add prescribed medicines
+        for (int i = 0; i < medicines.size(); i++) {
+            treatment.addPrescribedMedicine(medicines.get(i));
+        }
+
+        // Save treatment
+        adt.HashMapInterface<String, entity.Treatment> treatmentMap = dao.TreatmentDAO.loadTreatments();
+        treatmentMap.put(treatmentId, treatment);
+        dao.TreatmentDAO.saveTreatments(treatmentMap);
+
+        // Complete consultation
+        consultation.completeConsultation(treatmentId);
+        consultationMap.put(consultationId, consultation);
+        ConsultationDAO.saveConsultations(consultationMap);
+
+        // Mark queue entry as completed
+        String queueId = consultation.getQueueId();
+        if (queueId != null) {
+            PatientQueueEntry queueEntry = queueMap.get(queueId);
+            if (queueEntry != null) {
+                queueEntry.complete();
+                queueMap.put(queueId, queueEntry);
+                PatientQueueDAO.savePatientQueue(queueMap);
+            }
+        }
+
+        System.out.println("✅ Consultation completed with treatment: " + treatmentId);
     }
 
     // --- Auto-assign appointment patients to their booked doctors ---

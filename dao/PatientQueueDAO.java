@@ -9,9 +9,14 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Data Access Object for PatientQueue persistence
+ * @author Your Name
+ */
 public class PatientQueueDAO {
     private static final String FILE_NAME = "data/patient_queue.txt";
     private static int queueCounter = 1001; // Start from Q1001
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private static void ensureFile() {
         try {
@@ -59,41 +64,40 @@ public class PatientQueueDAO {
     }
 
     private static String toFileString(PatientQueueEntry entry) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        String schTime = entry.getScheduledStartTime() == null ? "NONE" : entry.getScheduledStartTime().format(FMT);
         String doctorId = entry.getAssignedDoctorId() != null ? entry.getAssignedDoctorId() : "NONE";
-        
-        return entry.getQueueId() + "|" + 
-               entry.getPatientId() + "|" + 
-               entry.getSpecialty() + "|" + 
-               entry.getQueueType() + "|" + 
-               entry.getArrivalTime().format(formatter) + "|" + 
-               entry.getQueueStatus() + "|" + 
-               doctorId;
+        return String.join("|",
+                entry.getQueueId(),
+                entry.getPatientId(),
+                entry.getSpecialty(),
+                entry.getQueueType().name(),
+                entry.getArrivalTime().format(FMT),
+                schTime,
+                entry.getQueueStatus().name(),
+                doctorId);
     }
 
     private static PatientQueueEntry fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length == 7) {
-                String queueId = parts[0];
-                String patientId = parts[1];
-                String specialty = parts[2];
-                
-                // Handle QueueType with spaces (e.g., "WALK IN" -> "WALK_IN")
-                String queueTypeStr = parts[3].replace(" ", "_");
-                QueueType queueType = QueueType.valueOf(queueTypeStr);
-                
-                LocalDateTime arrivalTime = LocalDateTime.parse(parts[4], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                QueueStatus status = QueueStatus.valueOf(parts[5]);
-                String doctorId = parts[6].equals("NONE") ? null : parts[6];
-
-                PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, queueType);
-                entry.setQueueStatus(status);
-                if (doctorId != null) {
-                    entry.setAssignedDoctorId(doctorId);
-                }
-                return entry;
+            if (parts.length != 8) {
+                throw new IllegalArgumentException("Expected 8 columns, got " + parts.length);
             }
+            
+            String queueId = parts[0];
+            String patientId = parts[1];
+            String specialty = parts[2];
+            QueueType queueType = QueueType.valueOf(parts[3]);
+            LocalDateTime arrivalTime = LocalDateTime.parse(parts[4], FMT);
+            LocalDateTime scheduled = parts[5].equals("NONE") ? null : LocalDateTime.parse(parts[5], FMT);
+            QueueStatus status = QueueStatus.valueOf(parts[6]);
+            String doctorId = parts[7].equals("NONE") ? null : parts[7];
+
+            PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, queueType, arrivalTime);
+            entry.setScheduledStartTime(scheduled);
+            entry.setQueueStatus(status);
+            if (doctorId != null) entry.setAssignedDoctorId(doctorId);
+            return entry;
         } catch (Exception e) {
             System.out.println("Error parsing patient queue entry: " + line + " -> " + e.getMessage());
         }

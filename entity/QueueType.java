@@ -1,5 +1,9 @@
 package entity;
 
+/**
+ * Enum defining patient queue types
+ * @author Your Name
+ */
 public enum QueueType {
     WALK_IN,
     APPOINTMENT;

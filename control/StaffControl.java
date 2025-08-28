@@ -2,6 +2,10 @@ package control;
 
 import boundary.*;
 
+/**
+ * Control class for staff management and coordination
+ * @author Your Name
+ */
 public class StaffControl {
     private PatientManagementBoundary patientManagementBoundary;
     private DoctorManagementBoundary doctorManagementBoundary;
@@ -14,7 +18,7 @@ public class StaffControl {
         this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(), new PatientQueueControl(consultationControl));
         this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorRecordControl());
         this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
-        this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl());
+        this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl(), new PatientQueueControl(consultationControl));
     }
 
     public void openPatientModule() {

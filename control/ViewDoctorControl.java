@@ -4,8 +4,11 @@ import entity.Doctor;
 import entity.Specialty;
 import adt.*;
 import utility.FilterCriteriaUtil;
- 
 
+/**
+ * Control class for viewing and filtering doctor data
+ * @author Your Name
+ */
 public class ViewDoctorControl {
     private DoctorRecordControl doctorRecordControl;
     private HashMapInterface<String, Doctor> doctorMap;

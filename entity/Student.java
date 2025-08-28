@@ -2,6 +2,10 @@ package entity;
 
 import java.time.LocalDate;
 
+/**
+ * Student patient entity
+ * @author Your Name
+ */
 public class Student extends Patient {
     private String studentId; // school identity
 

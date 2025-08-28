@@ -1,8 +1,12 @@
 package entity;
 
-import java.util.ArrayList;
-import java.util.List;
+import adt.ListInterface;
+import adt.ArrayList;
 
+/**
+ * Treatment entity class representing medical treatment records
+ * @author Your Name
+ */
 public class Treatment {
     private String treatmentId;
     private String doctorId;
@@ -10,7 +14,7 @@ public class Treatment {
     private String consultationId;
     private String description; // doctor's notes / diagnosis
     private double treatmentFee; // cost of the treatment itself
-    private List<MedicinePrescribed> prescribedMedicines;
+    private ListInterface<MedicinePrescribed> prescribedMedicines;
 
     public Treatment(String treatmentId, String doctorId, String patientId, String consultationId, String description,
             double treatmentFee) {
@@ -47,7 +51,7 @@ public class Treatment {
         return treatmentFee;
     }
 
-    public List<MedicinePrescribed> getPrescribedMedicines() {
+    public ListInterface<MedicinePrescribed> getPrescribedMedicines() {
         return prescribedMedicines;
     }
 

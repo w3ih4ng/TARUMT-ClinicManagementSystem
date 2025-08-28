@@ -1,5 +1,9 @@
 package entity;
 
+/**
+ * Enum defining medical specialties
+ * @author Your Name
+ */
 public enum Specialty {
     GENERAL_MEDICINE,
     PEDIATRICS,

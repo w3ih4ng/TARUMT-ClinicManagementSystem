@@ -5,6 +5,10 @@ import adt.*;
 import utility.FilterCriteriaUtil;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Control class for viewing and filtering patient data
+ * @author Your Name
+ */
 public class ViewPatientControl {
     private PatientRecordControl patientRecordControl;
     private HashMapInterface<String, Patient> patientMap;

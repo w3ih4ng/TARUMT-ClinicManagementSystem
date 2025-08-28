@@ -5,6 +5,10 @@ import entity.Medicine.Unit;
 import adt.*;
 import utility.FilterCriteriaUtil;
 
+/**
+ * Control class for viewing and filtering medicine data
+ * @author Your Name
+ */
 public class ViewMedicineControl {
     private MedicineControl medicineControl;
     private HashMapInterface<String, Medicine> medicineMap;

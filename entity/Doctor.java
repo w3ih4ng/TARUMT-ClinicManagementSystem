@@ -3,6 +3,10 @@ package entity;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Doctor entity representing medical practitioners
+ * @author Your Name
+ */
 public class Doctor extends Human {
     private String doctorId;
     private Specialty specialty; // changed to enum

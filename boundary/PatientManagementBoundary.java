@@ -3,6 +3,10 @@ package boundary;
 import java.util.Scanner;
 import control.*;
 
+/**
+ * Boundary class for patient management interface
+ * @author Your Name
+ */
 public class PatientManagementBoundary {
     private Scanner sc;
     private PatientRecordControl patientRecordControl;
@@ -83,7 +87,7 @@ public class PatientManagementBoundary {
     }
 
     private void queueManagement() {
-        PatientQueueBoundary queueBoundary = new PatientQueueBoundary(queueControl);
+        PatientQueueBoundary queueBoundary = new PatientQueueBoundary(queueControl, new DoctorRecordControl());
         queueBoundary.menu();
     }
 }

@@ -1,5 +1,9 @@
 package entity;
 
+/**
+ * Enum defining patient queue status
+ * @author Your Name
+ */
 public enum QueueStatus {
     WAITING,
     ASSIGNED,

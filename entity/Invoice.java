@@ -2,6 +2,10 @@ package entity;
 
 import java.time.LocalDateTime;
 
+/**
+ * Invoice entity for billing and payments
+ * @author Your Name
+ */
 public class Invoice {
     private String invoiceId;
     private String consultationId;

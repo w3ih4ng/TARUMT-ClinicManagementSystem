@@ -6,6 +6,10 @@ import adt.*;
 
 import java.io.*;
 
+/**
+ * Data Access Object for Medicine persistence
+ * @author Your Name
+ */
 public class MedicineDAO {
     private static final String FILE_NAME = "data/medicines.txt";
 

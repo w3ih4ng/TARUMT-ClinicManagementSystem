@@ -6,6 +6,7 @@ import adt.ListInterface;
 /**
  * Utility to manage filter/sort criteria strings and current sort option.
  * Centralizes common logic used across various View*Control classes.
+ * @author Your Name
  */
 public class FilterCriteriaUtil {
     private final ListInterface<String> activeCriteria = new ArrayList<>();

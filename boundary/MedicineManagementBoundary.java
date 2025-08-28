@@ -3,6 +3,10 @@ package boundary;
 import java.util.Scanner;
 import control.MedicineControl;
 
+/**
+ * Boundary class for medicine management interface
+ * @author Your Name
+ */
 public class MedicineManagementBoundary {
     private Scanner sc;
     private MedicineControl medicineControl;

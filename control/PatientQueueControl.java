@@ -9,6 +9,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
+/**
+ * Control class for patient queue management
+ * @author Your Name
+ */
 public class PatientQueueControl {
     private HashMapInterface<String, PatientQueueEntry> queueMap;
     private HashMapInterface<String, Doctor> doctorMap;
@@ -22,6 +26,154 @@ public class PatientQueueControl {
         this.patientMap = PatientDAO.loadPatients();
         this.consultationControl = consultationControl;
         this.sc = new Scanner(System.in);
+    }
+
+    // === NEW BUSINESS METHODS ===
+
+    /**
+     * Add walk-in patient to queue
+     */
+    public void addWalkIn(String patientId, String specialty) {
+        String queueId = PatientQueueDAO.generateQueueId();
+        PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, 
+                                                        QueueType.WALK_IN, LocalDateTime.now());
+        queueMap.put(queueId, entry);
+        PatientQueueDAO.savePatientQueue(queueMap);
+        System.out.println("✅ Walk-in patient added to queue: " + queueId);
+    }
+
+    /**
+     * Check-in appointment patient from schedule
+     */
+    public void checkInAppointment(String scheduleId, DoctorScheduleControl scheduleControl) {
+        // Get schedule info
+        entity.DoctorSchedule schedule = scheduleControl.getScheduleById(scheduleId);
+        if (schedule == null) {
+            System.out.println("❌ Schedule not found: " + scheduleId);
+            return;
+        }
+        
+        if (!schedule.getAppointmentDate().equals(java.time.LocalDate.now())) {
+            System.out.println("❌ This appointment is not for today");
+            return;
+        }
+
+        if (!schedule.isBooked()) {
+            System.out.println("❌ This slot is not booked");
+            return;
+        }
+
+        // Create queue entry
+        String queueId = PatientQueueDAO.generateQueueId();
+        PatientQueueEntry entry = new PatientQueueEntry(queueId, schedule.getPatientId(), 
+                                                        schedule.getSpecialty(), QueueType.APPOINTMENT, 
+                                                        LocalDateTime.now());
+        
+        // Set scheduled start time from appointment
+        java.time.LocalDateTime startDateTime = java.time.LocalDateTime.of(
+            schedule.getAppointmentDate(), schedule.getStartTime());
+        entry.setScheduledStartTime(startDateTime);
+        
+        queueMap.put(queueId, entry);
+        PatientQueueDAO.savePatientQueue(queueMap);
+        
+        // Mark schedule as checked in
+        scheduleControl.markCheckedIn(scheduleId);
+        
+        System.out.println("✅ Appointment patient checked in: " + queueId);
+    }
+
+    /**
+     * Assign doctor to waiting patient
+     */
+    public void assignPatientToDoctor(String queueId, String doctorId) {
+        PatientQueueEntry entry = queueMap.get(queueId);
+        if (entry == null) {
+            System.out.println("❌ Queue entry not found: " + queueId);
+            return;
+        }
+
+        if (entry.getQueueStatus() != QueueStatus.WAITING) {
+            System.out.println("❌ Patient is not waiting: " + entry.getQueueStatus());
+            return;
+        }
+
+        Doctor doctor = doctorMap.get(doctorId);
+        if (doctor == null) {
+            System.out.println("❌ Doctor not found: " + doctorId);
+            return;
+        }
+
+        // Update queue entry
+        entry.assignToDoctor(doctorId);
+        queueMap.put(queueId, entry);
+        PatientQueueDAO.savePatientQueue(queueMap);
+
+        // Create consultation
+        consultationControl.createConsultationForQueue(queueId);
+        
+        System.out.println("✅ Patient assigned to Dr. " + doctorId + " - Consultation created");
+    }
+
+    /**
+     * Get next eligible patient for doctor to call
+     */
+    public PatientQueueEntry getNextEligiblePatient() {
+        ListInterface<PatientQueueEntry> sortedQueue = getSortedQueue();
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (int i = 0; i < sortedQueue.size(); i++) {
+            PatientQueueEntry entry = sortedQueue.get(i);
+            if (entry.getQueueStatus() == QueueStatus.WAITING) {
+                if (entry.getQueueType() == QueueType.WALK_IN) {
+                    return entry; // Walk-ins always eligible
+                }
+                if (entry.getQueueType() == QueueType.APPOINTMENT &&
+                    entry.getScheduledStartTime() != null &&
+                    !now.isBefore(entry.getScheduledStartTime())) {
+                    return entry; // Appointment time has arrived
+                }
+            }
+        }
+        return null; // No eligible patients
+    }
+
+    /**
+     * Get queue sorted by scheduled time then arrival time
+     */
+    private ListInterface<PatientQueueEntry> getSortedQueue() {
+        ListInterface<PatientQueueEntry> queue = new ArrayList<>();
+        for (String key : queueMap.keySet()) {
+            queue.add(queueMap.get(key));
+        }
+        
+        // Simple bubble sort by scheduled time / arrival time
+        for (int i = 0; i < queue.size() - 1; i++) {
+            for (int j = 0; j < queue.size() - i - 1; j++) {
+                if (shouldSwap(queue.get(j), queue.get(j + 1))) {
+                    PatientQueueEntry temp = queue.get(j);
+                    queue.set(j, queue.get(j + 1));
+                    queue.set(j + 1, temp);
+                }
+            }
+        }
+        return queue;
+    }
+
+    private boolean shouldSwap(PatientQueueEntry a, PatientQueueEntry b) {
+        // Appointments with scheduled times come first, sorted by time
+        if (a.getScheduledStartTime() != null && b.getScheduledStartTime() != null) {
+            return a.getScheduledStartTime().isAfter(b.getScheduledStartTime());
+        }
+        // Appointments before walk-ins
+        if (a.getScheduledStartTime() != null && b.getScheduledStartTime() == null) {
+            return false;
+        }
+        if (a.getScheduledStartTime() == null && b.getScheduledStartTime() != null) {
+            return true;
+        }
+        // Both walk-ins, sort by arrival time
+        return a.getArrivalTime().isAfter(b.getArrivalTime());
     }
 
     public HashMapInterface<String, PatientQueueEntry> getQueueMap() {
@@ -51,7 +203,7 @@ public class PatientQueueControl {
 
         // --- Create queue entry ---
         String queueId = PatientQueueDAO.generateQueueId();
-        PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, queueType);
+        PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, queueType, LocalDateTime.now());
         
         queueMap.put(queueId, entry);
         PatientQueueDAO.savePatientQueue(queueMap);

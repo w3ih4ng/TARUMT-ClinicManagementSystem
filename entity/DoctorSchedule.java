@@ -3,6 +3,10 @@ package entity;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * Doctor schedule entity for managing doctor availability
+ * @author Your Name
+ */
 public class DoctorSchedule {
     private String scheduleId;
     private String doctorId;

@@ -4,12 +4,16 @@ import java.util.Scanner;
 import boundary.*;
 import control.*;
 
+/**
+ * Main entry point for the Clinic Management System
+ * @author Your Name
+ */
 public class ClinicManagementSystem {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
 
         StaffMenuBoundary staffMenuBoundary = new StaffMenuBoundary(new StaffControl());
-        DoctorMenuBoundary doctorMenuBoundary = new DoctorMenuBoundary(new DoctorRecordControl());
+        DoctorMenuBoundary doctorMenuBoundary = new DoctorMenuBoundary(new DoctorRecordControl(), new ConsultationMenuBoundary(new ConsultationControl()));
 
         while (true) {
             System.out.println("====================================");

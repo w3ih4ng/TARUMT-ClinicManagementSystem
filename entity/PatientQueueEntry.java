@@ -3,6 +3,10 @@ package entity;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Patient queue entry entity
+ * @author Your Name
+ */
 public class PatientQueueEntry {
     private String queueId;
     private String patientId;
@@ -10,16 +14,16 @@ public class PatientQueueEntry {
     private QueueType queueType;
     private LocalDateTime arrivalTime;
     private QueueStatus queueStatus;
-    private String assignedDoctorId; // null if not assigned yet
+    private LocalDateTime scheduledStartTime; // null for walk-ins or unknown
+    private String assignedDoctorId; // set when doctor assigned
 
-    public PatientQueueEntry(String queueId, String patientId, String specialty, QueueType queueType) {
+    public PatientQueueEntry(String queueId, String patientId, String specialty, QueueType queueType, LocalDateTime arrivalTime) {
         this.queueId = queueId;
         this.patientId = patientId;
         this.specialty = specialty;
         this.queueType = queueType;
-        this.arrivalTime = LocalDateTime.now();
+        this.arrivalTime = arrivalTime;
         this.queueStatus = QueueStatus.WAITING;
-        this.assignedDoctorId = null;
     }
 
     // Getters
@@ -29,11 +33,13 @@ public class PatientQueueEntry {
     public QueueType getQueueType() { return queueType; }
     public LocalDateTime getArrivalTime() { return arrivalTime; }
     public QueueStatus getQueueStatus() { return queueStatus; }
+    public LocalDateTime getScheduledStartTime() { return scheduledStartTime; }
     public String getAssignedDoctorId() { return assignedDoctorId; }
 
     // Setters
     public void setQueueStatus(QueueStatus status) { this.queueStatus = status; }
     public void setAssignedDoctorId(String doctorId) { this.assignedDoctorId = doctorId; }
+    public void setScheduledStartTime(LocalDateTime t) { this.scheduledStartTime = t; }
 
     // Business methods
     public void assignToDoctor(String doctorId) {

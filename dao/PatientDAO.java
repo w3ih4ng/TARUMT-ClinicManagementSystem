@@ -7,6 +7,10 @@ import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Data Access Object for Patient persistence
+ * @author Your Name
+ */
 public class PatientDAO {
     private static final String FILE_NAME = "data/patients.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");

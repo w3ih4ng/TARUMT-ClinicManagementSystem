@@ -1,5 +1,9 @@
 package entity;
 
+/**
+ * Medicine prescribed entity linking medicines to treatments
+ * @author Your Name
+ */
 public class MedicinePrescribed {
     private String medicineId;
     private int quantity;

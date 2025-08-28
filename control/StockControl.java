@@ -8,6 +8,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
+/**
+ * Control class for stock management
+ * @author Your Name
+ */
 public class StockControl {
     private HashMapInterface<String, Stock> stockMap; // key = stockId
     private Scanner sc;

@@ -5,9 +5,11 @@ import entity.MedicinePrescribed;
 import adt.*;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
+/**
+ * Data Access Object for Treatment persistence
+ * @author Your Name
+ */
 public class TreatmentDAO {
     private static final String FILE_NAME = "data/treatments.txt";
     private static int treatmentCounter = 1001; // Start from T1001
@@ -67,7 +69,7 @@ public class TreatmentDAO {
         sb.append(t.getTreatmentFee()).append("|");
         
         // Add prescribed medicines
-        List<MedicinePrescribed> medicines = t.getPrescribedMedicines();
+        ListInterface<MedicinePrescribed> medicines = t.getPrescribedMedicines();
         if (medicines.isEmpty()) {
             sb.append("NONE");
         } else {

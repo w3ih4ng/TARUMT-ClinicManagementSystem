@@ -6,6 +6,10 @@ import entity.Medicine;
 import adt.*;
 import java.util.Scanner;
 
+/**
+ * Boundary class for viewing all medicine data interface
+ * @author Your Name
+ */
 public class ViewAllMedicineBoundary {
     private final ViewMedicineControl viewMedicineControl;
 

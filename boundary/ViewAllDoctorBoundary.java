@@ -7,6 +7,10 @@ import entity.Specialty;
 import adt.*;
 import java.util.Scanner;
 
+/**
+ * Boundary class for viewing all doctor data interface
+ * @author Your Name
+ */
 public class ViewAllDoctorBoundary {
     private final ViewDoctorControl viewDoctorControl;
 

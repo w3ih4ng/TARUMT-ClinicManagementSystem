@@ -5,6 +5,10 @@ import adt.*;
 import utility.FilterCriteriaUtil;
 import java.time.LocalDate;
 
+/**
+ * Control class for viewing and filtering stock data
+ * @author Your Name
+ */
 public class ViewStockControl {
     private StockControl stockControl;
     private HashMapInterface<String, Stock> stockMap;

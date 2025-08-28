@@ -1,5 +1,9 @@
 package entity;
 
+/**
+ * Medicine entity representing pharmaceutical products
+ * @author Your Name
+ */
 public class Medicine {
     public enum Unit {
         MG, ML, TABLET, CAPSULE

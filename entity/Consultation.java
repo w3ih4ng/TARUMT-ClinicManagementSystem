@@ -2,6 +2,10 @@ package entity;
 
 import java.time.LocalDateTime;
 
+/**
+ * Consultation entity representing doctor-patient consultations
+ * @author Your Name
+ */
 public class Consultation {
     private String consultationId;
     private String patientId;
@@ -12,12 +16,18 @@ public class Consultation {
     private String treatmentId; // null until doctor creates treatment
     private String paymentId; // null until payment made
     private String status; // PENDING, SCHEDULED, COMPLETED
+    private String queueId; // new: back-reference to PatientQueueEntry
 
     public Consultation(String consultationId, String patientId, String specialty) {
         this.consultationId = consultationId;
         this.patientId = patientId;
         this.specialty = specialty;
         this.status = "PENDING";
+    }
+    // new overloaded constructor when queueId known
+    public Consultation(String consultationId, String patientId, String specialty, String queueId) {
+        this(consultationId, patientId, specialty);
+        this.queueId = queueId;
     }
 
     public String getConsultationId() {
@@ -55,6 +65,9 @@ public class Consultation {
     public String getStatus() {
         return status;
     }
+
+    public String getQueueId() { return queueId; }
+    public void setQueueId(String queueId) { this.queueId = queueId; }
 
     public void assignDoctor(String doctorId, String scheduleId, LocalDateTime consultationTime) {
         this.doctorId = doctorId;

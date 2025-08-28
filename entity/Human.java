@@ -3,6 +3,10 @@ package entity;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Abstract base class for all human entities in the system
+ * @author Your Name
+ */
 public abstract class Human {
     protected String name;
     protected String gender;

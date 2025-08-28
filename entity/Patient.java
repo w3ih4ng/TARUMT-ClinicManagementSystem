@@ -3,6 +3,10 @@ package entity;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Abstract patient entity extending Human
+ * @author Your Name
+ */
 public abstract class Patient extends Human {
     protected String patientId; // system ID for patient
 

@@ -8,6 +8,10 @@ import java.util.Scanner;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Control class for patient record management
+ * @author Your Name
+ */
 public class PatientRecordControl {
     private HashMapInterface<String, Patient> patientMap; // key = patientId
     private ListInterface<String> patientQueue; // store patient IDs in order

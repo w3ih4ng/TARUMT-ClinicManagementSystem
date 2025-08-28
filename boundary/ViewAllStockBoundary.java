@@ -8,6 +8,10 @@ import java.util.Scanner;
 import java.time.format.*;
 import java.time.LocalDate;
 
+/**
+ * Boundary class for viewing all stock data interface
+ * @author Your Name
+ */
 public class ViewAllStockBoundary {
     private final ViewStockControl viewStockControl;
 

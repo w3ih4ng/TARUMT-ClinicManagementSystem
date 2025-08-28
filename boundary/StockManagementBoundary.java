@@ -4,6 +4,10 @@ import java.util.Scanner;
 import control.StockControl;
 import control.ViewStockControl;
 
+/**
+ * Boundary class for stock management interface
+ * @author Your Name
+ */
 public class StockManagementBoundary {
     private Scanner sc;
     private StockControl stockControl;

@@ -7,6 +7,10 @@ import dao.MedicineDAO;
 
 import java.util.Scanner;
 
+/**
+ * Control class for medicine management
+ * @author Your Name
+ */
 public class MedicineControl {
     private HashMapInterface<String, Medicine> medicineMap; // key = medicineId
     private Scanner sc;

@@ -7,6 +7,10 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Data Access Object for Invoice persistence
+ * @author Your Name
+ */
 public class InvoiceDAO {
     private static final String FILE_NAME = "data/invoices.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");

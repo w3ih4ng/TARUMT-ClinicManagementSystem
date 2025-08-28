@@ -10,6 +10,10 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Scanner;
 
+/**
+ * Control class for doctor schedule management
+ * @author Your Name
+ */
 public class DoctorScheduleControl {
     private HashMapInterface<String, DoctorSchedule> scheduleMap;
     private HashMapInterface<String, Doctor> doctorMap;
@@ -19,6 +23,62 @@ public class DoctorScheduleControl {
         this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
         this.doctorMap = DoctorDAO.loadDoctors();
         this.sc = new Scanner(System.in);
+    }
+
+    // === NEW BUSINESS METHODS ===
+
+    /**
+     * Get schedule by ID
+     */
+    public DoctorSchedule getScheduleById(String scheduleId) {
+        return scheduleMap.get(scheduleId);
+    }
+
+    /**
+     * Mark schedule as checked in
+     */
+    public void markCheckedIn(String scheduleId) {
+        DoctorSchedule schedule = scheduleMap.get(scheduleId);
+        if (schedule != null) {
+            // For now we'll use consultationId field to track status
+            // "CHECKED_IN" indicates patient checked in but consultation not started
+            if (schedule.isBooked()) {
+                schedule.bookSlot("CHECKED_IN", schedule.getPatientId());
+                scheduleMap.put(scheduleId, schedule);
+                DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+                System.out.println("✅ Schedule marked as checked in: " + scheduleId);
+            }
+        }
+    }
+
+    /**
+     * Mark schedule as done (consultation completed)
+     */
+    public void markDone(String scheduleId) {
+        DoctorSchedule schedule = scheduleMap.get(scheduleId);
+        if (schedule != null) {
+            // Mark as DONE in consultationId field
+            schedule.bookSlot("DONE", schedule.getPatientId());
+            scheduleMap.put(scheduleId, schedule);
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+            System.out.println("✅ Schedule marked as done: " + scheduleId);
+        }
+    }
+
+    /**
+     * Get today's booked schedules for check-in
+     */
+    public ListInterface<DoctorSchedule> getTodaysBookedSchedules() {
+        ListInterface<DoctorSchedule> todaysSchedules = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        
+        for (String key : scheduleMap.keySet()) {
+            DoctorSchedule schedule = scheduleMap.get(key);
+            if (schedule.getAppointmentDate().equals(today) && schedule.isBooked()) {
+                todaysSchedules.add(schedule);
+            }
+        }
+        return todaysSchedules;
     }
 
     // --- Get all schedules for a specific doctor ---
