@@ -99,6 +99,9 @@ public class PatientDAO {
     private static Patient fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
+            if (parts.length < 8) {
+                throw new IllegalArgumentException("Expected at least 8 columns, got " + parts.length);
+            }
             String type = parts[0];
             String patientId = parts[1];
             String name = parts[2];

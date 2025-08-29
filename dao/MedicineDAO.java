@@ -50,6 +50,12 @@ public class MedicineDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 Medicine m = fromFileString(line);
                 if (m != null)
                     map.put(m.getMedicineId(), m);
@@ -76,12 +82,15 @@ public class MedicineDAO {
     private static Medicine fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
+            if (parts.length != 6) {
+                throw new IllegalArgumentException("Expected 6 columns, got " + parts.length);
+            }
             String medicineId = parts[0];
             String name = parts[1];
             double dosage = Double.parseDouble(parts[2]);
             Unit unit = Unit.valueOf(parts[3]); // parse enum
             double price = Double.parseDouble(parts[4]);
-            boolean deleted = parts.length > 5 && Boolean.parseBoolean(parts[5]);
+            boolean deleted = Boolean.parseBoolean(parts[5]);
 
             Medicine m = new Medicine(medicineId, name, dosage, unit, price);
             if (deleted)

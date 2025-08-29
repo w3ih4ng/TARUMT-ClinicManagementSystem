@@ -50,6 +50,12 @@ public class DoctorDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 Doctor d = fromFileString(line);
                 if (d != null)
                     map.put(d.getDoctorId(), d);
@@ -77,6 +83,9 @@ public class DoctorDAO {
     private static Doctor fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
+            if (parts.length != 8) {
+                throw new IllegalArgumentException("Expected 8 columns, got " + parts.length);
+            }
             String doctorId = parts[0];
             String name = parts[1];
             String gender = parts[2];
@@ -84,7 +93,7 @@ public class DoctorDAO {
             String phone = parts[4];
             Specialty specialty = Specialty.valueOf(parts[5]); // parse enum
             double fee = Double.parseDouble(parts[6]);
-            boolean deleted = (parts.length > 7) && Boolean.parseBoolean(parts[7]);
+            boolean deleted = Boolean.parseBoolean(parts[7]);
 
             Doctor d = new Doctor(doctorId, name, gender, birthdate, phone, specialty, fee);
             if (deleted)

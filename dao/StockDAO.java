@@ -51,6 +51,12 @@ public class StockDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 Stock s = fromFileString(line);
                 if (s != null)
                     map.put(s.getStockId(), s);
@@ -75,9 +81,9 @@ public class StockDAO {
     }
 
     private static String toFileString(Stock s) {
-        return s.getStockId() + "|" + s.getMedicineId() + "|" + s.getBatchNumber() + "|" + 
-               s.getSupplier().name() + "|" + s.getQuantity() + "|" + s.getManufacturingDate() + "|" + 
-               s.getExpiryDate() + "|" + s.getReceivedDate() + "|" + s.getCostPerUnit() + "|" + s.isDeleted();
+        return s.getStockId() + "|" + s.getMedicineId() + "|" + s.getQuantity() + "|" + 
+               s.getExpiryDate() + "|" + s.getReceivedDate() + "|" + s.isDeleted() + "|" + 
+               s.getSupplier().name() + "|" + s.getBatchNumber() + "|" + s.getManufacturingDate() + "|" + s.getCostPerUnit();
     }
 
     private static Stock fromFileString(String line) {

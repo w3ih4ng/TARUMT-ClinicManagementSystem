@@ -100,7 +100,7 @@ public class SystemUtil {
      * Display a formatted menu header with navigation
      */
     public static void showMenuHeader(String menuTitle) {
-        clearScreen();
+        //clearScreen();
         showNavigationHeader();
         System.out.println();
         System.out.println("=".repeat(50));

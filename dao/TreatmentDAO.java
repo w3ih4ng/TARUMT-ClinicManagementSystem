@@ -48,6 +48,12 @@ public class TreatmentDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 Treatment t = fromFileString(line);
                 if (t != null)
                     map.put(t.getTreatmentId(), t);
@@ -86,33 +92,35 @@ public class TreatmentDAO {
     private static Treatment fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length == 7) {
-                String treatmentId = parts[0];
-                String doctorId = parts[1];
-                String patientId = parts[2];
-                String consultationId = parts[3];
-                String description = parts[4];
-                double treatmentFee = Double.parseDouble(parts[5]);
-                String medicinesStr = parts[6];
+            if (parts.length != 7) {
+                throw new IllegalArgumentException("Expected 7 columns, got " + parts.length);
+            }
+            
+            String treatmentId = parts[0];
+            String doctorId = parts[1];
+            String patientId = parts[2];
+            String consultationId = parts[3];
+            String description = parts[4];
+            double treatmentFee = Double.parseDouble(parts[5]);
+            String medicinesStr = parts[6];
 
-                Treatment treatment = new Treatment(treatmentId, doctorId, patientId, consultationId, description, treatmentFee);
-                
-                // Parse prescribed medicines
-                if (!medicinesStr.equals("NONE")) {
-                    String[] medicinePairs = medicinesStr.split(",");
-                    for (String pair : medicinePairs) {
-                        String[] medParts = pair.split(":");
-                        if (medParts.length == 2) {
-                            String medicineId = medParts[0];
-                            int quantity = Integer.parseInt(medParts[1]);
-                            MedicinePrescribed medicine = new MedicinePrescribed(medicineId, quantity);
-                            treatment.addPrescribedMedicine(medicine);
-                        }
+            Treatment treatment = new Treatment(treatmentId, doctorId, patientId, consultationId, description, treatmentFee);
+            
+            // Parse prescribed medicines
+            if (!medicinesStr.equals("NONE")) {
+                String[] medicinePairs = medicinesStr.split(",");
+                for (String pair : medicinePairs) {
+                    String[] medParts = pair.split(":");
+                    if (medParts.length == 2) {
+                        String medicineId = medParts[0];
+                        int quantity = Integer.parseInt(medParts[1]);
+                        MedicinePrescribed medicine = new MedicinePrescribed(medicineId, quantity);
+                        treatment.addPrescribedMedicine(medicine);
                     }
                 }
-                
-                return treatment;
             }
+            
+            return treatment;
         } catch (Exception e) {
             System.out.println("Error parsing treatment line: " + line + " -> " + e.getMessage());
         }

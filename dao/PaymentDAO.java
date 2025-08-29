@@ -87,6 +87,9 @@ public class PaymentDAO {
     private static Payment fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
+            if (parts.length != 11) {
+                throw new IllegalArgumentException("Expected 11 columns, got " + parts.length);
+            }
             String paymentId = parts[0];
             String invoiceId = parts[1];
             String consultationId = parts[2];
@@ -97,7 +100,7 @@ public class PaymentDAO {
             LocalDateTime paymentDate = LocalDateTime.parse(parts[7], formatter);
             String referenceNumber = parts[8];
             String notes = parts[9];
-            boolean deleted = (parts.length > 10) && Boolean.parseBoolean(parts[10]);
+            boolean deleted = Boolean.parseBoolean(parts[10]);
 
             Payment payment = new Payment(paymentId, invoiceId, consultationId, patientId, amount, paymentMethod);
             payment.setStatus(status);

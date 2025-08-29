@@ -52,6 +52,12 @@ public class PatientQueueDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 PatientQueueEntry entry = fromFileString(line);
                 if (entry != null)
                     map.put(entry.getQueueId(), entry);

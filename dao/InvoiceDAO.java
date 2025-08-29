@@ -80,20 +80,22 @@ public class InvoiceDAO {
     private static Invoice fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length == 5) {
-                String invoiceId = parts[0];
-                String consultationId = parts[1];
-                double amount = Double.parseDouble(parts[2]);
-                LocalDateTime createdTime = LocalDateTime.parse(parts[3], formatter);
-                boolean isPaid = Boolean.parseBoolean(parts[4]);
-
-                Invoice invoice = new Invoice(invoiceId, consultationId, amount);
-                if (isPaid) {
-                    invoice.markPaid();
-                }
-                
-                return invoice;
+            if (parts.length != 5) {
+                throw new IllegalArgumentException("Expected 5 columns, got " + parts.length);
             }
+            
+            String invoiceId = parts[0];
+            String consultationId = parts[1];
+            double amount = Double.parseDouble(parts[2]);
+            LocalDateTime createdTime = LocalDateTime.parse(parts[3], formatter);
+            boolean isPaid = Boolean.parseBoolean(parts[4]);
+
+            Invoice invoice = new Invoice(invoiceId, consultationId, amount);
+            if (isPaid) {
+                invoice.markPaid();
+            }
+            
+            return invoice;
         } catch (Exception e) {
             System.out.println("Error parsing invoice line: " + line + " -> " + e.getMessage());
         }

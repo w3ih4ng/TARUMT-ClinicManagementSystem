@@ -50,6 +50,12 @@ public class ConsultationDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 Consultation c = fromFileString(line);
                 if (c != null)
                     map.put(c.getConsultationId(), c);
@@ -104,27 +110,29 @@ public class ConsultationDAO {
     private static Consultation fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length == 10) {
-                String consultationId = parts[0];
-                String patientId = parts[1];
-                String doctorId = parts[2].equals("NONE") ? null : parts[2];
-                String specialty = parts[3];
-                String scheduleId = parts[4].equals("NONE") ? null : parts[4];
-                LocalDateTime consultationTime = parts[5].equals("NONE") ? null : 
-                    LocalDateTime.parse(parts[5], formatter);
-                String treatmentId = parts[6].equals("NONE") ? null : parts[6];
-                String paymentId = parts[7].equals("NONE") ? null : parts[7];
-                String status = parts[8];
-                String queueId = parts[9].equals("NONE") ? null : parts[9];
-
-                Consultation c = new Consultation(consultationId, patientId, specialty, queueId);
-                if (doctorId != null && consultationTime != null) {
-                    c.assignDoctor(doctorId, scheduleId, consultationTime);
-                }
-                if (treatmentId != null) c.completeConsultation(treatmentId);
-                if (paymentId != null) c.setPayment(paymentId);
-                return c;
+            if (parts.length != 10) {
+                throw new IllegalArgumentException("Expected 10 columns, got " + parts.length);
             }
+            
+            String consultationId = parts[0];
+            String patientId = parts[1];
+            String doctorId = parts[2].equals("NONE") ? null : parts[2];
+            String specialty = parts[3];
+            String scheduleId = parts[4].equals("NONE") ? null : parts[4];
+            LocalDateTime consultationTime = parts[5].equals("NONE") ? null : 
+                LocalDateTime.parse(parts[5], formatter);
+            String treatmentId = parts[6].equals("NONE") ? null : parts[6];
+            String paymentId = parts[7].equals("NONE") ? null : parts[7];
+            String status = parts[8];
+            String queueId = parts[9].equals("NONE") ? null : parts[9];
+
+            Consultation c = new Consultation(consultationId, patientId, specialty, queueId);
+            if (doctorId != null && consultationTime != null) {
+                c.assignDoctor(doctorId, scheduleId, consultationTime);
+            }
+            if (treatmentId != null) c.completeConsultation(treatmentId);
+            if (paymentId != null) c.setPayment(paymentId);
+            return c;
         } catch (Exception e) {
             System.out.println("Error parsing consultation line: " + line + " -> " + e.getMessage());
         }
