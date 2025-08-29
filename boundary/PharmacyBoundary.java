@@ -18,9 +18,8 @@ public class PharmacyBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n==============================");
-            System.out.println("      Pharmacy Module         ");
-            System.out.println("==============================");
+            utility.SystemUtil.showMenuHeader("Pharmacy Module");
+            
             System.out.println("1. Medicine Management");
             System.out.println("2. Dispensing Management");
             System.out.println("3. Stock Management");
@@ -31,13 +30,23 @@ public class PharmacyBoundary {
 
             switch (choice) {
                 case "1": 
+                    utility.SystemUtil.pushNavigation("Medicine Management");
+                    utility.SystemUtil.showMenuHeader("Medicine Management");
                     pharmacyControl.openMedicineModule(); 
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "2": 
+                    utility.SystemUtil.pushNavigation("Dispensing Management");
+                    utility.SystemUtil.showMenuHeader("Dispensing Management");
                     System.out.println("[Dispensing Module - placeholder]");
+                    utility.SystemUtil.pauseForUser();
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "3":
+                    utility.SystemUtil.pushNavigation("Stock Management");
+                    utility.SystemUtil.showMenuHeader("Stock Management");
                     pharmacyControl.openStockModule();
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "0": 
                     return; // back to Staff Menu

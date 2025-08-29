@@ -35,7 +35,8 @@ public class DoctorScheduleBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n=== Doctor Schedule Management ===");
+            utility.SystemUtil.showMenuHeader("Doctor Schedule Management");
+            
             System.out.println("1. View Doctor's Booked Appointments");
             System.out.println("2. Book Appointment");
             System.out.println("3. Cancel Appointment");
@@ -47,19 +48,29 @@ public class DoctorScheduleBoundary {
             String choice = sc.nextLine();
             switch (choice) {
                 case "1":
+                    utility.SystemUtil.showSectionHeader("View Doctor's Booked Appointments");
                     viewDoctorBookedAppointments();
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "2":
+                    utility.SystemUtil.showSectionHeader("Book Appointment");
                     bookAppointment();
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "3":
+                    utility.SystemUtil.showSectionHeader("Cancel Appointment");
                     cancelAppointment();
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "4":
+                    utility.SystemUtil.showSectionHeader("View Appointments by Specialty");
                     viewBookedAppointmentsBySpecialty();
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "5":
+                    utility.SystemUtil.showSectionHeader("Check-in Appointment");
                     checkInAppointment();
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "6":
                     return;

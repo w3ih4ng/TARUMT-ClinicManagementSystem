@@ -18,9 +18,9 @@ public class StaffMenuBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n" + "=".repeat(50));
-            System.out.println("    STAFF DASHBOARD");
-            System.out.println("=".repeat(50));
+            utility.SystemUtil.setNavigationPath("Home", "Staff Portal", "Staff Menu");
+            utility.SystemUtil.showMenuHeader("Staff Dashboard");
+            
             System.out.println("1. Patient Management");
             System.out.println("2. Doctor Management");
             System.out.println("3. Doctor Schedule Management");
@@ -36,37 +36,43 @@ public class StaffMenuBoundary {
 
             switch (choice) {
                 case "1": 
-                    System.out.println("\n--- Patient Management ---");
+                    utility.SystemUtil.pushNavigation("Patient Management");
+                    utility.SystemUtil.showMenuHeader("Patient Management");
                     staffControl.openPatientModule(); 
                     break;
                 case "2": 
-                    System.out.println("\n--- Doctor Management ---");
+                    utility.SystemUtil.pushNavigation("Doctor Management");
+                    utility.SystemUtil.showMenuHeader("Doctor Management");
                     staffControl.openDoctorManagementModule(); 
                     break;
                 case "3": 
-                    System.out.println("\n--- Doctor Schedule Management ---");
+                    utility.SystemUtil.pushNavigation("Doctor Schedule Management");
+                    utility.SystemUtil.showMenuHeader("Doctor Schedule Management");
                     staffControl.openDoctorScheduleModule(); 
                     break;
                 case "4": 
-                    System.out.println("\n--- Consultation Management ---");
+                    utility.SystemUtil.pushNavigation("Consultation Management");
+                    utility.SystemUtil.showMenuHeader("Consultation Management");
                     staffControl.openConsultationModule(); 
                     break;
                 case "5": 
-                    System.out.println("\n--- Medical Treatment Management ---");
+                    utility.SystemUtil.pushNavigation("Medical Treatment Management");
+                    utility.SystemUtil.showMenuHeader("Medical Treatment Management");
                     staffControl.openTreatmentModule(); 
                     break;
                 case "6": 
-                    System.out.println("\n--- Pharmacy Management ---");
+                    utility.SystemUtil.pushNavigation("Pharmacy Management");
+                    utility.SystemUtil.showMenuHeader("Pharmacy Management");
                     staffControl.openPharmacyModule(); 
                     break;
                 case "7": 
-                    System.out.println("\n--- Payment Management ---");
+                    utility.SystemUtil.pushNavigation("Payment Management");
+                    utility.SystemUtil.showMenuHeader("Payment Management");
                     staffControl.openPaymentModule(); 
                     break;
                 case "0": 
-                    System.out.println("\n" + "=".repeat(40));
-                    System.out.println("    RETURNING TO MAIN MENU");
-                    System.out.println("=".repeat(40));
+                    utility.SystemUtil.setNavigationPath("Home");
+                    utility.SystemUtil.showMenuHeader("Returning to Main Menu");
                     return;
                 default: 
                     System.out.println("❌ Invalid choice, try again.");

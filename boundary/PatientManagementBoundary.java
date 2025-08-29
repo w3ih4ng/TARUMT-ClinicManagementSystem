@@ -22,9 +22,8 @@ public class PatientManagementBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n==============================");
-            System.out.println("   Patient Management Module  ");
-            System.out.println("==============================");
+            utility.SystemUtil.showMenuHeader("Patient Management Module");
+            
             System.out.println("1. Patient Details Management");
             System.out.println("2. Manage Patient Queue");
             System.out.println("0. Back to Staff Menu");
@@ -34,10 +33,14 @@ public class PatientManagementBoundary {
 
             switch (choice) {
                 case "1": 
+                    utility.SystemUtil.pushNavigation("Patient Details");
                     patientDetailsManagement(); 
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "2": 
+                    utility.SystemUtil.pushNavigation("Patient Queue");
                     queueManagement(); 
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "0": 
                     return; // back to Staff menu
@@ -49,9 +52,8 @@ public class PatientManagementBoundary {
 
     private void patientDetailsManagement() {
         while (true) {
-            System.out.println("\n=================================");
-            System.out.println("   Patient Details Management ");
-            System.out.println("=================================");
+            utility.SystemUtil.showMenuHeader("Patient Details Management");
+            
             System.out.println("1. Register new patient");
             System.out.println("2. View all patients");
             System.out.println("3. Update patient information");
@@ -64,19 +66,29 @@ public class PatientManagementBoundary {
 
             switch (choice) {
                 case "1": 
+                    utility.SystemUtil.showSectionHeader("Register New Patient");
                     patientRecordControl.registerPatient(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "2": 
+                    utility.SystemUtil.showSectionHeader("View All Patients");
                     viewAllPatientBoundary.show(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "3": 
+                    utility.SystemUtil.showSectionHeader("Update Patient Information");
                     patientRecordControl.updatePatient(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "4": 
+                    utility.SystemUtil.showSectionHeader("Delete Patient");
                     patientRecordControl.deletePatient(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "5": 
+                    utility.SystemUtil.showSectionHeader("Restore Patient");
                     patientRecordControl.restorePatient(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "0": 
                     return; // back to Patient Management

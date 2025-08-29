@@ -75,7 +75,9 @@ public class StockDAO {
     }
 
     private static String toFileString(Stock s) {
-        return s.getStockId() + "|" + s.getMedicineId() + "|" + s.getQuantity() + "|" + s.getExpiryDate() + "|" + s.getReceivedDate() + "|" + s.isDeleted();
+        return s.getStockId() + "|" + s.getMedicineId() + "|" + s.getBatchNumber() + "|" + 
+               s.getSupplier().name() + "|" + s.getQuantity() + "|" + s.getManufacturingDate() + "|" + 
+               s.getExpiryDate() + "|" + s.getReceivedDate() + "|" + s.getCostPerUnit() + "|" + s.isDeleted();
     }
 
     private static Stock fromFileString(String line) {
@@ -90,21 +92,31 @@ public class StockDAO {
                 LocalDate expiry = LocalDate.parse(parts[2]);
                 boolean deleted = Boolean.parseBoolean(parts[3]);
                 
-                // Generate new stock ID and random past received date
+                // Generate defaults for missing fields
                 String stockId = "S" + (stockCounter++);
+                String batchNumber = Stock.generateBatchNumber();
+                Stock.Supplier supplier = Stock.Supplier.PHARMACORP; // default
+                LocalDate mfgDate = expiry.minusYears(2); // 2 years before expiry
                 LocalDate receivedDate = generateRandomPastDate();
+                double costPerUnit = 1.0; // default cost
                 
-                Stock s = new Stock(stockId, medId, qty, expiry, receivedDate);
+                Stock s = new Stock(stockId, medId, batchNumber, supplier, qty, mfgDate, expiry, receivedDate, costPerUnit);
                 if (deleted) s.delete();
                 return s;
             } else if (parts.length == 6) {
-                // New format: stockId|medicineId|quantity|expiryDate|receivedDate|isDeleted
+                // Medium format: stockId|medicineId|quantity|expiryDate|receivedDate|isDeleted
                 String stockId = parts[0];
                 String medId = parts[1];
                 int qty = Integer.parseInt(parts[2]);
                 LocalDate expiry = LocalDate.parse(parts[3]);
                 LocalDate received = LocalDate.parse(parts[4]);
                 boolean deleted = Boolean.parseBoolean(parts[5]);
+                
+                // Generate defaults for missing fields
+                String batchNumber = Stock.generateBatchNumber();
+                Stock.Supplier supplier = Stock.Supplier.PHARMACORP; // default
+                LocalDate mfgDate = expiry.minusYears(2); // 2 years before expiry
+                double costPerUnit = 1.0; // default cost
                 
                 // Update counter if needed
                 try {
@@ -114,12 +126,36 @@ public class StockDAO {
                     // ignore
                 }
                 
-                Stock s = new Stock(stockId, medId, qty, expiry, received);
+                Stock s = new Stock(stockId, medId, batchNumber, supplier, qty, mfgDate, expiry, received, costPerUnit);
+                if (deleted) s.delete();
+                return s;
+            } else if (parts.length == 10) {
+                // New format: stockId|medicineId|batchNumber|supplier|quantity|mfgDate|expiryDate|receivedDate|costPerUnit|isDeleted
+                String stockId = parts[0];
+                String medId = parts[1];
+                String batchNumber = parts[2];
+                Stock.Supplier supplier = Stock.Supplier.valueOf(parts[3]);
+                int qty = Integer.parseInt(parts[4]);
+                LocalDate mfgDate = LocalDate.parse(parts[5]);
+                LocalDate expiry = LocalDate.parse(parts[6]);
+                LocalDate received = LocalDate.parse(parts[7]);
+                double costPerUnit = Double.parseDouble(parts[8]);
+                boolean deleted = Boolean.parseBoolean(parts[9]);
+                
+                // Update counter if needed
+                try {
+                    int num = Integer.parseInt(stockId.substring(1));
+                    if (num >= stockCounter) stockCounter = num + 1;
+                } catch (NumberFormatException e) {
+                    // ignore
+                }
+                
+                Stock s = new Stock(stockId, medId, batchNumber, supplier, qty, mfgDate, expiry, received, costPerUnit);
                 if (deleted) s.delete();
                 return s;
             }
         } catch (Exception e) {
-            System.out.println("Error parsing stock line: " + line);
+            System.out.println("Error parsing stock line: " + line + " - " + e.getMessage());
         }
         return null;
     }

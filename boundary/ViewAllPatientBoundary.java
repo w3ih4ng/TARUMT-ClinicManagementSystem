@@ -27,8 +27,9 @@ public class ViewAllPatientBoundary {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println(
-                    "\n---------------------------------------- Patient List ----------------------------------------\n");
+            utility.SystemUtil.pushNavigation("View All Patients");
+            utility.SystemUtil.showMenuHeader("Patient List");
+            
             viewPatientControl.printPatientsFromList(currentList);
 
             System.out.println("\nOptions:");
@@ -42,23 +43,34 @@ public class ViewAllPatientBoundary {
 
             switch (choice) {
                 case "1":
+                    utility.SystemUtil.showSectionHeader("Filter Patients");
                     currentMap = handleFilter(sc, currentMap);
                     currentList = viewPatientControl.toList(currentMap);
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "2":
+                    utility.SystemUtil.showSectionHeader("Search Patients");
                     currentMap = handleSearch(sc, currentMap);
                     currentList = viewPatientControl.toList(currentMap);
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "3":
+                    utility.SystemUtil.showSectionHeader("Sort Patients");
                     handleSort(sc, currentList);
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "4":
+                    utility.SystemUtil.showSectionHeader("Reset View");
                     currentMap = baseView; // reset
                     currentList = viewPatientControl.toList(currentMap);
                     viewPatientControl.clearCriteria();
+                    System.out.println("View reset to show all patients.");
+                    utility.SystemUtil.pauseForUser();
+                    utility.SystemUtil.popNavigation();
                     break;
                 case "0":
                     viewPatientControl.clearCriteria();
+                    utility.SystemUtil.popNavigation();
                     return;
                 default:
                     System.out.println("Invalid choice.");

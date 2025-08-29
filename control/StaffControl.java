@@ -14,14 +14,17 @@ public class StaffControl {
     private PharmacyBoundary pharmacyBoundary;
     private DoctorScheduleBoundary doctorScheduleBoundary;
     private PaymentBoundary paymentBoundary;
+    private ConsultationControl sharedConsultationControl; // Shared instance
 
-    public StaffControl() {
-        // Initialize modules staff can access
-        ConsultationControl consultationControl = new ConsultationControl();
-        this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(), new PatientQueueControl(consultationControl));
+    public StaffControl(ConsultationControl consultationControl) {
+        // Use the shared consultation control from main system
+        this.sharedConsultationControl = consultationControl;
+        
+        // Initialize modules staff can access with shared instance
+        this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(), new PatientQueueControl(sharedConsultationControl));
         this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorRecordControl());
         this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
-        this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl(), new PatientQueueControl(consultationControl));
+        this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl(), new PatientQueueControl(sharedConsultationControl));
         this.paymentBoundary = new PaymentBoundary(new PaymentControl(), new InvoiceControl());
     }
 
@@ -34,10 +37,10 @@ public class StaffControl {
     }
 
     public void openConsultationModule() {
-        control.ConsultationControl consultationControl = new control.ConsultationControl();
+        // Use shared consultation control instance
         control.TreatmentControl treatmentControl = new control.TreatmentControl();
-        control.PatientQueueControl queueControl = new control.PatientQueueControl(consultationControl);
-        control.ConsultationMenuControl consultationMenuControl = new control.ConsultationMenuControl(consultationControl, treatmentControl, queueControl);
+        control.PatientQueueControl queueControl = new control.PatientQueueControl(sharedConsultationControl);
+        control.ConsultationMenuControl consultationMenuControl = new control.ConsultationMenuControl(sharedConsultationControl, treatmentControl, queueControl);
         new boundary.ConsultationMenuBoundary(consultationMenuControl).mainMenu();
     }
 

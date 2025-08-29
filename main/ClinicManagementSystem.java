@@ -12,13 +12,17 @@ public class ClinicManagementSystem {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
 
-        StaffMenuBoundary staffMenuBoundary = new StaffMenuBoundary(new StaffControl());
-        DoctorMenuBoundary doctorMenuBoundary = new DoctorMenuBoundary(new DoctorRecordControl(), null);
+        // Create shared consultation control for system-wide consistency
+        ConsultationControl sharedConsultationControl = new ConsultationControl();
+        
+        StaffMenuBoundary staffMenuBoundary = new StaffMenuBoundary(new StaffControl(sharedConsultationControl));
+        DoctorMenuBoundary doctorMenuBoundary = new DoctorMenuBoundary(new DoctorRecordControl(), sharedConsultationControl);
 
         while (true) {
-            System.out.println("\n" + "=".repeat(50));
-            System.out.println("    TARUMT CLINIC MANAGEMENT SYSTEM");
-            System.out.println("=".repeat(50));
+            // Set navigation to home
+            utility.SystemUtil.setNavigationPath("Home");
+            utility.SystemUtil.showMenuHeader("TARUMT Clinic Management System");
+            
             System.out.println("1. Staff Portal");
             System.out.println("2. Doctor Portal");
             System.out.println("0. Exit System");
@@ -29,16 +33,14 @@ public class ClinicManagementSystem {
 
             switch (choice) {
                 case "1":
-                    System.out.println("\n" + "=".repeat(40));
-                    System.out.println("    STAFF PORTAL");
-                    System.out.println("=".repeat(40));
+                    utility.SystemUtil.setNavigationPath("Home", "Staff Portal");
+                    utility.SystemUtil.showMenuHeader("Staff Portal");
                     staffMenuBoundary.mainMenu();
                     break;
 
                 case "2":
-                    System.out.println("\n" + "=".repeat(40));
-                    System.out.println("    DOCTOR PORTAL");
-                    System.out.println("=".repeat(40));
+                    utility.SystemUtil.setNavigationPath("Home", "Doctor Portal");
+                    utility.SystemUtil.showMenuHeader("Doctor Portal");
                     doctorMenuBoundary.mainMenu();
                     break;
 

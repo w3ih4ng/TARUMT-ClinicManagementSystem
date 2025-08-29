@@ -27,7 +27,7 @@ public class ViewAllDoctorBoundary {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println("\n---------------------------------------- Doctor List ----------------------------------------\n");
+            utility.SystemUtil.showMenuHeader("Doctor List");
             viewDoctorMenuControl.printDoctorsFromList(currentList);
 
             System.out.println("\nOptions:");
@@ -41,20 +41,26 @@ public class ViewAllDoctorBoundary {
 
             switch (choice) {
                 case "1":
+                    utility.SystemUtil.showSectionHeader("Filter Doctors");
                     currentMap = viewDoctorMenuControl.handleFilter(sc, currentMap);
                     currentList = viewDoctorMenuControl.toList(currentMap);
                     break;
                 case "2":
+                    utility.SystemUtil.showSectionHeader("Search Doctors");
                     currentMap = viewDoctorMenuControl.handleSearch(sc, currentMap);
                     currentList = viewDoctorMenuControl.toList(currentMap);
                     break;
                 case "3":
+                    utility.SystemUtil.showSectionHeader("Sort Doctors");
                     viewDoctorMenuControl.handleSort(sc, currentList);
                     break;
                 case "4":
+                    utility.SystemUtil.showSectionHeader("Reset View");
                     currentMap = baseMap;
                     currentList = viewDoctorMenuControl.toList(currentMap);
                     viewDoctorMenuControl.clearCriteria();
+                    System.out.println("View reset to show all doctors.");
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "0":
                     viewDoctorMenuControl.clearCriteria();

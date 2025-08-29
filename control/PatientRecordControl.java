@@ -54,7 +54,6 @@ public class PatientRecordControl {
     // ========== CRUD ==========
 
     public void registerPatient() {
-        System.out.println("\n--- Register New Patient ---");
         System.out.println("Type 'exit' at any point to cancel.\n");
 
         // --- Name ---

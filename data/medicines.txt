@@ -1,11 +1,2 @@
-MED009|Paracetamol|500.0|MG|0.5|false
-MED008|Amoxicillin|250.0|MG|1.2|false
-MED007|Ibuprofen|200.0|MG|0.8|false
-MED006|Cough Syrup|100.0|ML|2.5|false
-MED005|Vitamin C|1000.0|MG|0.3|false
-MED004|Antihistamine|10.0|MG|0.9|false
-MED003|Metformin|500.0|MG|1.1|false
-MED002|Insulin|10.0|ML|5.5|false
-MED001|Aspirin|100.0|MG|0.4|false
-MED011|Omeprazole|20.0|MG|1.7|false
-MED010|asd|1.0|TABLET|1.0|true
+# TARUMT Clinic Management System - Medicine Records
+# Format: medicineId|name|dosage|unit|pricePerUnit|isDeleted

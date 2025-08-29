@@ -1,1 +1,2 @@
-S1001|D1010|DERMATOLOGY|2025-10-10|09:00|10:00|true|C1003|P1001
+# TARUMT Clinic Management System - Doctor Schedule Records
+# Format: scheduleId|doctorId|date|startTime|endTime|maxPatients|consultationId|isDeleted

@@ -1,1 +1,2 @@
-T1001|D1008|P1001|C1006|fever|20.0|MED001:5
+# TARUMT Clinic Management System - Treatment Records
+# Format: treatmentId|description|treatmentFee|prescribedMedicines|isDeleted

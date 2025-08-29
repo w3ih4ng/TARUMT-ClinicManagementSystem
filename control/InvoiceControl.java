@@ -68,8 +68,7 @@ public class InvoiceControl {
      * Get invoice by consultation ID
      */
     public Invoice getInvoiceByConsultation(String consultationId) {
-        for (int i = 0; i < invoiceMap.keySet().size(); i++) {
-            String key = invoiceMap.keySet().get(i);
+        for (String key : invoiceMap.keySet()) {
             Invoice invoice = invoiceMap.get(key);
             if (invoice != null && invoice.getConsultationId().equals(consultationId)) {
                 return invoice;
@@ -77,15 +76,32 @@ public class InvoiceControl {
         }
         return null;
     }
+    
+    /**
+     * Delete invoice by consultation ID
+     */
+    public void deleteInvoiceByConsultation(String consultationId) {
+        for (String key : invoiceMap.keySet()) {
+            Invoice invoice = invoiceMap.get(key);
+            if (invoice != null && invoice.getConsultationId().equals(consultationId)) {
+                invoiceMap.remove(key);
+                InvoiceDAO.saveInvoices(invoiceMap);
+                System.out.println("Previous invoice deleted for consultation: " + consultationId);
+                return;
+            }
+        }
+    }
 
     /**
      * Get all unpaid invoices
      */
     public ListInterface<Invoice> getUnpaidInvoices() {
+        // Reload invoices to ensure we have the latest data
+        this.invoiceMap = InvoiceDAO.loadInvoices();
+        
         ListInterface<Invoice> unpaidInvoices = new ArrayList<>();
         
-        for (int i = 0; i < invoiceMap.keySet().size(); i++) {
-            String key = invoiceMap.keySet().get(i);
+        for (String key : invoiceMap.keySet()) {
             Invoice invoice = invoiceMap.get(key);
             if (invoice != null && !invoice.isPaid()) {
                 unpaidInvoices.add(invoice);
@@ -99,10 +115,12 @@ public class InvoiceControl {
      * Get all paid invoices
      */
     public ListInterface<Invoice> getPaidInvoices() {
+        // Reload invoices to ensure we have the latest data
+        this.invoiceMap = InvoiceDAO.loadInvoices();
+        
         ListInterface<Invoice> paidInvoices = new ArrayList<>();
         
-        for (int i = 0; i < invoiceMap.keySet().size(); i++) {
-            String key = invoiceMap.keySet().get(i);
+        for (String key : invoiceMap.keySet()) {
             Invoice invoice = invoiceMap.get(key);
             if (invoice != null && invoice.isPaid()) {
                 paidInvoices.add(invoice);
@@ -118,8 +136,7 @@ public class InvoiceControl {
     public ListInterface<Invoice> getInvoicesByPatient(String patientId) {
         ListInterface<Invoice> patientInvoices = new ArrayList<>();
         
-        for (int i = 0; i < invoiceMap.keySet().size(); i++) {
-            String key = invoiceMap.keySet().get(i);
+        for (String key : invoiceMap.keySet()) {
             Invoice invoice = invoiceMap.get(key);
             if (invoice != null) {
                 Consultation consultation = consultationMap.get(invoice.getConsultationId());
@@ -138,8 +155,7 @@ public class InvoiceControl {
     public ListInterface<Invoice> getInvoicesByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
         ListInterface<Invoice> filteredInvoices = new ArrayList<>();
         
-        for (int i = 0; i < invoiceMap.keySet().size(); i++) {
-            String key = invoiceMap.keySet().get(i);
+        for (String key : invoiceMap.keySet()) {
             Invoice invoice = invoiceMap.get(key);
             if (invoice != null) {
                 LocalDateTime invoiceDate = invoice.getCreatedTime();

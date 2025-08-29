@@ -20,9 +20,8 @@ public class MedicineManagementBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n=================================");
-            System.out.println("   Medicine Management Module ");
-            System.out.println("=================================");
+            utility.SystemUtil.showMenuHeader("Medicine Management Module");
+            
             System.out.println("1. Add new medicine");
             System.out.println("2. View all medicines");
             System.out.println("3. Update medicine information");
@@ -34,11 +33,31 @@ public class MedicineManagementBoundary {
             String choice = sc.nextLine();
 
             switch (choice) {
-                case "1": medicineControl.addMedicine(); break;
-                case "2": viewAllMedicineBoundary.show(); break;
-                case "3": medicineControl.updateMedicine(); break;
-                case "4": medicineControl.deleteMedicine(); break;
-                case "5": medicineControl.restoreMedicine(); break;
+                case "1": 
+                    utility.SystemUtil.showSectionHeader("Add New Medicine");
+                    medicineControl.addMedicine(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "2": 
+                    utility.SystemUtil.pushNavigation("View All Medicines");
+                    viewAllMedicineBoundary.show(); 
+                    utility.SystemUtil.popNavigation();
+                    break;
+                case "3": 
+                    utility.SystemUtil.showSectionHeader("Update Medicine Information");
+                    medicineControl.updateMedicine(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "4": 
+                    utility.SystemUtil.showSectionHeader("Delete Medicine");
+                    medicineControl.deleteMedicine(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "5": 
+                    utility.SystemUtil.showSectionHeader("Restore Medicine");
+                    medicineControl.restoreMedicine(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
                 case "0": return; // back
                 default: System.out.println("Invalid choice, try again.");
             }

@@ -1,1 +1,2 @@
-I1001|C1006|127.0|2025-08-29 15:52|false
+# TARUMT Clinic Management System - Invoice Records
+# Format: invoiceId|consultationId|totalAmount|invoiceDate|isPaid|isDeleted

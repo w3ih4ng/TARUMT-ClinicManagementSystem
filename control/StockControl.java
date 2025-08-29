@@ -65,28 +65,45 @@ public class StockControl {
             System.out.println("Invalid Medicine ID. Please choose from the list above.");
         }
 
+        // --- Supplier selection ---
+        Stock.Supplier supplier = getSupplierInput();
+        if (supplier == null) return;
+
         // --- Quantity input ---
         int quantity = getQuantityInput();
         if (quantity == -1) return;
+
+        // --- Manufacturing date input ---
+        LocalDate manufacturingDate = getManufacturingDateInput();
+        if (manufacturingDate == null) return;
 
         // --- Expiry date input ---
         LocalDate expiryDate = getExpiryDateInput();
         if (expiryDate == null) return;
 
+        // --- Cost per unit input ---
+        double costPerUnit = getCostPerUnitInput();
+        if (costPerUnit == -1) return;
+
         // --- Create new stock batch ---
         String stockId = StockDAO.generateStockId();
+        String batchNumber = Stock.generateBatchNumber();
         LocalDate receivedDate = LocalDate.now();
         
-        Stock s = new Stock(stockId, medId, quantity, expiryDate, receivedDate);
+        Stock s = new Stock(stockId, medId, batchNumber, supplier, quantity, manufacturingDate, expiryDate, receivedDate, costPerUnit);
         stockMap.put(stockId, s);
 
         StockDAO.saveStocks(stockMap);
         System.out.println("\nStock batch added successfully!");
         System.out.println("Stock ID: " + stockId);
         System.out.println("Medicine: " + medId);
+        System.out.println("Batch Number: " + batchNumber);
+        System.out.println("Supplier: " + supplier);
         System.out.println("Quantity: " + quantity);
+        System.out.println("Manufacturing Date: " + manufacturingDate);
         System.out.println("Expiry Date: " + expiryDate);
         System.out.println("Received Date: " + receivedDate);
+        System.out.println("Cost per Unit: RM " + String.format("%.2f", costPerUnit));
     }
 
     // --- View all stock batches ---
@@ -267,11 +284,11 @@ public class StockControl {
                 : criteriaSummary);
         System.out.println();
 
-        // Beautiful table with new format
-        String borderLine = "+--------+------------+---------------------------+----------+-------------+----------------+";
+        // Enhanced table with all new fields
+        String borderLine = "+--------+------------+-------------+------------------+----------+-------------+-------------+-------------+-----------+";
         System.out.println(borderLine);
-        System.out.printf("| %-6s | %-10s | %-25s | %-8s | %-11s | %-14s |%n",
-                "StockID", "MedicineID", "Medicine Name", "Quantity", "Expiry Date", "Received Date");
+        System.out.printf("| %-6s | %-10s | %-11s | %-16s | %-8s | %-11s | %-11s | %-11s | %-9s |%n",
+                "StockID", "MedicineID", "Batch No.", "Supplier", "Quantity", "Mfg Date", "Expiry Date", "Recv Date", "Cost (RM)");
         System.out.println(borderLine);
 
         for (int i = 0; i < stocks.size(); i++) {
@@ -279,13 +296,22 @@ public class StockControl {
             Medicine m = medicineControl.getMedicineMap().get(s.getMedicineId());
             String medicineName = (m != null) ? m.getName() : "Unknown";
             
-            System.out.printf("| %-6s | %-10s | %-25s | %8d | %-11s | %-14s |%n",
+            // Truncate supplier name if too long for better table formatting
+            String supplierName = s.getSupplier().toString();
+            if (supplierName.length() > 16) {
+                supplierName = supplierName.substring(0, 13) + "...";
+            }
+            
+            System.out.printf("| %-6s | %-10s | %-11s | %-16s | %8d | %-11s | %-11s | %-11s | %9.2f |%n",
                     s.getStockId(),
                     s.getMedicineId(),
-                    medicineName,
+                    s.getBatchNumber(),
+                    supplierName,
                     s.getQuantity(),
+                    s.getManufacturingDate(),
                     s.getExpiryDate(),
-                    s.getReceivedDate());
+                    s.getReceivedDate(),
+                    s.getCostPerUnit());
             System.out.println(borderLine);
         }
     }
@@ -295,19 +321,18 @@ public class StockControl {
         Medicine m = medicineControl.getMedicineMap().get(s.getMedicineId());
         String medicineName = (m != null) ? m.getName() : "Unknown";
         
-        String borderLine = "+--------+------------+---------------------------+----------+-------------+----------------+";
-        System.out.println(borderLine);
-        System.out.printf("| %-6s | %-10s | %-25s | %-8s | %-11s | %-14s |%n",
-                "StockID", "MedicineID", "Medicine Name", "Quantity", "Expiry Date", "Received Date");
-        System.out.println(borderLine);
-        System.out.printf("| %-6s | %-10s | %-25s | %8d | %-11s | %-14s |%n",
-                s.getStockId(),
-                s.getMedicineId(),
-                medicineName,
-                s.getQuantity(),
-                s.getExpiryDate(),
-                s.getReceivedDate());
-        System.out.println(borderLine);
+        System.out.println("\nStock Batch Details:");
+        System.out.println("Stock ID: " + s.getStockId());
+        System.out.println("Medicine ID: " + s.getMedicineId());
+        System.out.println("Medicine Name: " + medicineName);
+        System.out.println("Batch Number: " + s.getBatchNumber());
+        System.out.println("Supplier: " + s.getSupplier());
+        System.out.println("Quantity: " + s.getQuantity());
+        System.out.println("Manufacturing Date: " + s.getManufacturingDate());
+        System.out.println("Expiry Date: " + s.getExpiryDate());
+        System.out.println("Received Date: " + s.getReceivedDate());
+        System.out.println("Cost per Unit: RM " + String.format("%.2f", s.getCostPerUnit()));
+        System.out.println("Status: " + (s.isDeleted() ? "Deleted" : "Active"));
     }
 
     // --- Input helpers ---
@@ -344,6 +369,68 @@ public class StockControl {
                 System.out.println("Expiry date must be in the future.");
             } catch (Exception e) {
                 System.out.println("Invalid date format.");
+            }
+        }
+    }
+    
+    private Stock.Supplier getSupplierInput() {
+        while (true) {
+            System.out.println("Select Supplier:");
+            Stock.Supplier[] suppliers = Stock.Supplier.values();
+            for (int i = 0; i < suppliers.length; i++) {
+                System.out.println((i + 1) + ". " + suppliers[i]);
+            }
+            System.out.print("Enter choice number: ");
+            String input = sc.nextLine().trim();
+            if (input.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return null;
+            }
+            try {
+                int choice = Integer.parseInt(input) - 1;
+                if (choice >= 0 && choice < suppliers.length) {
+                    return suppliers[choice];
+                }
+                System.out.println("Invalid choice. Please enter a number from 1 to " + suppliers.length);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid input. Please enter a number.");
+            }
+        }
+    }
+    
+    private LocalDate getManufacturingDateInput() {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        while (true) {
+            System.out.print("Enter manufacturing date (yyyy-MM-dd): ");
+            String input = sc.nextLine().trim();
+            if (input.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return null;
+            }
+            try {
+                LocalDate date = LocalDate.parse(input, formatter);
+                if (date.isBefore(LocalDate.now()) || date.isEqual(LocalDate.now())) return date;
+                System.out.println("Manufacturing date cannot be in the future.");
+            } catch (Exception e) {
+                System.out.println("Invalid date format.");
+            }
+        }
+    }
+    
+    private double getCostPerUnitInput() {
+        while (true) {
+            System.out.print("Enter cost per unit (RM): ");
+            String input = sc.nextLine().trim();
+            if (input.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return -1;
+            }
+            try {
+                double cost = Double.parseDouble(input);
+                if (cost >= 0) return cost;
+                System.out.println("Cost must be non-negative.");
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number.");
             }
         }
     }

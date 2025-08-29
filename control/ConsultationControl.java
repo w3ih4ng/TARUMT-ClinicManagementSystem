@@ -86,7 +86,7 @@ public class ConsultationControl {
                 // Remove from active queue
                 queueMap.remove(queueId);
                 PatientQueueDAO.savePatientQueue(queueMap);
-                System.out.println("✅ Patient " + consultation.getPatientId() + " moved to history after completion");
+                System.out.println("Patient " + consultation.getPatientId() + " moved to history after completion");
             }
         }
 
@@ -142,7 +142,7 @@ public class ConsultationControl {
         for (String key : consultationMap.keySet()) {
             Consultation c = consultationMap.get(key);
             if (c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
-                c.getStatus().equals("PENDING")) {
+                c.getStatus().equals("SCHEDULED")) {
                 pendingConsultations.add(c);
             }
         }
@@ -182,6 +182,65 @@ public class ConsultationControl {
         }
         return false;
     }
+    
+    // --- Complete consultation with treatment details ---
+    public boolean completeConsultationWithTreatment(String consultationId, String doctorId,
+                                                    String diagnosis, double treatmentFee,
+                                                    ListInterface<entity.MedicinePrescribed> medicines) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && 
+            consultation.getDoctorId() != null && 
+            consultation.getDoctorId().equals(doctorId)) {
+            
+            // Create treatment record first
+            control.TreatmentControl treatmentControl = new control.TreatmentControl();
+            String treatmentId = treatmentControl.createTreatment(
+                doctorId, 
+                consultation.getPatientId(), 
+                consultationId,
+                diagnosis, 
+                treatmentFee, 
+                medicines
+            );
+            
+            if (treatmentId != null) {
+                // Mark consultation as completed with treatment
+                consultation.completeConsultation(treatmentId);
+                ConsultationDAO.saveConsultations(consultationMap);
+                
+                // Update the consultation map to ensure latest data
+                consultationMap.put(consultationId, consultation);
+                
+                // Store completed consultation in history
+                storeCompletedConsultationInHistory(consultationId);
+                
+                // Delete existing incorrect invoice if it exists
+                deleteExistingInvoice(consultationId);
+                
+                // Generate new invoice with all fees included
+                generateInvoiceForConsultation(consultationId);
+                
+                System.out.println("Treatment created: " + treatmentId);
+                System.out.println("Consultation completed with proper treatment details!");
+                
+                return true;
+            } else {
+                System.out.println("Failed to create treatment record.");
+            }
+        }
+        
+        return false;
+    }
+    
+    // --- Delete existing invoice for re-generation ---
+    private void deleteExistingInvoice(String consultationId) {
+        try {
+            control.InvoiceControl invoiceControl = new control.InvoiceControl();
+            invoiceControl.deleteInvoiceByConsultation(consultationId);
+        } catch (Exception e) {
+            // Ignore if invoice doesn't exist or deletion fails
+        }
+    }
 
     // --- Generate invoice for completed consultation ---
     private void generateInvoiceForConsultation(String consultationId) {
@@ -191,14 +250,14 @@ public class ConsultationControl {
             entity.Invoice invoice = invoiceControl.generateInvoice(consultationId);
             
             if (invoice != null) {
-                System.out.println("✅ Invoice generated automatically for consultation: " + consultationId);
+                System.out.println("Invoice generated automatically for consultation: " + consultationId);
                 System.out.println("   Invoice ID: " + invoice.getInvoiceId());
                 System.out.println("   Amount: RM " + String.format("%.2f", invoice.getAmount()));
             } else {
-                System.out.println("⚠️  Failed to generate invoice for consultation: " + consultationId);
+                System.out.println("Failed to generate invoice for consultation: " + consultationId);
             }
         } catch (Exception e) {
-            System.out.println("❌ Error generating invoice: " + e.getMessage());
+            System.out.println("Error generating invoice: " + e.getMessage());
         }
     }
 
@@ -215,7 +274,7 @@ public class ConsultationControl {
                 // Remove from active queue
                 queueMap.remove(consultation.getQueueId());
                 PatientQueueDAO.savePatientQueue(queueMap);
-                System.out.println("✅ Patient " + consultation.getPatientId() + " moved to history after completion");
+                System.out.println("Patient " + consultation.getPatientId() + " moved to history after completion");
             }
         }
     }

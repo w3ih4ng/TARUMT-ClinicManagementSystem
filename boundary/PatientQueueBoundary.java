@@ -228,7 +228,34 @@ public class PatientQueueBoundary {
             System.out.println("Scheduled Time: " + nextPatient.getScheduledStartTime().format(timeFormatter));
         }
         
-        System.out.println("\nPatient is ready to be assigned to a doctor.");
+        // Check if patient already has a doctor assigned
+        if (nextPatient.isAssigned()) {
+            System.out.println("✅ Doctor already assigned: " + nextPatient.getAssignedDoctorId());
+            System.out.println("Patient can proceed to consultation.");
+            return;
+        }
+        
+        // Auto-assign if only one doctor available for this specialty
+        ListInterface<Doctor> availableDoctors = queueControl.getAvailableDoctorsForSpecialty(nextPatient.getSpecialty());
+        
+        if (availableDoctors.isEmpty()) {
+            System.out.println("❌ No doctors available for " + nextPatient.getSpecialty());
+            System.out.println("Please use 'Assign Doctor to Patient' when a doctor becomes available.");
+        } else if (availableDoctors.size() == 1) {
+            // Auto-assign if only one doctor
+            Doctor doctor = availableDoctors.get(0);
+            queueControl.assignPatientToDoctor(nextPatient.getQueueId(), doctor.getDoctorId());
+            System.out.println("✅ Patient automatically assigned to Dr. " + doctor.getName());
+            System.out.println("Patient can now proceed to consultation.");
+        } else {
+            // Multiple doctors available - show options
+            System.out.println("\n📋 Multiple doctors available:");
+            for (int i = 0; i < availableDoctors.size(); i++) {
+                Doctor doctor = availableDoctors.get(i);
+                System.out.println("  " + (i + 1) + ". Dr. " + doctor.getName() + " (" + doctor.getDoctorId() + ")");
+            }
+            System.out.println("\n💡 Use 'Assign Doctor to Patient' to choose a specific doctor.");
+        }
     }
 
     /**

@@ -97,19 +97,40 @@ public class DoctorScheduleControl {
 
     // --- Get today's schedules for a specific doctor ---
     public ListInterface<DoctorSchedule> getTodaysSchedulesForDoctor(String doctorId) {
-        ListInterface<DoctorSchedule> todaysSchedules = new ArrayList<>();
-        LocalDate today = LocalDate.now();
+        return getSchedulesForDate(doctorId, LocalDate.now());
+    }
+    
+    // --- Get schedules for a specific date for a specific doctor ---
+    public ListInterface<DoctorSchedule> getSchedulesForDate(String doctorId, LocalDate date) {
+        ListInterface<DoctorSchedule> dateSchedules = new ArrayList<>();
         
         for (String key : scheduleMap.keySet()) {
             DoctorSchedule schedule = scheduleMap.get(key);
             if (schedule.getDoctorId().equals(doctorId) && 
-                schedule.getAppointmentDate().equals(today) && 
+                schedule.getAppointmentDate().equals(date) && 
                 schedule.isBooked()) {
-                todaysSchedules.add(schedule);
+                dateSchedules.add(schedule);
             }
         }
         
-        return todaysSchedules;
+        // Sort by start time for better display
+        dateSchedules.sort((s1, s2) -> s1.getStartTime().compareTo(s2.getStartTime()));
+        
+        return dateSchedules;
+    }
+    
+    // --- Create consultation record for appointment ---
+    private void createConsultationForAppointment(String consultationId, String patientId, String doctorId, String specialty) {
+        // Create consultation directly and save to file
+        Consultation consultation = new Consultation(consultationId, patientId, specialty, null);
+        consultation.assignDoctor(doctorId, null, java.time.LocalDateTime.now());
+        
+        // Load existing consultations, add new one, and save
+        adt.HashMapInterface<String, Consultation> consultationMap = dao.ConsultationDAO.loadConsultations();
+        consultationMap.put(consultationId, consultation);
+        dao.ConsultationDAO.saveConsultations(consultationMap);
+        
+        System.out.println("Consultation created for appointment: " + consultationId);
     }
 
     // --- Get booked appointments for a specific doctor ---
@@ -169,6 +190,9 @@ public class DoctorScheduleControl {
         schedule.bookSlot(consultationId, patientId);
         scheduleMap.put(schedule.getScheduleId(), schedule);
         DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+        
+        // Create consultation record for the appointment
+        createConsultationForAppointment(consultationId, patientId, doctorId, doctor.getSpecialty().toString());
         
         System.out.println("Appointment booked successfully!");
         System.out.println("   - Doctor: " + doctorId);

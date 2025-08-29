@@ -30,9 +30,8 @@ public class PaymentBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n==============================");
-            System.out.println("      Payment Management      ");
-            System.out.println("==============================");
+            utility.SystemUtil.showMenuHeader("Payment Management");
+            
             System.out.println("1. Process Payment");
             System.out.println("2. View Payment History");
             System.out.println("3. View Payment Statistics");
@@ -44,11 +43,31 @@ public class PaymentBoundary {
             String choice = sc.nextLine().trim();
 
             switch (choice) {
-                case "1": processPayment(); break;
-                case "2": viewPaymentHistory(); break;
-                case "3": viewPaymentStatistics(); break;
-                case "4": refundPayment(); break;
-                case "5": viewUnpaidInvoices(); break;
+                case "1": 
+                    utility.SystemUtil.showSectionHeader("Process Payment");
+                    processPayment(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "2": 
+                    utility.SystemUtil.showSectionHeader("Payment History");
+                    viewPaymentHistory(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "3": 
+                    utility.SystemUtil.showSectionHeader("Payment Statistics");
+                    viewPaymentStatistics(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "4": 
+                    utility.SystemUtil.showSectionHeader("Refund Payment");
+                    refundPayment(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "5": 
+                    utility.SystemUtil.showSectionHeader("Unpaid Invoices");
+                    viewUnpaidInvoices(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
                 case "0": return;
                 default: System.out.println("Invalid choice, try again.");
             }

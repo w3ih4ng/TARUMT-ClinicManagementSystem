@@ -43,6 +43,13 @@ public class DoctorMenuControl {
     public ListInterface<DoctorSchedule> getTodaysSchedulesForDoctor(String doctorId) {
         return scheduleControl.getTodaysSchedulesForDoctor(doctorId);
     }
+    
+    /**
+     * Get schedules for a specific date for a doctor
+     */
+    public ListInterface<DoctorSchedule> getSchedulesForDate(String doctorId, java.time.LocalDate date) {
+        return scheduleControl.getSchedulesForDate(doctorId, date);
+    }
 
     /**
      * Get pending consultations for a doctor
@@ -63,6 +70,16 @@ public class DoctorMenuControl {
      */
     public boolean completeConsultationForDoctor(String consultationId, String doctorId) {
         return consultationControl.completeConsultationForDoctor(consultationId, doctorId);
+    }
+    
+    /**
+     * Complete consultation with treatment details
+     */
+    public boolean completeConsultationWithTreatment(String consultationId, String doctorId, 
+                                                   String diagnosis, double treatmentFee,
+                                                   ListInterface<entity.MedicinePrescribed> medicines) {
+        return consultationControl.completeConsultationWithTreatment(consultationId, doctorId, 
+                                                                    diagnosis, treatmentFee, medicines);
     }
 
     /**

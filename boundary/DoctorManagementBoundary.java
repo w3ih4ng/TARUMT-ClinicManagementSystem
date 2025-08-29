@@ -20,9 +20,8 @@ public class DoctorManagementBoundary {
 
     public void mainMenu() {
         while (true) {
-            System.out.println("\n==============================");
-            System.out.println("      Doctor Management");
-            System.out.println("==============================");
+            utility.SystemUtil.showMenuHeader("Doctor Management");
+            
             System.out.println("1. Add Doctor");
             System.out.println("2. View Doctors");
             System.out.println("3. Update Doctor");
@@ -33,11 +32,31 @@ public class DoctorManagementBoundary {
             String choice = sc.nextLine().trim();
 
             switch (choice) {
-                case "1": doctorRecordControl.registerDoctor(); break;
-                case "2": viewAllDoctorBoundary.show(); break;
-                case "3": doctorRecordControl.updateDoctor(); break;
-                case "4": doctorRecordControl.deleteDoctor(); break;
-                case "5": doctorRecordControl.restoreDoctor(); break;
+                case "1": 
+                    utility.SystemUtil.showSectionHeader("Add New Doctor");
+                    doctorRecordControl.registerDoctor(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "2": 
+                    utility.SystemUtil.pushNavigation("View All Doctors");
+                    viewAllDoctorBoundary.show(); 
+                    utility.SystemUtil.popNavigation();
+                    break;
+                case "3": 
+                    utility.SystemUtil.showSectionHeader("Update Doctor");
+                    doctorRecordControl.updateDoctor(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "4": 
+                    utility.SystemUtil.showSectionHeader("Delete Doctor");
+                    doctorRecordControl.deleteDoctor(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "5": 
+                    utility.SystemUtil.showSectionHeader("Restore Doctor");
+                    doctorRecordControl.restoreDoctor(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
                 case "0": return;
                 default: System.out.println("Invalid choice.");
             }

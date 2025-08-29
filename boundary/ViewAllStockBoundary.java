@@ -27,7 +27,7 @@ public class ViewAllStockBoundary {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println("\n---------------------------------------- Stock Batch List ----------------------------------------\n");
+            utility.SystemUtil.showMenuHeader("Stock Batch List");
             viewStockControl.printStockFromList(currentList);
 
             System.out.println("\nOptions:");

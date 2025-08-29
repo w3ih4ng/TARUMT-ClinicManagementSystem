@@ -25,8 +25,7 @@ public class ViewAllMedicineBoundary {
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println(
-                    "\n---------------------------------------- Medicine List ----------------------------------------\n");
+            utility.SystemUtil.showMenuHeader("Medicine List");
             viewMedicineControl.printMedicinesFromList(currentList);
 
             System.out.println("\nOptions:");

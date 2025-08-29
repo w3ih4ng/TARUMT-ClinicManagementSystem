@@ -10,11 +10,15 @@ import boundary.StockManagementBoundary;
 public class PharmacyControl {
     private MedicineManagementBoundary medicineManagementBoundary;
     private StockManagementBoundary stockManagementBoundary;
+    private MedicineControl medicineControl; // Shared instance
 
     public PharmacyControl() {
-        // Initialize medicine management with medicine + view logic
-        this.medicineManagementBoundary = new MedicineManagementBoundary(new MedicineControl());
-        this.stockManagementBoundary = new StockManagementBoundary(new StockControl(new MedicineControl()));
+        // Initialize shared medicine control instance
+        this.medicineControl = new MedicineControl();
+        
+        // Use the same instance for both modules
+        this.medicineManagementBoundary = new MedicineManagementBoundary(medicineControl);
+        this.stockManagementBoundary = new StockManagementBoundary(new StockControl(medicineControl));
     }
 
     public void openMedicineModule() {
