@@ -45,7 +45,7 @@ public class ConsultationControl {
             consultationMap.put(consultationId, consultation);
             ConsultationDAO.saveConsultations(consultationMap);
             
-            System.out.println("✅ Consultation created: " + consultationId);
+            System.out.println("Consultation created: " + consultationId);
         }
     }
 
@@ -54,43 +54,46 @@ public class ConsultationControl {
                                    ListInterface<entity.MedicinePrescribed> medicines) {
         Consultation consultation = consultationMap.get(consultationId);
         if (consultation == null) {
-            System.out.println("❌ Consultation not found: " + consultationId);
+            System.out.println("Consultation not found: " + consultationId);
             return;
         }
 
-        // Create treatment
-        String treatmentId = dao.TreatmentDAO.generateTreatmentId();
-        entity.Treatment treatment = new entity.Treatment(treatmentId, consultation.getDoctorId(), 
-                                                         consultation.getPatientId(), consultationId, 
-                                                         diagnosis, treatmentFee);
-        
-        // Add prescribed medicines
-        for (int i = 0; i < medicines.size(); i++) {
-            treatment.addPrescribedMedicine(medicines.get(i));
-        }
-
-        // Save treatment
-        adt.HashMapInterface<String, entity.Treatment> treatmentMap = dao.TreatmentDAO.loadTreatments();
-        treatmentMap.put(treatmentId, treatment);
-        dao.TreatmentDAO.saveTreatments(treatmentMap);
+        // Create treatment using TreatmentControl
+        control.TreatmentControl treatmentControl = new control.TreatmentControl();
+        String treatmentId = treatmentControl.createTreatment(
+            consultation.getDoctorId(), 
+            consultation.getPatientId(), 
+            consultationId, 
+            diagnosis, 
+            treatmentFee, 
+            medicines
+        );
 
         // Complete consultation
         consultation.completeConsultation(treatmentId);
         consultationMap.put(consultationId, consultation);
         ConsultationDAO.saveConsultations(consultationMap);
 
-        // Mark queue entry as completed
+        // Store completed queue entry in history instead of removing
         String queueId = consultation.getQueueId();
         if (queueId != null) {
             PatientQueueEntry queueEntry = queueMap.get(queueId);
             if (queueEntry != null) {
-                queueEntry.complete();
-                queueMap.put(queueId, queueEntry);
+                // Store in history
+                control.QueueHistoryControl historyControl = new control.QueueHistoryControl();
+                historyControl.storeCompletedQueueEntry(queueEntry, "CONSULTATION_COMPLETED");
+                
+                // Remove from active queue
+                queueMap.remove(queueId);
                 PatientQueueDAO.savePatientQueue(queueMap);
+                System.out.println("✅ Patient " + consultation.getPatientId() + " moved to history after completion");
             }
         }
 
-        System.out.println("✅ Consultation completed with treatment: " + treatmentId);
+        // Automatically generate invoice for payment
+        generateInvoiceForConsultation(consultationId);
+
+        System.out.println("Consultation completed with treatment: " + treatmentId);
     }
 
     // --- Auto-assign appointment patients to their booked doctors ---
@@ -105,7 +108,7 @@ public class ConsultationControl {
                 if (doctorId != null) {
                     entry.assignToDoctor(doctorId);
                     queueMap.put(key, entry);
-                    System.out.println("📅 Auto-assigned appointment patient " + entry.getPatientId() + " to Dr. " + doctorId);
+                    System.out.println("Auto-assigned appointment patient " + entry.getPatientId() + " to Dr. " + doctorId);
                 }
             }
         }
@@ -131,6 +134,90 @@ public class ConsultationControl {
             }
         }
         return doctorConsultations;
+    }
+
+    // --- Get pending consultations for a specific doctor ---
+    public ListInterface<Consultation> getPendingConsultationsForDoctor(String doctorId) {
+        ListInterface<Consultation> pendingConsultations = new ArrayList<>();
+        for (String key : consultationMap.keySet()) {
+            Consultation c = consultationMap.get(key);
+            if (c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
+                c.getStatus().equals("PENDING")) {
+                pendingConsultations.add(c);
+            }
+        }
+        return pendingConsultations;
+    }
+
+    // --- Get all consultations for a specific doctor ---
+    public ListInterface<Consultation> getAllConsultationsForDoctor(String doctorId) {
+        ListInterface<Consultation> allConsultations = new ArrayList<>();
+        for (String key : consultationMap.keySet()) {
+            Consultation c = consultationMap.get(key);
+            if (c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
+                allConsultations.add(c);
+            }
+        }
+        return allConsultations;
+    }
+
+    // --- Complete consultation for a specific doctor ---
+    public boolean completeConsultationForDoctor(String consultationId, String doctorId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && 
+            consultation.getDoctorId() != null && 
+            consultation.getDoctorId().equals(doctorId)) {
+            
+            // Mark consultation as completed
+            consultation.setStatus("COMPLETED");
+            ConsultationDAO.saveConsultations(consultationMap);
+            
+            // Store completed consultation in history
+            storeCompletedConsultationInHistory(consultationId);
+            
+            // Automatically generate invoice for payment
+            generateInvoiceForConsultation(consultationId);
+            
+            return true;
+        }
+        return false;
+    }
+
+    // --- Generate invoice for completed consultation ---
+    private void generateInvoiceForConsultation(String consultationId) {
+        try {
+            // Create InvoiceControl instance to generate invoice
+            control.InvoiceControl invoiceControl = new control.InvoiceControl();
+            entity.Invoice invoice = invoiceControl.generateInvoice(consultationId);
+            
+            if (invoice != null) {
+                System.out.println("✅ Invoice generated automatically for consultation: " + consultationId);
+                System.out.println("   Invoice ID: " + invoice.getInvoiceId());
+                System.out.println("   Amount: RM " + String.format("%.2f", invoice.getAmount()));
+            } else {
+                System.out.println("⚠️  Failed to generate invoice for consultation: " + consultationId);
+            }
+        } catch (Exception e) {
+            System.out.println("❌ Error generating invoice: " + e.getMessage());
+        }
+    }
+
+    // --- Store completed consultation in history and remove from queue ---
+    private void storeCompletedConsultationInHistory(String consultationId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && consultation.getQueueId() != null) {
+            PatientQueueEntry queueEntry = queueMap.get(consultation.getQueueId());
+            if (queueEntry != null) {
+                // Store in history
+                control.QueueHistoryControl historyControl = new control.QueueHistoryControl();
+                historyControl.storeCompletedQueueEntry(queueEntry, "CONSULTATION_COMPLETED");
+                
+                // Remove from active queue
+                queueMap.remove(consultation.getQueueId());
+                PatientQueueDAO.savePatientQueue(queueMap);
+                System.out.println("✅ Patient " + consultation.getPatientId() + " moved to history after completion");
+            }
+        }
     }
 
     // --- Get consultations by patient ---

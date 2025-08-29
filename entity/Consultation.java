@@ -84,4 +84,8 @@ public class Consultation {
     public void setPayment(String paymentId) {
         this.paymentId = paymentId;
     }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }

@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 public abstract class Human {
     protected String name;
     protected String gender;
-    protected LocalDate birthdate; // changed from String → LocalDate
+    protected LocalDate birthdate; // changed from String to LocalDate
     protected String phoneNumber;
     protected boolean isDeleted; // soft delete flag
 

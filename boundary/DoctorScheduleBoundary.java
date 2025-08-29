@@ -10,6 +10,7 @@ import java.util.Scanner;
 import control.DoctorRecordControl;
 import control.DoctorScheduleControl;
 import control.PatientQueueControl;
+import control.DoctorScheduleMenuControl;
 import entity.Doctor;
 import entity.DoctorSchedule;
 
@@ -21,12 +22,14 @@ public class DoctorScheduleBoundary {
     private DoctorScheduleControl scheduleControl;
     private DoctorRecordControl doctorControl;
     private PatientQueueControl queueControl;
+    private DoctorScheduleMenuControl scheduleMenuControl;
     private Scanner sc;
 
     public DoctorScheduleBoundary(DoctorScheduleControl scheduleControl, DoctorRecordControl doctorControl, PatientQueueControl queueControl) {
         this.scheduleControl = scheduleControl;
         this.doctorControl = doctorControl;
         this.queueControl = queueControl;
+        this.scheduleMenuControl = new DoctorScheduleMenuControl(scheduleControl, doctorControl, queueControl);
         this.sc = new Scanner(System.in);
     }
 
@@ -61,7 +64,7 @@ public class DoctorScheduleBoundary {
                 case "6":
                     return;
                 default:
-                    System.out.println("❌ Invalid choice. Please try again.");
+                    System.out.println("Invalid choice. Please try again.");
             }
         }
     }
@@ -71,9 +74,9 @@ public class DoctorScheduleBoundary {
         
         // Display available doctors
         System.out.println("Available Doctors:");
-        ListInterface<Doctor> doctors = doctorControl.getAllDoctors();
+        ListInterface<Doctor> doctors = scheduleMenuControl.getAllDoctors();
         if (doctors.isEmpty()) {
-            System.out.println("❌ No doctors found.");
+            System.out.println("No doctors found.");
             return;
         }
 
@@ -93,10 +96,10 @@ public class DoctorScheduleBoundary {
                 Doctor selectedDoctor = doctors.get(doctorIndex);
                 scheduleControl.displayBookedAppointments(selectedDoctor.getDoctorId());
             } else {
-                System.out.println("❌ Invalid doctor number.");
+                System.out.println("Invalid doctor number.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("❌ Please enter a valid number.");
+            System.out.println("Please enter a valid number.");
         }
     }
 
@@ -105,9 +108,9 @@ public class DoctorScheduleBoundary {
         
         // Display available doctors
         System.out.println("Available Doctors:");
-        ListInterface<Doctor> doctors = doctorControl.getAllDoctors();
+        ListInterface<Doctor> doctors = scheduleMenuControl.getAllDoctors();
         if (doctors.isEmpty()) {
-            System.out.println("❌ No doctors found.");
+            System.out.println("No doctors found.");
             return;
         }
 
@@ -138,7 +141,7 @@ public class DoctorScheduleBoundary {
                 try {
                     appointmentDate = LocalDate.parse(dateStr);
                 } catch (DateTimeParseException e) {
-                    System.out.println("❌ Invalid date format. Please use YYYY-MM-DD.");
+                    System.out.println("Invalid date format. Please use YYYY-MM-DD.");
                     return;
                 }
                 
@@ -165,7 +168,7 @@ public class DoctorScheduleBoundary {
                     case 6: selectedTime = LocalTime.of(15, 0); break;
                     case 7: selectedTime = LocalTime.of(16, 0); break;
                     default:
-                        System.out.println("❌ Invalid time selection.");
+                        System.out.println("Invalid time selection.");
                         return;
                 }
                 
@@ -173,10 +176,10 @@ public class DoctorScheduleBoundary {
                 scheduleControl.bookAppointment(selectedDoctor.getDoctorId(), patientId, appointmentDate, selectedTime);
                 
             } else {
-                System.out.println("❌ Invalid doctor number.");
+                System.out.println("Invalid doctor number.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("❌ Please enter a valid number.");
+            System.out.println("Please enter a valid number.");
         }
     }
 
@@ -185,9 +188,9 @@ public class DoctorScheduleBoundary {
         
         // Display available doctors
         System.out.println("Available Doctors:");
-        ListInterface<Doctor> doctors = doctorControl.getAllDoctors();
+        ListInterface<Doctor> doctors = scheduleMenuControl.getAllDoctors();
         if (doctors.isEmpty()) {
-            System.out.println("❌ No doctors found.");
+            System.out.println("No doctors found.");
             return;
         }
 
@@ -217,7 +220,7 @@ public class DoctorScheduleBoundary {
                 try {
                     appointmentDate = LocalDate.parse(dateStr);
                 } catch (DateTimeParseException e) {
-                    System.out.println("❌ Invalid date format. Please use YYYY-MM-DD.");
+                    System.out.println("Invalid date format. Please use YYYY-MM-DD.");
                     return;
                 }
                 
@@ -244,7 +247,7 @@ public class DoctorScheduleBoundary {
                     case 6: selectedTime = LocalTime.of(15, 0); break;
                     case 7: selectedTime = LocalTime.of(16, 0); break;
                     default:
-                        System.out.println("❌ Invalid time selection.");
+                        System.out.println("Invalid time selection.");
                         return;
                 }
                 
@@ -252,10 +255,10 @@ public class DoctorScheduleBoundary {
                 scheduleControl.cancelAppointment(selectedDoctor.getDoctorId(), appointmentDate, selectedTime);
                 
             } else {
-                System.out.println("❌ Invalid doctor number.");
+                System.out.println("Invalid doctor number.");
             }
         } catch (NumberFormatException e) {
-            System.out.println("❌ Please enter a valid number.");
+            System.out.println("Please enter a valid number.");
         }
     }
 
@@ -272,24 +275,17 @@ public class DoctorScheduleBoundary {
         
         try {
             int specialtyChoice = Integer.parseInt(sc.nextLine().trim());
-            String selectedSpecialty = null;
+            String selectedSpecialty = scheduleMenuControl.getSpecialtyFromChoice(specialtyChoice);
             
-            switch (specialtyChoice) {
-                case 1: selectedSpecialty = "CARDIOLOGY"; break;
-                case 2: selectedSpecialty = "NEUROLOGY"; break;
-                case 3: selectedSpecialty = "PEDIATRICS"; break;
-                case 4: selectedSpecialty = "ORTHOPEDICS"; break;
-                case 5: selectedSpecialty = "DERMATOLOGY"; break;
-                case 6: selectedSpecialty = "GENERAL MEDICINE"; break;
-                default:
-                    System.out.println("❌ Invalid specialty selection.");
-                    return;
+            if (selectedSpecialty == null) {
+                System.out.println("Invalid specialty selection.");
+                return;
             }
             
             scheduleControl.displayBookedAppointmentsBySpecialty(selectedSpecialty);
             
         } catch (NumberFormatException e) {
-            System.out.println("❌ Please enter a valid number.");
+            System.out.println("Please enter a valid number.");
         }
     }
 
@@ -300,41 +296,32 @@ public class DoctorScheduleBoundary {
         System.out.println("\n--- Check-in Appointment ---");
         
         // Get today's booked schedules
-        ListInterface<DoctorSchedule> todaysSchedules = scheduleControl.getTodaysBookedSchedules();
+        ListInterface<DoctorSchedule> todaysSchedules = scheduleMenuControl.getTodaysBookedSchedules();
         
         if (todaysSchedules.isEmpty()) {
-            System.out.println("📋 No booked appointments for today");
+            System.out.println("No booked appointments for today");
             return;
         }
         
         // Filter for appointments that haven't been checked in yet (status != CHECKED_IN and != DONE)
-        ListInterface<DoctorSchedule> availableSchedules = new ArrayList<>();
-        for (int i = 0; i < todaysSchedules.size(); i++) {
-            DoctorSchedule schedule = todaysSchedules.get(i);
-            String status = schedule.getConsultationId(); // Using consultationId as status field
-            if (status == null || (!status.equals("CHECKED_IN") && !status.equals("DONE"))) {
-                availableSchedules.add(schedule);
-            }
-        }
+        ListInterface<DoctorSchedule> availableSchedules = scheduleMenuControl.getAvailableSchedulesForCheckIn(todaysSchedules);
         
         if (availableSchedules.isEmpty()) {
-            System.out.println("📋 All today's appointments have already been checked in");
+            System.out.println("All today's appointments have already been checked in");
             return;
         }
         
         System.out.println("\nToday's Appointments Ready for Check-in:");
-        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
         
         for (int i = 0; i < availableSchedules.size(); i++) {
             DoctorSchedule schedule = availableSchedules.get(i);
-            Doctor doctor = doctorControl.getDoctorMap().get(schedule.getDoctorId());
-            String doctorName = doctor != null ? doctor.getName() : "Unknown";
+            String doctorName = scheduleMenuControl.getDoctorNameFromSchedule(schedule);
             
             System.out.println((i + 1) + ". " + schedule.getScheduleId() + 
                 " - Patient: " + schedule.getPatientId() + 
                 " - Dr. " + doctorName +
-                " - Time: " + schedule.getStartTime().format(timeFormatter) + 
-                " - " + schedule.getEndTime().format(timeFormatter));
+                " - Time: " + scheduleMenuControl.formatTime(schedule.getStartTime()) + 
+                " - " + scheduleMenuControl.formatTime(schedule.getEndTime()));
         }
         
         // Select appointment to check in
@@ -343,7 +330,7 @@ public class DoctorScheduleBoundary {
         try {
             int choice = Integer.parseInt(sc.nextLine().trim());
             if (choice < 1 || choice > availableSchedules.size()) {
-                System.out.println("❌ Invalid appointment selection");
+                System.out.println("Invalid appointment selection");
                 return;
             }
             
@@ -353,23 +340,23 @@ public class DoctorScheduleBoundary {
             System.out.println("\nChecking in appointment:");
             System.out.println("Schedule ID: " + selectedSchedule.getScheduleId());
             System.out.println("Patient ID: " + selectedSchedule.getPatientId());
-            System.out.println("Time: " + selectedSchedule.getStartTime().format(timeFormatter) + 
-                " - " + selectedSchedule.getEndTime().format(timeFormatter));
+            System.out.println("Time: " + scheduleMenuControl.formatTime(selectedSchedule.getStartTime()) + 
+                " - " + scheduleMenuControl.formatTime(selectedSchedule.getEndTime()));
             
             System.out.print("Confirm check-in? (y/n): ");
             String confirm = sc.nextLine().trim().toLowerCase();
             
             if (confirm.equals("y") || confirm.equals("yes")) {
                 // Check in the appointment - this will create a queue entry and update schedule status
-                queueControl.checkInAppointment(selectedSchedule.getScheduleId(), scheduleControl);
-                System.out.println("✅ Patient successfully checked in to queue!");
-                System.out.println("📋 Patient added to appointment queue and can now be assigned to doctor");
+                scheduleMenuControl.checkInAppointmentPatient(selectedSchedule.getScheduleId());
+                System.out.println("Patient successfully checked in to queue!");
+                System.out.println("Patient added to appointment queue and can now be assigned to doctor");
             } else {
-                System.out.println("❌ Check-in cancelled");
+                System.out.println("Check-in cancelled");
             }
             
         } catch (NumberFormatException e) {
-            System.out.println("❌ Please enter a valid number");
+            System.out.println("Please enter a valid number");
         }
     }
 }

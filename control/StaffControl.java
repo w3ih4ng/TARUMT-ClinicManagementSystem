@@ -1,6 +1,8 @@
 package control;
 
 import boundary.*;
+import control.*;
+import control.ConsultationMenuControl;
 
 /**
  * Control class for staff management and coordination
@@ -11,6 +13,7 @@ public class StaffControl {
     private DoctorManagementBoundary doctorManagementBoundary;
     private PharmacyBoundary pharmacyBoundary;
     private DoctorScheduleBoundary doctorScheduleBoundary;
+    private PaymentBoundary paymentBoundary;
 
     public StaffControl() {
         // Initialize modules staff can access
@@ -19,6 +22,7 @@ public class StaffControl {
         this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorRecordControl());
         this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
         this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl(), new PatientQueueControl(consultationControl));
+        this.paymentBoundary = new PaymentBoundary(new PaymentControl(), new InvoiceControl());
     }
 
     public void openPatientModule() {
@@ -30,7 +34,11 @@ public class StaffControl {
     }
 
     public void openConsultationModule() {
-        new ConsultationMenuBoundary(new ConsultationControl()).mainMenu();
+        control.ConsultationControl consultationControl = new control.ConsultationControl();
+        control.TreatmentControl treatmentControl = new control.TreatmentControl();
+        control.PatientQueueControl queueControl = new control.PatientQueueControl(consultationControl);
+        control.ConsultationMenuControl consultationMenuControl = new control.ConsultationMenuControl(consultationControl, treatmentControl, queueControl);
+        new boundary.ConsultationMenuBoundary(consultationMenuControl).mainMenu();
     }
 
     public void openDoctorScheduleModule() {
@@ -44,5 +52,9 @@ public class StaffControl {
 
     public void openPharmacyModule() {
         pharmacyBoundary.mainMenu();
+    }
+
+    public void openPaymentModule() {
+        paymentBoundary.mainMenu();
     }
 }

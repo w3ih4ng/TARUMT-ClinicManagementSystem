@@ -50,6 +50,12 @@ public class InvoiceDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 Invoice invoice = fromFileString(line);
                 if (invoice != null)
                     map.put(invoice.getInvoiceId(), invoice);

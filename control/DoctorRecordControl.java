@@ -2,6 +2,8 @@ package control;
 
 import entity.Doctor;
 import entity.Specialty;
+import entity.DoctorSchedule;
+import entity.Consultation;
 import adt.*;
 import dao.DoctorDAO;
 
@@ -140,6 +142,59 @@ public class DoctorRecordControl {
 
     public HashMapInterface<String, Doctor> getDoctorMap() {
         return this.doctorMap;
+    }
+
+    // Get doctor by ID
+    public Doctor getDoctorById(String doctorId) {
+        return doctorMap.get(doctorId);
+    }
+
+    // Get today's schedule for a specific doctor
+    public ListInterface<DoctorSchedule> getTodaysScheduleForDoctor(String doctorId) {
+        ListInterface<DoctorSchedule> todaysSchedules = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        
+        // Get all schedules for this doctor
+        ListInterface<DoctorSchedule> allSchedules = new ArrayList<>();
+        for (int i = 0; i < doctorMap.keySet().size(); i++) {
+            String key = doctorMap.keySet().get(i);
+            Doctor doctor = doctorMap.get(key);
+            if (doctor != null && doctor.getDoctorId().equals(doctorId)) {
+                // This would need to be implemented with DoctorScheduleControl
+                // For now, return empty list
+                break;
+            }
+        }
+        
+        return todaysSchedules;
+    }
+
+    // Get pending consultations for a specific doctor
+    public ListInterface<Consultation> getPendingConsultationsForDoctor(String doctorId) {
+        ListInterface<Consultation> pendingConsultations = new ArrayList<>();
+        
+        // This would need to be implemented with ConsultationControl
+        // For now, return empty list
+        
+        return pendingConsultations;
+    }
+
+    // Get all consultations for a specific doctor
+    public ListInterface<Consultation> getAllConsultationsForDoctor(String doctorId) {
+        ListInterface<Consultation> allConsultations = new ArrayList<>();
+        
+        // This would need to be implemented with ConsultationControl
+        // For now, return empty list
+        
+        return allConsultations;
+    }
+
+    // Complete a consultation for a specific doctor
+    public boolean completeConsultationForDoctor(String consultationId, String doctorId) {
+        // This would need to be implemented with ConsultationControl
+        // For now, return false
+        
+        return false;
     }
 
     // Get all doctors as a list

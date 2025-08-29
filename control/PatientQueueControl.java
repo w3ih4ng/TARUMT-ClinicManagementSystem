@@ -39,7 +39,7 @@ public class PatientQueueControl {
                                                         QueueType.WALK_IN, LocalDateTime.now());
         queueMap.put(queueId, entry);
         PatientQueueDAO.savePatientQueue(queueMap);
-        System.out.println("✅ Walk-in patient added to queue: " + queueId);
+        System.out.println("Walk-in patient added to queue: " + queueId);
     }
 
     /**
@@ -49,17 +49,17 @@ public class PatientQueueControl {
         // Get schedule info
         entity.DoctorSchedule schedule = scheduleControl.getScheduleById(scheduleId);
         if (schedule == null) {
-            System.out.println("❌ Schedule not found: " + scheduleId);
+            System.out.println("Schedule not found: " + scheduleId);
             return;
         }
         
         if (!schedule.getAppointmentDate().equals(java.time.LocalDate.now())) {
-            System.out.println("❌ This appointment is not for today");
+            System.out.println("This appointment is not for today");
             return;
         }
 
         if (!schedule.isBooked()) {
-            System.out.println("❌ This slot is not booked");
+            System.out.println("This slot is not booked");
             return;
         }
 
@@ -80,7 +80,7 @@ public class PatientQueueControl {
         // Mark schedule as checked in
         scheduleControl.markCheckedIn(scheduleId);
         
-        System.out.println("✅ Appointment patient checked in: " + queueId);
+        System.out.println("Appointment patient checked in: " + queueId);
     }
 
     /**
@@ -89,18 +89,18 @@ public class PatientQueueControl {
     public void assignPatientToDoctor(String queueId, String doctorId) {
         PatientQueueEntry entry = queueMap.get(queueId);
         if (entry == null) {
-            System.out.println("❌ Queue entry not found: " + queueId);
+            System.out.println("Queue entry not found: " + queueId);
             return;
         }
 
         if (entry.getQueueStatus() != QueueStatus.WAITING) {
-            System.out.println("❌ Patient is not waiting: " + entry.getQueueStatus());
+            System.out.println("Patient is not waiting: " + entry.getQueueStatus());
             return;
         }
 
         Doctor doctor = doctorMap.get(doctorId);
         if (doctor == null) {
-            System.out.println("❌ Doctor not found: " + doctorId);
+            System.out.println("Doctor not found: " + doctorId);
             return;
         }
 
@@ -112,7 +112,7 @@ public class PatientQueueControl {
         // Create consultation
         consultationControl.createConsultationForQueue(queueId);
         
-        System.out.println("✅ Patient assigned to Dr. " + doctorId + " - Consultation created");
+        System.out.println("Patient assigned to Dr. " + doctorId + " - Consultation created");
     }
 
     /**
@@ -180,6 +180,41 @@ public class PatientQueueControl {
         return queueMap;
     }
 
+    /**
+     * Get sorted queue entries for display
+     */
+    public ListInterface<PatientQueueEntry> getSortedQueueEntries() {
+        return getSortedQueue();
+    }
+
+    /**
+     * Get waiting patients for doctor assignment
+     */
+    public ListInterface<PatientQueueEntry> getWaitingPatientsForAssignment() {
+        ListInterface<PatientQueueEntry> waiting = new ArrayList<>();
+        for (String key : queueMap.keySet()) {
+            PatientQueueEntry entry = queueMap.get(key);
+            if (entry.getQueueStatus() == QueueStatus.WAITING) {
+                waiting.add(entry);
+            }
+        }
+        return waiting;
+    }
+
+    /**
+     * Get available doctors for a specialty
+     */
+    public ListInterface<Doctor> getAvailableDoctorsForSpecialty(String specialty) {
+        ListInterface<Doctor> available = new ArrayList<>();
+        for (String key : doctorMap.keySet()) {
+            Doctor doctor = doctorMap.get(key);
+            if (!doctor.isDeleted()) {
+                available.add(doctor);
+            }
+        }
+        return available;
+    }
+
     // --- Add patient to queue ---
     public void addPatientToQueue() {
         System.out.println("\n--- Add Patient to Queue ---");
@@ -208,7 +243,7 @@ public class PatientQueueControl {
         queueMap.put(queueId, entry);
         PatientQueueDAO.savePatientQueue(queueMap);
 
-        System.out.println("\n✅ Patient added to queue successfully!");
+        System.out.println("\nPatient added to queue successfully!");
         System.out.println("Queue ID: " + queueId);
         System.out.println("Patient: " + patientId);
         System.out.println("Specialty: " + specialty);
@@ -291,13 +326,13 @@ public class PatientQueueControl {
 
         // Check if this is an appointment patient
         if (entry.getQueueType() == QueueType.APPOINTMENT) {
-            System.out.println("📅 This is an appointment patient. They should already be assigned to a doctor.");
+            System.out.println("This is an appointment patient. They should already be assigned to a doctor.");
             System.out.println("   If no doctor is assigned, please check the appointment booking in Doctor Schedule Management.");
             return;
         }
 
         // For walk-in patients, proceed with manual assignment
-        System.out.println("🚶 This is a walk-in patient. Proceeding with manual doctor assignment...");
+        System.out.println("This is a walk-in patient. Proceeding with manual doctor assignment...");
 
         // --- Show available doctors for specialty ---
         ListInterface<Doctor> availableDoctors = getAvailableDoctors(specialty);
@@ -320,7 +355,7 @@ public class PatientQueueControl {
         // --- Create consultation automatically ---
         consultationControl.createConsultationForQueue(queueId);
 
-        System.out.println("\n✅ Walk-in patient assigned to doctor successfully!");
+        System.out.println("\nWalk-in patient assigned to doctor successfully!");
         System.out.println("Patient: " + entry.getPatientId());
         System.out.println("Doctor: " + doctorId);
         System.out.println("Specialty: " + specialty);
@@ -345,10 +380,16 @@ public class PatientQueueControl {
         if (queueId == null) return;
 
         PatientQueueEntry entry = queueMap.get(queueId);
-        entry.complete();
+        
+        // Store completed patient in history
+        control.QueueHistoryControl historyControl = new control.QueueHistoryControl();
+        historyControl.storeCompletedQueueEntry(entry, "MANUAL_COMPLETION");
+        
+        // Remove from active queue
+        queueMap.remove(queueId);
         PatientQueueDAO.savePatientQueue(queueMap);
 
-        System.out.println("\n✅ Patient consultation completed!");
+        System.out.println("\nPatient consultation completed and moved to history!");
         System.out.println("Patient: " + entry.getPatientId());
         System.out.println("Doctor: " + entry.getAssignedDoctorId());
         System.out.println("Queue ID: " + entry.getQueueId());

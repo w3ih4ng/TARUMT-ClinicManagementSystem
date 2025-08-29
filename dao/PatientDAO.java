@@ -55,6 +55,12 @@ public class PatientDAO {
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
             while ((line = br.readLine()) != null) {
+                // Skip comment lines and empty lines
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
                 Patient p = fromFileString(line);
                 if (p != null) {
                     map.put(p.getPatientId(), p);

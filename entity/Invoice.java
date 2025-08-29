@@ -44,4 +44,8 @@ public class Invoice {
     public void markPaid() {
         this.isPaid = true;
     }
+
+    public void markUnpaid() {
+        this.isPaid = false;
+    }
 }

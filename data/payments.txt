@@ -1,0 +1,2 @@
+# Payment data file
+# Format: paymentId|invoiceId|consultationId|patientId|amount|paymentMethod|status|paymentDate|referenceNumber|notes|isDeleted

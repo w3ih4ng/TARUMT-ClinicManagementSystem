@@ -20,4 +20,16 @@ public class MedicinePrescribed {
     public int getQuantity() {
         return quantity;
     }
+
+    /**
+     * Calculate the total cost for this prescribed medicine
+     * @param medicine The medicine entity to get price from
+     * @return Total cost (price * quantity)
+     */
+    public double calculateCost(Medicine medicine) {
+        if (medicine != null) {
+            return medicine.getPrice() * quantity;
+        }
+        return 0.0;
+    }
 }

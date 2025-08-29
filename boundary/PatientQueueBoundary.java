@@ -15,11 +15,13 @@ public class PatientQueueBoundary {
     private Scanner sc;
     private PatientQueueControl queueControl;
     private DoctorRecordControl doctorControl;
+    private control.QueueHistoryControl historyControl;
 
     public PatientQueueBoundary(PatientQueueControl queueControl, DoctorRecordControl doctorControl) {
         this.sc = new Scanner(System.in);
         this.queueControl = queueControl;
         this.doctorControl = doctorControl;
+        this.historyControl = new control.QueueHistoryControl();
     }
 
     public void menu() {
@@ -31,6 +33,7 @@ public class PatientQueueBoundary {
             System.out.println("2. View Current Queue (Sorted)");
             System.out.println("3. Assign Doctor to Patient");
             System.out.println("4. Call Next Patient (Doctor View)");
+            System.out.println("5. View Queue History");
             System.out.println("0. Back to Patient Management");
             System.out.print("Enter choice: ");
 
@@ -48,6 +51,9 @@ public class PatientQueueBoundary {
                     break;
                 case "4":
                     callNextPatient();
+                    break;
+                case "5":
+                    viewQueueHistory();
                     break;
                 case "0":
                     return; // back to Patient Management
@@ -69,7 +75,7 @@ public class PatientQueueBoundary {
         System.out.print("Enter Patient ID: ");
         String patientId = sc.nextLine().trim();
         if (patientId.isEmpty()) {
-            System.out.println("❌ Patient ID cannot be empty");
+            System.out.println("Patient ID cannot be empty");
             return;
         }
 
@@ -84,14 +90,14 @@ public class PatientQueueBoundary {
         try {
             int choice = Integer.parseInt(sc.nextLine().trim());
             if (choice < 1 || choice > specialties.length) {
-                System.out.println("❌ Invalid specialty choice");
+                System.out.println("Invalid specialty choice");
                 return;
             }
             String specialty = specialties[choice - 1].toString();
             
             queueControl.addWalkIn(patientId, specialty);
         } catch (NumberFormatException e) {
-            System.out.println("❌ Please enter a valid number");
+            System.out.println("Please enter a valid number");
         }
     }
 
@@ -103,17 +109,17 @@ public class PatientQueueBoundary {
         HashMapInterface<String, PatientQueueEntry> queueMap = queueControl.getQueueMap();
         
         if (queueMap.isEmpty()) {
-            System.out.println("📋 Queue is empty");
+            System.out.println("Queue is empty");
             return;
         }
 
         // Convert to sorted list
-        ListInterface<PatientQueueEntry> sortedQueue = getSortedQueueEntries(queueMap);
+        ListInterface<PatientQueueEntry> sortedQueue = queueControl.getSortedQueueEntries();
         
         // Display header
         System.out.println("\n" + String.format("%-8s %-12s %-15s %-12s %-12s %-10s %-12s",
             "Queue ID", "Patient ID", "Specialty", "Type", "Status", "Arrival", "Scheduled"));
-        System.out.println("─".repeat(95));
+        System.out.println("-".repeat(95));
         
         // Display entries
         DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -123,7 +129,7 @@ public class PatientQueueBoundary {
                 entry.getScheduledStartTime().format(timeFormatter) : "N/A";
             String arrivalTime = entry.getArrivalTime().format(timeFormatter);
             
-            System.out.println(String.format("%-8s %-12s %-15s %-12s %-12s %-10s %-12s",
+            System.out.println(String.format("%-8s %-12s %-15s %-12s %-10s %-12s",
                 entry.getQueueId(),
                 entry.getPatientId(),
                 entry.getSpecialty(),
@@ -141,18 +147,10 @@ public class PatientQueueBoundary {
         System.out.println("\n--- Assign Doctor to Patient ---");
         
         // Show waiting patients
-        HashMapInterface<String, PatientQueueEntry> queueMap = queueControl.getQueueMap();
-        ListInterface<PatientQueueEntry> waitingPatients = new ArrayList<>();
-        
-        for (String key : queueMap.keySet()) {
-            PatientQueueEntry entry = queueMap.get(key);
-            if (entry.getQueueStatus() == QueueStatus.WAITING) {
-                waitingPatients.add(entry);
-            }
-        }
+        ListInterface<PatientQueueEntry> waitingPatients = queueControl.getWaitingPatientsForAssignment();
         
         if (waitingPatients.isEmpty()) {
-            System.out.println("📋 No patients waiting for assignment");
+            System.out.println("No patients waiting for doctor assignment");
             return;
         }
         
@@ -160,7 +158,7 @@ public class PatientQueueBoundary {
         System.out.println("\nWaiting Patients:");
         for (int i = 0; i < waitingPatients.size(); i++) {
             PatientQueueEntry entry = waitingPatients.get(i);
-            System.out.println((i + 1) + ". " + entry.getQueueId() + " - " + 
+            System.out.println((i + 1) + ". " + entry.getQueueId() + " - " +
                 entry.getPatientId() + " (" + entry.getSpecialty() + ")");
         }
         
@@ -169,25 +167,17 @@ public class PatientQueueBoundary {
         try {
             int patientChoice = Integer.parseInt(sc.nextLine().trim());
             if (patientChoice < 1 || patientChoice > waitingPatients.size()) {
-                System.out.println("❌ Invalid patient selection");
+                System.out.println("Invalid patient selection");
                 return;
             }
             
             PatientQueueEntry selectedEntry = waitingPatients.get(patientChoice - 1);
             
-            // Show available doctors
-            HashMapInterface<String, Doctor> doctorMap = doctorControl.getDoctorMap();
-            ListInterface<Doctor> availableDoctors = new ArrayList<>();
-            
-            for (String key : doctorMap.keySet()) {
-                Doctor doctor = doctorMap.get(key);
-                if (!doctor.isDeleted()) {
-                    availableDoctors.add(doctor);
-                }
-            }
+            // Show available doctors for specialty
+            ListInterface<Doctor> availableDoctors = queueControl.getAvailableDoctorsForSpecialty(selectedEntry.getSpecialty());
             
             if (availableDoctors.isEmpty()) {
-                System.out.println("❌ No doctors available");
+                System.out.println("No doctors available");
                 return;
             }
             
@@ -202,7 +192,7 @@ public class PatientQueueBoundary {
             System.out.print("Select doctor (1-" + availableDoctors.size() + "): ");
             int doctorChoice = Integer.parseInt(sc.nextLine().trim());
             if (doctorChoice < 1 || doctorChoice > availableDoctors.size()) {
-                System.out.println("❌ Invalid doctor selection");
+                System.out.println("Invalid doctor selection");
                 return;
             }
             
@@ -210,7 +200,7 @@ public class PatientQueueBoundary {
             queueControl.assignPatientToDoctor(selectedEntry.getQueueId(), selectedDoctor.getDoctorId());
             
         } catch (NumberFormatException e) {
-            System.out.println("❌ Please enter a valid number");
+            System.out.println("Please enter a valid number");
         }
     }
 
@@ -222,12 +212,12 @@ public class PatientQueueBoundary {
         
         PatientQueueEntry nextPatient = queueControl.getNextEligiblePatient();
         if (nextPatient == null) {
-            System.out.println("📋 No eligible patients to call at this time");
+            System.out.println("No eligible patients to call at this time");
             System.out.println("Note: Appointment patients can only be called at or after their scheduled time");
             return;
         }
         
-        System.out.println("🔔 Next Patient to Call:");
+        System.out.println("Next Patient to Call:");
         System.out.println("Queue ID: " + nextPatient.getQueueId());
         System.out.println("Patient ID: " + nextPatient.getPatientId());
         System.out.println("Specialty: " + nextPatient.getSpecialty());
@@ -242,40 +232,12 @@ public class PatientQueueBoundary {
     }
 
     /**
-     * Helper method to sort queue entries
+     * View queue history
      */
-    private ListInterface<PatientQueueEntry> getSortedQueueEntries(HashMapInterface<String, PatientQueueEntry> queueMap) {
-        ListInterface<PatientQueueEntry> queue = new ArrayList<>();
-        for (String key : queueMap.keySet()) {
-            queue.add(queueMap.get(key));
-        }
-        
-        // Simple bubble sort by scheduled time / arrival time
-        for (int i = 0; i < queue.size() - 1; i++) {
-            for (int j = 0; j < queue.size() - i - 1; j++) {
-                if (shouldSwap(queue.get(j), queue.get(j + 1))) {
-                    PatientQueueEntry temp = queue.get(j);
-                    queue.set(j, queue.get(j + 1));
-                    queue.set(j + 1, temp);
-                }
-            }
-        }
-        return queue;
+    private void viewQueueHistory() {
+        System.out.println("\n--- Queue History ---");
+        historyControl.viewQueueHistory();
     }
 
-    private boolean shouldSwap(PatientQueueEntry a, PatientQueueEntry b) {
-        // Appointments with scheduled times come first, sorted by time
-        if (a.getScheduledStartTime() != null && b.getScheduledStartTime() != null) {
-            return a.getScheduledStartTime().isAfter(b.getScheduledStartTime());
-        }
-        // Appointments before walk-ins
-        if (a.getScheduledStartTime() != null && b.getScheduledStartTime() == null) {
-            return false;
-        }
-        if (a.getScheduledStartTime() == null && b.getScheduledStartTime() != null) {
-            return true;
-        }
-        // Both walk-ins, sort by arrival time
-        return a.getArrivalTime().isAfter(b.getArrivalTime());
-    }
+
 }

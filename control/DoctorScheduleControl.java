@@ -46,7 +46,7 @@ public class DoctorScheduleControl {
                 schedule.bookSlot("CHECKED_IN", schedule.getPatientId());
                 scheduleMap.put(scheduleId, schedule);
                 DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
-                System.out.println("✅ Schedule marked as checked in: " + scheduleId);
+                System.out.println("Schedule marked as checked in: " + scheduleId);
             }
         }
     }
@@ -61,7 +61,7 @@ public class DoctorScheduleControl {
             schedule.bookSlot("DONE", schedule.getPatientId());
             scheduleMap.put(scheduleId, schedule);
             DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
-            System.out.println("✅ Schedule marked as done: " + scheduleId);
+            System.out.println("Schedule marked as done: " + scheduleId);
         }
     }
 
@@ -93,6 +93,23 @@ public class DoctorScheduleControl {
         }
         
         return doctorSchedules;
+    }
+
+    // --- Get today's schedules for a specific doctor ---
+    public ListInterface<DoctorSchedule> getTodaysSchedulesForDoctor(String doctorId) {
+        ListInterface<DoctorSchedule> todaysSchedules = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        
+        for (String key : scheduleMap.keySet()) {
+            DoctorSchedule schedule = scheduleMap.get(key);
+            if (schedule.getDoctorId().equals(doctorId) && 
+                schedule.getAppointmentDate().equals(today) && 
+                schedule.isBooked()) {
+                todaysSchedules.add(schedule);
+            }
+        }
+        
+        return todaysSchedules;
     }
 
     // --- Get booked appointments for a specific doctor ---
@@ -127,14 +144,14 @@ public class DoctorScheduleControl {
     public boolean bookAppointment(String doctorId, String patientId, LocalDate appointmentDate, LocalTime startTime) {
         // Check if the slot is already booked
         if (isSlotBooked(doctorId, appointmentDate, startTime)) {
-            System.out.println("❌ This time slot is already booked.");
+            System.out.println("This time slot is already booked.");
             return false;
         }
 
         // Create a new schedule slot for this appointment
         Doctor doctor = doctorMap.get(doctorId);
         if (doctor == null) {
-            System.out.println("❌ Doctor not found: " + doctorId);
+            System.out.println("Doctor not found: " + doctorId);
             return false;
         }
 
@@ -153,7 +170,7 @@ public class DoctorScheduleControl {
         scheduleMap.put(schedule.getScheduleId(), schedule);
         DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
         
-        System.out.println("✅ Appointment booked successfully!");
+        System.out.println("Appointment booked successfully!");
         System.out.println("   - Doctor: " + doctorId);
         System.out.println("   - Patient: " + patientId);
         System.out.println("   - Date: " + appointmentDate);
@@ -167,18 +184,18 @@ public class DoctorScheduleControl {
     public boolean cancelAppointment(String doctorId, LocalDate appointmentDate, LocalTime startTime) {
         String scheduleId = findScheduleId(doctorId, appointmentDate, startTime);
         if (scheduleId == null) {
-            System.out.println("❌ Schedule slot not found for the specified time.");
+            System.out.println("Schedule slot not found for the specified time.");
             return false;
         }
 
         DoctorSchedule schedule = scheduleMap.get(scheduleId);
         if (schedule == null) {
-            System.out.println("❌ Schedule not found.");
+            System.out.println("Schedule not found.");
             return false;
         }
 
         if (!schedule.isBooked()) {
-            System.out.println("❌ This time slot is not booked.");
+            System.out.println("This time slot is not booked.");
             return false;
         }
 
@@ -187,7 +204,7 @@ public class DoctorScheduleControl {
         schedule.freeSlot();
         DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
         
-        System.out.println("✅ Appointment cancelled successfully!");
+        System.out.println("Appointment cancelled successfully!");
         System.out.println("   - Doctor: " + doctorId);
         System.out.println("   - Patient: " + patientId);
         System.out.println("   - Date: " + appointmentDate);
@@ -228,13 +245,13 @@ public class DoctorScheduleControl {
     public void displayBookedAppointments(String doctorId) {
         Doctor doctor = doctorMap.get(doctorId);
         if (doctor == null) {
-            System.out.println("❌ Doctor not found: " + doctorId);
+            System.out.println("Doctor not found: " + doctorId);
             return;
         }
 
         ListInterface<DoctorSchedule> bookedAppointments = getBookedAppointments(doctorId);
         if (bookedAppointments.isEmpty()) {
-            System.out.println("📅 No booked appointments found for Dr. " + doctor.getName());
+            System.out.println("No booked appointments found for Dr. " + doctor.getName());
             return;
         }
 
@@ -270,7 +287,7 @@ public class DoctorScheduleControl {
         }
         
         if (bookedAppointments.isEmpty()) {
-            System.out.println("📅 No booked appointments found for specialty: " + specialty);
+            System.out.println("No booked appointments found for specialty: " + specialty);
             return;
         }
 
