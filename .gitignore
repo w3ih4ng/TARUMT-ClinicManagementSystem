@@ -1,0 +1,41 @@
+# NetBeans specific
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Build artifacts
+build/
+*.class
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Log files
+*.log
+
+# Generated documentation
+javadoc/
+
+# Backup files
+*.bak
+*.backup
+
+# Test output
+test-output/
+
+# Keep data files but ignore temporary data
+data/*.tmp
+data/*.backup
