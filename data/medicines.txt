@@ -1,1 +1,2 @@
-MED001|Paracetamol|500.0|TABLET|0.5|false
+# MedicineID|Name|Dosage|Unit|Price|isDeleted
+MED001|Aspirin|500.0|TABLET|1.5|false

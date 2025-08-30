@@ -34,6 +34,9 @@ public class PatientQueueDAO {
     public static void savePatientQueue(HashMapInterface<String, PatientQueueEntry> queueMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# QueueID|PatientID|Specialty|QueueType|ArrivalTime|ScheduledStartTime|QueueStatus|AssignedDoctorID");
+            
             for (int i = 0; i < queueMap.keySet().size(); i++) {
                 String key = queueMap.keySet().get(i);
                 PatientQueueEntry entry = queueMap.get(key);

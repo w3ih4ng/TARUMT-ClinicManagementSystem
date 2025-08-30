@@ -33,6 +33,9 @@ public class PaymentDAO {
     public static void savePayments(HashMapInterface<String, Payment> paymentMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# PaymentID|ConsultationID|TotalAmount|PaymentMethod|PaymentStatus|PaymentDate");
+            
             for (int i = 0; i < paymentMap.keySet().size(); i++) {
                 String key = paymentMap.keySet().get(i);
                 Payment payment = paymentMap.get(key);

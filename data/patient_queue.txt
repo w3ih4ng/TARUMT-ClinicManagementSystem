@@ -1,0 +1,2 @@
+# QueueID|PatientID|Specialty|QueueType|ArrivalTime|ScheduledStartTime|QueueStatus|AssignedDoctorID
+Q1001|P1000|GENERAL MEDICINE|WALK_IN|2025-08-31 02:06|NONE|ASSIGNED|D1000

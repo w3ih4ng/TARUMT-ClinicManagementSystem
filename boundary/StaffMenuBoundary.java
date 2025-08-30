@@ -35,23 +35,23 @@ public class StaffMenuBoundary {
 
             switch (choice) {
                 case "1": 
-                    utility.SystemUtil.pushNavigation("Module 1: Patient Management");
+                    utility.SystemUtil.pushNavigation("Patient Management");
                     staffControl.openPatientModule(); 
                     break;
                 case "2": 
-                    utility.SystemUtil.pushNavigation("Module 2: Doctor Management");
+                    utility.SystemUtil.pushNavigation("Doctor Management");
                     staffControl.openDoctorManagementModule(); 
                     break;
                 case "3": 
-                    utility.SystemUtil.pushNavigation("Module 3: Consultation Management");
+                    utility.SystemUtil.pushNavigation("Consultation Management");
                     staffControl.openConsultationModule(); 
                     break;
                 case "4": 
-                    utility.SystemUtil.pushNavigation("Module 4: Medical Treatment Management");
+                    utility.SystemUtil.pushNavigation("Medical Treatment Management");
                     staffControl.openTreatmentModule(); 
                     break;
                 case "5": 
-                    utility.SystemUtil.pushNavigation("Module 5: Pharmacy Management");
+                    utility.SystemUtil.pushNavigation("Pharmacy Management");
                     staffControl.openPharmacyModule(); 
                     break;
                 case "0": 

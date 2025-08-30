@@ -31,6 +31,9 @@ public class MedicineDAO {
     public static void saveMedicines(HashMapInterface<String, Medicine> medicineMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# MedicineID|Name|Dosage|Unit|Price|isDeleted");
+            
             for (int i = 0; i < medicineMap.keySet().size(); i++) {
                 String key = medicineMap.keySet().get(i);
                 Medicine m = medicineMap.get(key);

@@ -152,7 +152,7 @@ public class PharmacyController {
         medicineMap.put(medicineId, medicine);
         MedicineDAO.saveMedicines(medicineMap);
 
-        System.out.println("\n✓ Medicine added successfully!");
+        System.out.println("\nMedicine added successfully!");
         System.out.println("Medicine ID: " + medicineId);
         System.out.println("Name: " + name);
         System.out.println("Dosage: " + dosage + " " + unit);
@@ -269,7 +269,7 @@ public class PharmacyController {
         // Save changes
         medicineMap.put(medicineId, medicine);
         MedicineDAO.saveMedicines(medicineMap);
-        System.out.println("\n✓ Medicine updated successfully!");
+        System.out.println("\nMedicine updated successfully!");
     }
 
     public void deleteMedicine() {
@@ -304,7 +304,7 @@ public class PharmacyController {
             medicine.delete();
             medicineMap.put(medicineId, medicine);
             MedicineDAO.saveMedicines(medicineMap);
-            System.out.println("✓ Medicine deleted successfully!");
+            System.out.println("Medicine deleted successfully!");
         } else {
             System.out.println("Delete operation cancelled.");
         }
@@ -342,7 +342,7 @@ public class PharmacyController {
             medicine.restore();
             medicineMap.put(medicineId, medicine);
             MedicineDAO.saveMedicines(medicineMap);
-            System.out.println("✓ Medicine restored successfully!");
+            System.out.println("Medicine restored successfully!");
         } else {
             System.out.println("Restore operation cancelled.");
         }
@@ -519,7 +519,7 @@ public class PharmacyController {
         stockMap.put(stockId, stock);
         StockDAO.saveStocks(stockMap);
 
-        System.out.println("\n✓ Stock batch added successfully!");
+        System.out.println("\nStock batch added successfully!");
         System.out.println("Stock ID: " + stockId);
         System.out.println("Batch Number: " + batchNumber);
         System.out.println("Medicine: " + medId);
@@ -759,5 +759,100 @@ public class PharmacyController {
 
     public void saveStocks() {
         StockDAO.saveStocks(stockMap);
+    }
+
+    // ==================== TABLE DISPLAY METHODS ====================
+
+    public void printMedicinesTable(ListInterface<Medicine> medicines, String title) {
+        if (medicines.isEmpty()) {
+            System.out.println("------------------------------------------------ No medicines found. ------------------------------------------------");
+            return;
+        }
+
+        if (!title.isEmpty()) {
+            System.out.println(title);
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-25s | %-8s | %-8s | %-10s | %-8s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+---------------------------+----------+----------+------------+----------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Medicine ID", "Name", "Dosage", "Unit", "Price", "Deleted");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (int i = 0; i < medicines.size(); i++) {
+            Medicine m = medicines.get(i);
+            
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    m.getMedicineId(),
+                    m.getName(),
+                    String.format("%.1f", m.getDosage()),
+                    m.getUnit(),
+                    String.format("%.2f", m.getPrice()),
+                    m.isDeleted() ? "Yes" : "No");
+
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
+    }
+
+    public void printStocksTable(ListInterface<Stock> stocks, String title) {
+        if (stocks.isEmpty()) {
+            System.out.println("------------------------------------------------ No stocks found. ------------------------------------------------");
+            return;
+        }
+
+        if (!title.isEmpty()) {
+            System.out.println(title);
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-12s | %-15s | %-15s | %-8s | %-12s | %-12s | %-12s | %-10s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+--------------+-----------------+-----------------+----------+--------------+--------------+--------------+------------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Stock ID", "Medicine ID", "Batch Number", "Supplier", "Quantity", "Manufacture", "Expiry", "Received", "Cost");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (int i = 0; i < stocks.size(); i++) {
+            Stock s = stocks.get(i);
+            
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    s.getStockId(),
+                    s.getMedicineId(),
+                    s.getBatchNumber(),
+                    s.getSupplier(),
+                    s.getQuantity(),
+                    s.getManufacturingDate(),
+                    s.getExpiryDate(),
+                    s.getReceivedDate(),
+                    String.format("%.2f", s.getCostPerUnit()));
+
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
     }
 }

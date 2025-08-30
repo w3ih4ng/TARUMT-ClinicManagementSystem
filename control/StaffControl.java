@@ -27,8 +27,8 @@ public class StaffControl {
         // Initialize the 5 core modules with shared instances
         this.patientManagementBoundary = new PatientUI(new PatientController(sharedConsultationControl), sharedDoctorController);
         this.doctorManagementBoundary = new DoctorUI(sharedDoctorController);
-        this.consultationManagementBoundary = new ConsultationUI(sharedConsultationControl);
-        this.treatmentManagementBoundary = new TreatmentUI(new TreatmentController(), new PatientController(sharedConsultationControl), sharedDoctorController);
+        this.consultationManagementBoundary = new ConsultationUI(sharedConsultationControl, sharedDoctorController);
+        this.treatmentManagementBoundary = new TreatmentUI(new TreatmentController(), new PatientController(sharedConsultationControl), sharedDoctorController, sharedConsultationControl);
         this.pharmacyBoundary = new PharmacyUI(new PharmacyController());
     }
 

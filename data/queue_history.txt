@@ -1,2 +1,1 @@
-# Queue History Data File
-# Format: QueueID|PatientID|Specialty|QueueType|ArrivalTime|ScheduledStartTime|AssignedDoctorID|QueueStatus|CompletionReason|CompletionDate
+# QueueID|PatientID|Specialty|QueueType|ArrivalTime|CompletionTime|Status|AssignedDoctorID

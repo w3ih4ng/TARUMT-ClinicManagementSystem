@@ -4,6 +4,7 @@ import control.TreatmentController;
 import control.PaymentController;
 import control.PatientController;
 import control.DoctorController;
+import control.ConsultationController;
 import entity.*;
 import adt.*;
 import utility.*;
@@ -20,15 +21,18 @@ public class TreatmentUI {
     private PaymentController paymentController;
     private PatientController patientController;
     private DoctorController doctorController;
+    private ConsultationController consultationController;
 
     public TreatmentUI(TreatmentController treatmentController, 
                       PatientController patientController,
-                      DoctorController doctorController) {
+                      DoctorController doctorController,
+                      ConsultationController consultationController) {
         this.sc = new Scanner(System.in);
         this.treatmentController = treatmentController;
         this.paymentController = new PaymentController();
         this.patientController = patientController;
         this.doctorController = doctorController;
+        this.consultationController = consultationController;
     }
 
     // ==================== MAIN TREATMENT MANAGEMENT MENU ====================
@@ -37,39 +41,82 @@ public class TreatmentUI {
         while (true) {
             utility.SystemUtil.showMenuHeader("Medical Treatment Management");
             
-            System.out.println("1. View All Treatments");
-            System.out.println("2. View Treatment Details");
-            System.out.println("3. Treatment History Report by Patient");
-            System.out.println("4. Doctor Treatment Performance Report");
-            System.out.println("5. Medicine Prescription Analysis Report");
-            System.out.println("0. Back to Staff Menu");
+            System.out.println("=== CONSULTATION COMPLETION ===");
+            System.out.println("  1. Complete Consultation with Treatment");
+            System.out.println("  2. Add Medicine Prescription to Treatment");
             System.out.println();
-            System.out.println("=".repeat(50));
-            System.out.print("\n\nEnter your choice: ");
+            
+            System.out.println("=== TREATMENT MANAGEMENT ===");
+            System.out.println("  3. View All Treatments");
+            System.out.println("  4. View Treatment Details");
+            System.out.println("  5. Update Treatment Diagnosis");
+            System.out.println("  6. Update Treatment Fee");
+            System.out.println("  7. Delete Treatment");
+            System.out.println();
+            
+            System.out.println("=== TREATMENT REPORTS ===");
+            System.out.println("  8. Patient Treatment History Report");
+            System.out.println("  9. Doctor Treatment Performance Report");
+            System.out.println("  10. Medicine Prescription Analysis Report");
+            System.out.println();
+            
+            System.out.println("=== NAVIGATION ===");
+            System.out.println("  0. Back to Staff Menu");
+            System.out.println();
+            System.out.println("Note: Consultations must be completed before creating treatments");
+            System.out.println("      Medicine dispensing is handled in Pharmacy Module");
+            System.out.println();
+            System.out.println("=".repeat(60));
+            System.out.print("\n\nEnter your choice (1-10, 0): ");
 
             String choice = sc.nextLine().trim();
 
             switch (choice) {
                 case "1": 
+                    utility.SystemUtil.showSectionHeader("Complete Consultation with Treatment");
+                    completeConsultationWithTreatment();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "2": 
+                    utility.SystemUtil.showSectionHeader("Add Medicine Prescription");
+                    addMedicinePrescription();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "3": 
                     utility.SystemUtil.pushNavigation("View All Treatments");
                     viewAllTreatments();
                     utility.SystemUtil.popNavigation();
                     break;
-                case "2": 
+                case "4": 
                     utility.SystemUtil.showSectionHeader("View Treatment Details");
                     viewTreatmentDetails();
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "3": 
-                    utility.SystemUtil.showSectionHeader("REPORT 1: Patient Treatment History Analysis");
+                case "5": 
+                    utility.SystemUtil.showSectionHeader("Update Treatment Diagnosis");
+                    updateTreatmentDiagnosis();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "6": 
+                    utility.SystemUtil.showSectionHeader("Update Treatment Fee");
+                    updateTreatmentFee();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "7": 
+                    utility.SystemUtil.showSectionHeader("Delete Treatment");
+                    deleteTreatment();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "8": 
+                    utility.SystemUtil.showSectionHeader("Patient Treatment History Report");
                     generatePatientTreatmentHistoryReport();
                     break;
-                case "4": 
-                    utility.SystemUtil.showSectionHeader("REPORT 2: Doctor Treatment Performance Analysis");
+                case "9": 
+                    utility.SystemUtil.showSectionHeader("Doctor Treatment Performance Report");
                     generateDoctorPerformanceReport();
                     break;
-                case "5": 
-                    utility.SystemUtil.showSectionHeader("REPORT 3: Medicine Prescription Analysis");
+                case "10": 
+                    utility.SystemUtil.showSectionHeader("Medicine Prescription Analysis Report");
                     generateMedicinePrescriptionReport();
                     break;
                 case "0": 
@@ -299,6 +346,209 @@ public class TreatmentUI {
         }
         
         treatmentController.displayTreatmentDetails(treatmentId);
+    }
+
+    // ==================== CONSULTATION COMPLETION ====================
+
+    private void completeConsultationWithTreatment() {
+        viewAvailableConsultations();
+        
+        if (consultationController.getAvailableConsultationCount() == 0) {
+            System.out.println("No consultations available for completion.");
+            return;
+        }
+        
+        // Get consultation selection
+        System.out.print("Enter Consultation ID to complete: ");
+        String consultationId = sc.nextLine().trim();
+        
+        if (consultationId.isEmpty()) {
+            System.out.println("Consultation ID cannot be empty.");
+            return;
+        }
+        
+        // Get diagnosis
+        System.out.print("Enter diagnosis: ");
+        String diagnosis = sc.nextLine().trim();
+        
+        if (diagnosis.isEmpty()) {
+            System.out.println("Diagnosis cannot be empty.");
+            return;
+        }
+        
+        // Get treatment fee
+        double treatmentFee = 0.0;
+        while (true) {
+            System.out.print("Enter treatment fee: ");
+            String feeStr = sc.nextLine().trim();
+            try {
+                treatmentFee = Double.parseDouble(feeStr);
+                if (treatmentFee >= 0) {
+                    break;
+                } else {
+                    System.out.println("Treatment fee must be non-negative.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+        
+        // Complete consultation with treatment
+        boolean success = treatmentController.completeConsultationWithTreatment(consultationId, diagnosis, treatmentFee);
+        if (success) {
+            System.out.println("Consultation completed successfully with treatment!");
+            System.out.println("You can now add medicine prescriptions to the treatment.");
+        } else {
+            System.out.println("Failed to complete consultation with treatment.");
+        }
+    }
+
+    private void addMedicinePrescription() {
+        System.out.println("\n--- Add Medicine Prescription to Treatment ---");
+        
+        // Show treatments
+        System.out.println("Available treatments:");
+        treatmentController.displayAllTreatments();
+        
+        // Get treatment selection
+        System.out.print("Enter Treatment ID: ");
+        String treatmentId = sc.nextLine().trim();
+        
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+        
+        // Show available medicines
+        System.out.println("\nAvailable medicines:");
+        treatmentController.displayAvailableMedicines();
+        
+        // Get medicine selection
+        System.out.print("Enter Medicine ID: ");
+        String medicineId = sc.nextLine().trim();
+        
+        if (medicineId.isEmpty()) {
+            System.out.println("Medicine ID cannot be empty.");
+            return;
+        }
+        
+        // Validate medicine exists
+        if (!treatmentController.isMedicineExists(medicineId)) {
+            System.out.println("Medicine ID '" + medicineId + "' does not exist. Please check the available medicines list above.");
+            return;
+        }
+        
+        // Get quantity
+        int quantity = 0;
+        while (true) {
+            System.out.print("Enter quantity: ");
+            String qtyStr = sc.nextLine().trim();
+            try {
+                quantity = Integer.parseInt(qtyStr);
+                if (quantity > 0) {
+                    break;
+                } else {
+                    System.out.println("Quantity must be positive.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+        
+        // Add medicine prescription
+        boolean success = treatmentController.addMedicinePrescription(treatmentId, medicineId, quantity);
+        if (success) {
+        } else {
+            System.out.println("Failed to add medicine prescription.");
+        }
+    }
+
+    private void viewAvailableConsultations() {
+        System.out.println("\n--- Available Consultations for Completion ---");
+        consultationController.viewAvailableConsultations();
+    }
+
+    // ==================== TREATMENT CRUD OPERATIONS ====================
+
+    private void updateTreatmentDiagnosis() {
+        System.out.println("\n--- Update Treatment Diagnosis ---");
+        
+        System.out.print("Enter Treatment ID: ");
+        String treatmentId = sc.nextLine().trim();
+        
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+        
+        System.out.print("Enter new diagnosis: ");
+        String newDiagnosis = sc.nextLine().trim();
+        
+        if (newDiagnosis.isEmpty()) {
+            System.out.println("Diagnosis cannot be empty.");
+            return;
+        }
+        
+        treatmentController.updateTreatmentDiagnosis(treatmentId, newDiagnosis);
+        System.out.println("Treatment diagnosis updated successfully!");
+    }
+
+    private void updateTreatmentFee() {
+        System.out.println("\n--- Update Treatment Fee ---");
+        
+        System.out.print("Enter Treatment ID: ");
+        String treatmentId = sc.nextLine().trim();
+        
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+        
+        double newFee = 0.0;
+        while (true) {
+            System.out.print("Enter new treatment fee: ");
+            String feeStr = sc.nextLine().trim();
+            try {
+                newFee = Double.parseDouble(feeStr);
+                if (newFee >= 0) {
+                    break;
+                } else {
+                    System.out.println("Treatment fee must be non-negative.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+        
+        treatmentController.updateTreatmentFee(treatmentId, newFee);
+        System.out.println("Treatment fee updated successfully!");
+    }
+
+    private void deleteTreatment() {
+        System.out.println("\n--- Delete Treatment ---");
+        
+        System.out.print("Enter Treatment ID to delete: ");
+        String treatmentId = sc.nextLine().trim();
+        
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+        
+        System.out.println("Warning: This will permanently delete the treatment!");
+        System.out.print("Are you sure? (yes/no): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        
+        if (confirm.equals("yes")) {
+            boolean success = treatmentController.deleteTreatment(treatmentId);
+            if (success) {
+                System.out.println("Treatment deleted successfully!");
+            } else {
+                System.out.println("Failed to delete treatment.");
+            }
+        } else {
+            System.out.println("Treatment deletion cancelled.");
+        }
     }
 
     // ==================== REPORT GENERATION ====================

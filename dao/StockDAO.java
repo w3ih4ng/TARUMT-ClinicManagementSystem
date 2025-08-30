@@ -33,6 +33,9 @@ public class StockDAO {
     public static void saveStocks(HashMapInterface<String, Stock> stockMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# StockID|MedicineID|BatchNumber|Supplier|Quantity|ManufacturingDate|ExpiryDate|ReceivedDate|CostPerUnit|isDeleted");
+            
             for (int i = 0; i < stockMap.keySet().size(); i++) {
                 String key = stockMap.keySet().get(i);
                 Stock s = stockMap.get(key);
@@ -81,98 +84,47 @@ public class StockDAO {
     }
 
     private static String toFileString(Stock s) {
-        return s.getStockId() + "|" + s.getMedicineId() + "|" + s.getQuantity() + "|" + 
-               s.getExpiryDate() + "|" + s.getReceivedDate() + "|" + s.isDeleted() + "|" + 
-               s.getSupplier().name() + "|" + s.getBatchNumber() + "|" + s.getManufacturingDate() + "|" + s.getCostPerUnit();
+        return s.getStockId() + "|" + s.getMedicineId() + "|" + s.getBatchNumber() + "|" + 
+               s.getSupplier().name() + "|" + s.getQuantity() + "|" + s.getManufacturingDate() + "|" + 
+               s.getExpiryDate() + "|" + s.getReceivedDate() + "|" + s.getCostPerUnit() + "|" + s.isDeleted();
     }
 
     private static Stock fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
             
-            // Handle old format (backward compatibility)
-            if (parts.length == 4) {
-                // Old format: medicineId|quantity|expiryDate|isDeleted
-                String medId = parts[0];
-                int qty = Integer.parseInt(parts[1]);
-                LocalDate expiry = LocalDate.parse(parts[2]);
-                boolean deleted = Boolean.parseBoolean(parts[3]);
-                
-                // Generate defaults for missing fields
-                String stockId = "S" + (stockCounter++);
-                String batchNumber = Stock.generateBatchNumber();
-                Stock.Supplier supplier = Stock.Supplier.PHARMACORP; // default
-                LocalDate mfgDate = expiry.minusYears(2); // 2 years before expiry
-                LocalDate receivedDate = generateRandomPastDate();
-                double costPerUnit = 1.0; // default cost
-                
-                Stock s = new Stock(stockId, medId, batchNumber, supplier, qty, mfgDate, expiry, receivedDate, costPerUnit);
-                if (deleted) s.delete();
-                return s;
-            } else if (parts.length == 6) {
-                // Medium format: stockId|medicineId|quantity|expiryDate|receivedDate|isDeleted
-                String stockId = parts[0];
-                String medId = parts[1];
-                int qty = Integer.parseInt(parts[2]);
-                LocalDate expiry = LocalDate.parse(parts[3]);
-                LocalDate received = LocalDate.parse(parts[4]);
-                boolean deleted = Boolean.parseBoolean(parts[5]);
-                
-                // Generate defaults for missing fields
-                String batchNumber = Stock.generateBatchNumber();
-                Stock.Supplier supplier = Stock.Supplier.PHARMACORP; // default
-                LocalDate mfgDate = expiry.minusYears(2); // 2 years before expiry
-                double costPerUnit = 1.0; // default cost
-                
-                // Update counter if needed
-                try {
-                    int num = Integer.parseInt(stockId.substring(1));
-                    if (num >= stockCounter) stockCounter = num + 1;
-                } catch (NumberFormatException e) {
-                    // ignore
-                }
-                
-                Stock s = new Stock(stockId, medId, batchNumber, supplier, qty, mfgDate, expiry, received, costPerUnit);
-                if (deleted) s.delete();
-                return s;
-            } else if (parts.length == 10) {
-                // New format: stockId|medicineId|batchNumber|supplier|quantity|mfgDate|expiryDate|receivedDate|costPerUnit|isDeleted
-                String stockId = parts[0];
-                String medId = parts[1];
-                String batchNumber = parts[2];
-                Stock.Supplier supplier = Stock.Supplier.valueOf(parts[3]);
-                int qty = Integer.parseInt(parts[4]);
-                LocalDate mfgDate = LocalDate.parse(parts[5]);
-                LocalDate expiry = LocalDate.parse(parts[6]);
-                LocalDate received = LocalDate.parse(parts[7]);
-                double costPerUnit = Double.parseDouble(parts[8]);
-                boolean deleted = Boolean.parseBoolean(parts[9]);
-                
-                // Update counter if needed
-                try {
-                    int num = Integer.parseInt(stockId.substring(1));
-                    if (num >= stockCounter) stockCounter = num + 1;
-                } catch (NumberFormatException e) {
-                    // ignore
-                }
-                
-                Stock s = new Stock(stockId, medId, batchNumber, supplier, qty, mfgDate, expiry, received, costPerUnit);
-                if (deleted) s.delete();
-                return s;
+            if (parts.length != 10) {
+                throw new IllegalArgumentException("Expected 10 columns for stock data, got " + parts.length);
             }
+            
+            // Format: stockId|medicineId|batchNumber|supplier|quantity|mfgDate|expiryDate|receivedDate|costPerUnit|isDeleted
+            String stockId = parts[0];
+            String medId = parts[1];
+            String batchNumber = parts[2];
+            Stock.Supplier supplier = Stock.Supplier.valueOf(parts[3]);
+            int qty = Integer.parseInt(parts[4]);
+            LocalDate mfgDate = LocalDate.parse(parts[5]);
+            LocalDate expiry = LocalDate.parse(parts[6]);
+            LocalDate received = LocalDate.parse(parts[7]);
+            double costPerUnit = Double.parseDouble(parts[8]);
+            boolean deleted = Boolean.parseBoolean(parts[9]);
+            
+            // Update counter if needed
+            try {
+                int num = Integer.parseInt(stockId.substring(1));
+                if (num >= stockCounter) stockCounter = num + 1;
+            } catch (NumberFormatException e) {
+                // ignore
+            }
+            
+            Stock s = new Stock(stockId, medId, batchNumber, supplier, qty, mfgDate, expiry, received, costPerUnit);
+            if (deleted) s.delete();
+            return s;
+            
         } catch (Exception e) {
             System.out.println("Error parsing stock line: " + line + " - " + e.getMessage());
         }
         return null;
-    }
-    
-    private static LocalDate generateRandomPastDate() {
-        // Simple pseudo-random using current time instead of java.util.Random
-        long seed = System.currentTimeMillis();
-        int year = 2023 + (int)(seed % 2); // 2023 or 2024
-        int month = 1 + (int)(seed % 12);  // 1-12
-        int day = 1 + (int)(seed % 28);    // 1-28 (safe for all months)
-        return LocalDate.of(year, month, day);
     }
     
     public static String generateStockId() {

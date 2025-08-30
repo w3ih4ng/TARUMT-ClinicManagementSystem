@@ -32,6 +32,9 @@ public class ConsultationDAO {
     public static void saveConsultations(HashMapInterface<String, Consultation> consultationMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# ConsultationID|PatientID|DoctorID|Specialty|ScheduleID|ConsultationTime|TreatmentID|PaymentID|Status|QueueID");
+            
             for (int i = 0; i < consultationMap.keySet().size(); i++) {
                 String key = consultationMap.keySet().get(i);
                 Consultation c = consultationMap.get(key);

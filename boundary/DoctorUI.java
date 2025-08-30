@@ -109,44 +109,51 @@ public class DoctorUI {
 
     private void viewAllDoctors() {
         while (true) {
-            utility.SystemUtil.showMenuHeader("View All Doctors");
+            // Show doctors first
+            System.out.println("\n" + "=".repeat(80));
+            System.out.println("DOCTOR LIST");
+            System.out.println("=".repeat(80));
+            doctorController.viewAllDoctors();
             
-            System.out.println("1. View All Doctors");
-            System.out.println("2. Filter Doctors");
-            System.out.println("3. Sort Doctors");
-            System.out.println("4. Search Doctor");
-            System.out.println("5. View Doctor Details");
+            // Show options
+            System.out.println("\n" + "-".repeat(80));
+            System.out.println("OPTIONS");
+            System.out.println("-".repeat(80));
+            System.out.println("1. Filter Doctors");
+            System.out.println("2. Sort Doctors");
+            System.out.println("3. Search Doctor");
+            System.out.println("4. View Doctor Details");
+            System.out.println("5. Refresh List");
             System.out.println("0. Back to Doctor Details Management");
             System.out.print("\n\nChoose: ");
             String choice = sc.nextLine().trim();
 
             switch (choice) {
                 case "1": 
-                    utility.SystemUtil.showSectionHeader("All Doctors");
-                    doctorController.viewAllDoctors(); 
-                    utility.SystemUtil.pauseForUser();
-                    break;
-                case "2": 
                     utility.SystemUtil.showSectionHeader("Filter Doctors");
                     filterDoctors(); 
                     break;
-                case "3": 
+                case "2": 
                     utility.SystemUtil.showSectionHeader("Sort Doctors");
                     sortDoctors(); 
                     break;
-                case "4": 
+                case "3": 
                     utility.SystemUtil.showSectionHeader("Search Doctor");
                     searchDoctors(); 
                     break;
-                case "5": 
+                case "4": 
                     utility.SystemUtil.showSectionHeader("View Doctor Details");
                     doctorController.viewDoctorDetails(); 
                     utility.SystemUtil.pauseForUser();
+                    break;
+                case "5": 
+                    // Refresh - just continue the loop to show doctors again
                     break;
                 case "0": 
                     return;
                 default: 
                     System.out.println("Invalid choice, try again.");
+                    utility.SystemUtil.pauseForUser();
             }
         }
     }

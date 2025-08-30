@@ -32,6 +32,9 @@ public class InvoiceDAO {
     public static void saveInvoices(HashMapInterface<String, Invoice> invoiceMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# InvoiceID|ConsultationID|PatientID|TotalAmount|InvoiceDate|IsPaid");
+            
             for (int i = 0; i < invoiceMap.keySet().size(); i++) {
                 String key = invoiceMap.keySet().get(i);
                 Invoice invoice = invoiceMap.get(key);

@@ -1,1 +1,1 @@
-SCH0001|D1000|GENERAL MEDICINE|2025-08-30|10:00|10:30|true|C1001|P1001
+# ScheduleID|DoctorID|Specialty|AppointmentDate|StartTime|EndTime|isBooked|ConsultationID|PatientID

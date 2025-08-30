@@ -9,6 +9,8 @@ import dao.PatientDAO;
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Control class for consultation management
@@ -375,6 +377,349 @@ public class ConsultationController {
                     c.getStatus());
             System.out.println(borderLine);
         }
+    }
+
+    /**
+     * Generate daily consultation summary (no arguments)
+     */
+    public void generateDailyConsultationSummary() {
+        generateDailyConsultationSummary(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+    }
+
+    /**
+     * Generate daily consultation summary for specific date
+     */
+    public void generateDailyConsultationSummary(String dateStr) {
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            System.out.println("\n--- Daily Consultation Summary for " + date + " ---");
+            
+            int totalConsultations = 0;
+            int scheduledConsultations = 0;
+            int completedConsultations = 0;
+            int pendingConsultations = 0;
+            
+            for (String key : consultationMap.keySet()) {
+                Consultation c = consultationMap.get(key);
+                if (c.getConsultationTime() != null && 
+                    c.getConsultationTime().toLocalDate().equals(date)) {
+                    totalConsultations++;
+                    
+                    switch (c.getStatus()) {
+                        case "SCHEDULED":
+                            scheduledConsultations++;
+                            break;
+                        case "COMPLETED":
+                            completedConsultations++;
+                            break;
+                        case "PENDING":
+                            pendingConsultations++;
+                            break;
+                    }
+                }
+            }
+            
+            System.out.println("Total Consultations: " + totalConsultations);
+            System.out.println("Scheduled: " + scheduledConsultations);
+            System.out.println("Completed: " + completedConsultations);
+            System.out.println("Pending: " + pendingConsultations);
+            
+            if (totalConsultations > 0) {
+                double completionRate = (double) completedConsultations / totalConsultations * 100;
+                System.out.printf("Completion Rate: %.1f%%%n", completionRate);
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Error generating daily summary: " + e.getMessage());
+        }
+    }
+
+    // ==================== MISSING METHODS FOR UI ====================
+
+    /**
+     * Get count of available consultations for completion
+     */
+    public int getAvailableConsultationCount() {
+        int count = 0;
+        for (String key : consultationMap.keySet()) {
+            Consultation c = consultationMap.get(key);
+            if (c.getStatus().equals("SCHEDULED") && c.getDoctorId() != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * View patient queue (waiting for doctor assignment)
+     */
+    public void viewPatientQueue() {
+        System.out.println("\n--- Patient Queue (Waiting for Doctor) ---");
+        if (queueMap.isEmpty()) {
+            System.out.println("No patients in queue.");
+            return;
+        }
+
+        String borderLine = "+------------+------------+---------------------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-10s | %-10s | %-25s | %-25s | %-25s |%n", 
+                         "Queue ID", "Patient ID", "Specialty", "Queue Type", "Arrival Time");
+        System.out.println(borderLine);
+
+        for (String key : queueMap.keySet()) {
+            PatientQueueEntry entry = queueMap.get(key);
+            if (entry.getQueueStatus() == entity.QueueStatus.WAITING) {
+                System.out.printf("| %-10s | %-10s | %-25s | %-25s | %-25s |%n",
+                    entry.getQueueId(),
+                    entry.getPatientId(),
+                    entry.getSpecialty(),
+                    entry.getQueueType(),
+                    entry.getArrivalTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+            }
+        }
+        System.out.println(borderLine);
+    }
+
+    /**
+     * Get count of waiting patients
+     */
+    public int getWaitingPatientCount() {
+        int count = 0;
+        for (String key : queueMap.keySet()) {
+            PatientQueueEntry entry = queueMap.get(key);
+            if (entry.getQueueStatus() == entity.QueueStatus.WAITING) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * View available doctors for assignment
+     */
+    public void viewAvailableDoctors() {
+        System.out.println("\n--- Available Doctors ---");
+        if (doctorMap.isEmpty()) {
+            System.out.println("No doctors available.");
+            return;
+        }
+
+        String borderLine = "+------------+---------------------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-10s | %-25s | %-25s | %-25s |%n", 
+                         "Doctor ID", "Name", "Specialty", "Phone");
+        System.out.println(borderLine);
+
+        for (String key : doctorMap.keySet()) {
+            Doctor doctor = doctorMap.get(key);
+            if (!doctor.isDeleted()) {
+                System.out.printf("| %-10s | %-25s | %-25s | %-25s |%n",
+                    doctor.getDoctorId(),
+                    doctor.getName(),
+                    doctor.getSpecialty(),
+                    doctor.getPhoneNumber());
+            }
+        }
+        System.out.println(borderLine);
+    }
+
+    /**
+     * Assign patient to doctor and create consultation
+     */
+    public boolean assignPatientToDoctor(String queueId, String doctorId) {
+        PatientQueueEntry entry = queueMap.get(queueId);
+        if (entry == null) {
+            System.out.println("Queue entry not found: " + queueId);
+            return false;
+        }
+
+        if (entry.getQueueStatus() != entity.QueueStatus.WAITING) {
+            System.out.println("Patient is not waiting: " + entry.getQueueStatus());
+            return false;
+        }
+
+        Doctor doctor = doctorMap.get(doctorId);
+        if (doctor == null) {
+            System.out.println("Doctor not found: " + doctorId);
+            return false;
+        }
+
+        // Update queue entry
+        entry.assignToDoctor(doctorId);
+        queueMap.put(queueId, entry);
+        PatientQueueDAO.savePatientQueue(queueMap);
+
+        // Create consultation
+        String consultationId = ConsultationDAO.generateConsultationId();
+        Consultation consultation = new Consultation(consultationId, entry.getPatientId(), entry.getSpecialty(), queueId);
+        
+        // Assign doctor and set consultation time
+        consultation.assignDoctor(doctorId, null, LocalDateTime.now());
+        
+        consultationMap.put(consultationId, consultation);
+        ConsultationDAO.saveConsultations(consultationMap);
+        
+        System.out.println("Patient assigned to Dr. " + doctorId + " - Consultation created: " + consultationId);
+        return true;
+    }
+
+    /**
+     * View consultations by specific doctor (with doctorId parameter)
+     */
+    public void viewConsultationsByDoctor(String doctorId) {
+        System.out.println("\n--- Consultations for Doctor: " + doctorId + " ---");
+        
+        ListInterface<Consultation> doctorConsultations = getConsultationsByDoctor(doctorId);
+        if (doctorConsultations.isEmpty()) {
+            System.out.println("No consultations found for this doctor.");
+            return;
+        }
+
+        String borderLine = "+------------------+------------+---------------------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n", 
+                         "Consultation ID", "Patient ID", "Specialty", "Status", "Consultation Time");
+        System.out.println(borderLine);
+
+        for (int i = 0; i < doctorConsultations.size(); i++) {
+            Consultation c = doctorConsultations.get(i);
+            String consultationTime = c.getConsultationTime() != null ? 
+                c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "Not set";
+            
+            System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n",
+                c.getConsultationId(),
+                c.getPatientId(),
+                c.getSpecialty(),
+                c.getStatus(),
+                consultationTime);
+        }
+        System.out.println(borderLine);
+    }
+
+    /**
+     * View consultation details by ID (with consultationId parameter)
+     */
+    public void viewConsultationDetails(String consultationId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation == null) {
+            System.out.println("Consultation not found: " + consultationId);
+            return;
+        }
+
+        System.out.println("\n--- Consultation Details ---");
+        System.out.println("Consultation ID: " + consultation.getConsultationId());
+        System.out.println("Patient ID: " + consultation.getPatientId());
+        System.out.println("Doctor ID: " + (consultation.getDoctorId() != null ? consultation.getDoctorId() : "Not assigned"));
+        System.out.println("Specialty: " + consultation.getSpecialty());
+        System.out.println("Status: " + consultation.getStatus());
+        System.out.println("Queue ID: " + (consultation.getQueueId() != null ? consultation.getQueueId() : "N/A"));
+        
+        if (consultation.getConsultationTime() != null) {
+            System.out.println("Consultation Time: " + consultation.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        }
+        
+        if (consultation.getTreatmentId() != null) {
+            System.out.println("Treatment ID: " + consultation.getTreatmentId());
+        }
+        
+        if (consultation.getPaymentId() != null) {
+            System.out.println("Payment ID: " + consultation.getPaymentId());
+        }
+    }
+
+    /**
+     * Create appointment (add to queue with appointment type)
+     */
+    public boolean createAppointment(String patientId, String doctorId, String dateStr, String timeStr, String specialty) {
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            java.time.LocalTime time = java.time.LocalTime.parse(timeStr);
+            LocalDateTime appointmentTime = LocalDateTime.of(date, time);
+            
+            // Create queue entry for appointment
+            String queueId = PatientQueueDAO.generateQueueId();
+            PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, 
+                                                         entity.QueueType.APPOINTMENT, LocalDateTime.now());
+            entry.setScheduledStartTime(appointmentTime);
+            entry.assignToDoctor(doctorId);
+            
+            queueMap.put(queueId, entry);
+            PatientQueueDAO.savePatientQueue(queueMap);
+            
+            // Create consultation
+            String consultationId = ConsultationDAO.generateConsultationId();
+            Consultation consultation = new Consultation(consultationId, patientId, specialty, queueId);
+            consultation.assignDoctor(doctorId, null, appointmentTime);
+            
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
+            
+            System.out.println("Appointment created successfully!");
+            System.out.println("Queue ID: " + queueId);
+            System.out.println("Consultation ID: " + consultationId);
+            System.out.println("Scheduled for: " + appointmentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+            
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error creating appointment: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * View available time slots for a doctor on a specific date
+     */
+    public void viewAvailableTimeSlots(String doctorId, String dateStr) {
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            System.out.println("\n--- Available Time Slots for Dr. " + doctorId + " on " + date + " ---");
+            
+            // This would need to be implemented based on doctor schedule
+            // For now, show a simple time slot structure
+            System.out.println("Available time slots:");
+            System.out.println("09:00 - 09:30");
+            System.out.println("09:30 - 10:00");
+            System.out.println("10:00 - 10:30");
+            System.out.println("10:30 - 11:00");
+            System.out.println("14:00 - 14:30");
+            System.out.println("14:30 - 15:00");
+            System.out.println("15:00 - 15:30");
+            System.out.println("15:30 - 16:00");
+            
+            System.out.println("\nNote: Time slot availability should be integrated with doctor schedule system.");
+        } catch (Exception e) {
+            System.out.println("Error parsing date: " + e.getMessage());
+        }
+    }
+
+    /**
+     * View available consultations for completion
+     */
+    public void viewAvailableConsultations() {
+        System.out.println("\n--- Available Consultations for Completion ---");
+        if (consultationMap.isEmpty()) {
+            System.out.println("No consultations available.");
+            return;
+        }
+
+        String borderLine = "+------------------+------------+---------------------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n", 
+                         "Consultation ID", "Patient ID", "Specialty", "Status", "Doctor ID");
+        System.out.println(borderLine);
+
+        for (String key : consultationMap.keySet()) {
+            Consultation c = consultationMap.get(key);
+            if (c.getStatus().equals("SCHEDULED") && c.getDoctorId() != null) {
+                System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n",
+                    c.getConsultationId(),
+                    c.getPatientId(),
+                    c.getSpecialty(),
+                    c.getStatus(),
+                    c.getDoctorId());
+            }
+        }
+        System.out.println(borderLine);
     }
 
     // --- Get consultation map for other controls ---

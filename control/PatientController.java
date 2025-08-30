@@ -241,10 +241,10 @@ public class PatientController {
         System.out.println();
 
         // Define table format widths
-        String leftAlignFormat = "| %-12s | %-15s | %-6s | %-10s | %-12s | %-8s | %-12s | %-12s | %-12s |%n";
+        String leftAlignFormat = "| %-12s | %-15s | %-6s | %-10s | %-12s | %-8s | %-12s | %-12s | %-15s |%n";
 
         // Define border line
-        String borderLine = "+--------------+-----------------+--------+------------+--------------+----------+--------------+--------------+--------------+";
+        String borderLine = "+--------------+-----------------+--------+------------+--------------+----------+--------------+--------------+-----------------+";
 
         // Print top border
         System.out.println(borderLine);

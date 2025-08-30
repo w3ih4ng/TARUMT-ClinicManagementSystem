@@ -1,2 +1,2 @@
-D1000|Wei Hang|M|2005-05-23|0199540523|GENERAL_MEDICINE|100.0|false
-D1001|Sarah Chen|Female|2025-08-30|0123456789|PEDIATRICS|50.0|false
+# DoctorID|Name|Gender|Birthdate|Phone|Specialty|ConsultationFee|isDeleted
+D1000|Smith Johnson|M|1980-05-15|0987123123|GENERAL_MEDICINE|50.0|false

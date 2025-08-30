@@ -141,73 +141,52 @@ public class DoctorController {
             System.out.println("Phone cannot be empty. Please try again.");
         }
 
-        // --- Email Input ---
-        String email;
+        // --- Birthdate Input ---
+        LocalDate birthdate;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         while (true) {
-            System.out.print("Enter email: ");
-            email = sc.nextLine().trim();
-            if (email.equalsIgnoreCase("exit")) {
+            System.out.print("Enter birthdate (yyyy-MM-dd): ");
+            String birthdateStr = sc.nextLine().trim();
+            if (birthdateStr.equalsIgnoreCase("exit")) {
                 System.out.println("Doctor registration cancelled.");
                 return;
             }
-            if (!email.isEmpty()) {
-                break;
+            try {
+                birthdate = LocalDate.parse(birthdateStr, formatter);
+                if (birthdate.isBefore(LocalDate.now())) {
+                    break;
+                } else {
+                    System.out.println("Birthdate cannot be in the future.");
+                }
+            } catch (Exception e) {
+                System.out.println("Invalid date format. Please use yyyy-MM-dd.");
             }
-            System.out.println("Email cannot be empty. Please try again.");
-        }
-
-        // --- Address Input ---
-        String address;
-        while (true) {
-            System.out.print("Enter address: ");
-            address = sc.nextLine().trim();
-            if (address.equalsIgnoreCase("exit")) {
-                System.out.println("Doctor registration cancelled.");
-                return;
-            }
-            if (!address.isEmpty()) {
-                break;
-            }
-            System.out.println("Address cannot be empty. Please try again.");
         }
 
         // Create and save doctor
         String doctorId = generateDoctorId();
-        LocalDate birthdate = LocalDate.now(); // Default birthdate for now
         double consultationFee = 50.0; // Default consultation fee
         Doctor doctor = new Doctor(doctorId, name, gender, birthdate, phone, specialty, consultationFee);
         doctorMap.put(doctorId, doctor);
         DoctorDAO.saveDoctors(doctorMap);
 
-        System.out.println("\n✓ Doctor registered successfully!");
-        System.out.println("Doctor ID: " + doctorId);
-        System.out.println("Name: " + name);
-        System.out.println("Specialty: " + specialty);
+        System.out.println("\nDoctor registered successfully!");
+        
+        // Display the newly registered doctor in table format
+        ListInterface<Doctor> newDoctorList = new ArrayList<>();
+        newDoctorList.add(doctor);
+        printDoctorsTable(newDoctorList, "Newly Registered Doctor");
     }
 
     public void viewAllDoctors() {
-        System.out.println("\n--- All Doctors ---");
-        if (doctorMap.isEmpty()) {
-            System.out.println("No doctors found.");
-            return;
-        }
-
-        String borderLine = "+------------+---------------------------+---------------------------+---------------------------+";
-        System.out.println(borderLine);
-        System.out.printf("| %-10s | %-25s | %-25s | %-25s |%n", "Doctor ID", "Name", "Specialty", "Phone");
-        System.out.println(borderLine);
-
+        ListInterface<Doctor> allDoctors = new ArrayList<>();
         for (String key : doctorMap.keySet()) {
             Doctor doctor = doctorMap.get(key);
             if (!doctor.isDeleted()) {
-                System.out.printf("| %-10s | %-25s | %-25s | %-25s |%n",
-                        doctor.getDoctorId(),
-                        doctor.getName(),
-                        doctor.getSpecialty(),
-                        doctor.getPhoneNumber());
+                allDoctors.add(doctor);
             }
         }
-        System.out.println(borderLine);
+        printDoctorsTable(allDoctors, "All Registered Doctors");
     }
 
     public void viewDoctorDetails() {
@@ -231,14 +210,10 @@ public class DoctorController {
             return;
         }
 
-        System.out.println("\n--- Doctor Details ---");
-        System.out.println("Doctor ID: " + doctor.getDoctorId());
-        System.out.println("Name: " + doctor.getName());
-        System.out.println("Gender: " + doctor.getGender());
-        System.out.println("Specialty: " + doctor.getSpecialty());
-        System.out.println("Phone: " + doctor.getPhoneNumber());
-        System.out.println("Birthdate: " + doctor.getBirthdate());
-        System.out.println("Consultation Fee: RM " + String.format("%.2f", doctor.getConsultationFee()));
+        // Display doctor details in table format
+        ListInterface<Doctor> doctorList = new ArrayList<>();
+        doctorList.add(doctor);
+        printDoctorsTable(doctorList, "Doctor Details");
     }
 
     public void updateDoctor() {
@@ -263,12 +238,9 @@ public class DoctorController {
         }
 
         System.out.println("\nCurrent doctor details:");
-        System.out.println("Name: " + doctor.getName());
-        System.out.println("Gender: " + doctor.getGender());
-        System.out.println("Specialty: " + doctor.getSpecialty());
-        System.out.println("Phone: " + doctor.getPhoneNumber());
-        System.out.println("Birthdate: " + doctor.getBirthdate());
-        System.out.println("Consultation Fee: RM " + String.format("%.2f", doctor.getConsultationFee()));
+        ListInterface<Doctor> doctorList = new ArrayList<>();
+        doctorList.add(doctor);
+        printDoctorsTable(doctorList, "Current Doctor Details");
 
         System.out.println("\nEnter new values (press Enter to keep current value):");
 
@@ -942,5 +914,100 @@ public class DoctorController {
 
     public boolean isDoctorValid(Doctor doctor) {
         return doctor != null && !doctor.isDeleted();
+    }
+
+    // ==================== TABLE DISPLAY METHODS ====================
+
+    public void printDoctorsTable(ListInterface<Doctor> doctors, String title) {
+        if (doctors.isEmpty()) {
+            System.out.println("------------------------------------------------ No doctors found. ------------------------------------------------");
+            return;
+        }
+
+        if (!title.isEmpty()) {
+            System.out.println(title);
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-20s | %-6s | %-12s | %-15s | %-20s | %-8s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+--------------------+--------+--------------+-----------------+--------------------+----------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Doctor ID", "Name", "Gender", "Birthdate", "Phone", "Specialty", "Fee");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (int i = 0; i < doctors.size(); i++) {
+            Doctor d = doctors.get(i);
+            
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    d.getDoctorId(),
+                    d.getName(),
+                    d.getGender(),
+                    d.getBirthdate(),
+                    d.getPhoneNumber(),
+                    d.getSpecialty(),
+                    String.format("%.2f", d.getConsultationFee()));
+
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
+    }
+
+    public void printDoctorSchedulesTable(ListInterface<DoctorSchedule> schedules, String title) {
+        if (schedules.isEmpty()) {
+            System.out.println("------------------------------------------------ No schedules found. ------------------------------------------------");
+            return;
+        }
+
+        if (!title.isEmpty()) {
+            System.out.println(title);
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-12s | %-20s | %-12s | %-8s | %-8s | %-8s | %-12s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+--------------+--------------------+--------------+----------+----------+----------+--------------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Schedule ID", "Doctor ID", "Specialty", "Date", "Start", "End", "Booked", "Patient ID");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (int i = 0; i < schedules.size(); i++) {
+            DoctorSchedule s = schedules.get(i);
+            
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    s.getScheduleId(),
+                    s.getDoctorId(),
+                    s.getSpecialty(),
+                    s.getAppointmentDate(),
+                    s.getStartTime(),
+                    s.getEndTime(),
+                    s.isBooked() ? "Yes" : "No",
+                    s.getPatientId() == null ? "N/A" : s.getPatientId());
+
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
     }
 }

@@ -35,6 +35,9 @@ public class PatientDAO {
     public static void savePatients(HashMapInterface<String, Patient> patientMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# Type|PatientID|Name|Gender|Birthdate|Phone|isDeleted|RoleID|Faculty|Department");
+            
             for (int i = 0; i < patientMap.keySet().size(); i++) {
                 String key = patientMap.keySet().get(i);
                 Patient p = patientMap.get(key);

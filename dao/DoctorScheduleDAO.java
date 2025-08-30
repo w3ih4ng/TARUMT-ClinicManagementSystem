@@ -34,6 +34,9 @@ public class DoctorScheduleDAO {
     public static void saveDoctorSchedules(HashMapInterface<String, DoctorSchedule> scheduleMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# ScheduleID|DoctorID|Specialty|AppointmentDate|StartTime|EndTime|isBooked|ConsultationID|PatientID");
+            
             for (int i = 0; i < scheduleMap.keySet().size(); i++) {
                 String key = scheduleMap.keySet().get(i);
                 DoctorSchedule schedule = scheduleMap.get(key);

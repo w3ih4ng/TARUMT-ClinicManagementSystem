@@ -25,8 +25,8 @@ public class ClinicManagementSystem {
             utility.SystemUtil.setNavigationPath("Home");
             utility.SystemUtil.showMenuHeader("TARUMT Clinic Management System");
             
-            System.out.println("🏥 Welcome to TARUMT Clinic Management System");
-            System.out.println("   Complete healthcare management solution");
+            System.out.println("Welcome to TARUMT Clinic Management System");
+            System.out.println("Complete healthcare management solution");
             System.out.println();
             System.out.println("1. Access Management System");
             System.out.println("0. Exit System");
@@ -43,10 +43,10 @@ public class ClinicManagementSystem {
                     break;
 
                 case "0":
-                    System.out.println("\n" + "=".repeat(80));
+                    System.out.println("\n\n\n\n" + "=".repeat(80));
                     System.out.println("    Thank you for using TARUMT Clinic System");
                     System.out.println("    Goodbye!");
-                    System.out.println("=".repeat(80));
+                    System.out.println("=".repeat(80)+"\n\n\n\n");
                     sc.close();
                     System.exit(0);
 

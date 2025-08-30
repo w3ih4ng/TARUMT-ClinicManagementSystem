@@ -1,2 +1,1 @@
-# Payments Data File
-# Format: PaymentID|InvoiceID|Amount|PaymentDate|PaymentMethod|Status
+# PaymentID|ConsultationID|TotalAmount|PaymentMethod|PaymentStatus|PaymentDate

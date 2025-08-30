@@ -444,4 +444,96 @@ public class PaymentController {
         PaymentDAO.savePayments(paymentMap);
         InvoiceDAO.saveInvoices(invoiceMap);
     }
+
+    // ==================== TABLE DISPLAY METHODS ====================
+
+    public void printPaymentsTable(ListInterface<Payment> payments, String title) {
+        if (payments.isEmpty()) {
+            System.out.println("------------------------------------------------ No payments found. ------------------------------------------------");
+            return;
+        }
+
+        if (!title.isEmpty()) {
+            System.out.println(title);
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-12s | %-12s | %-12s | %-15s | %-12s | %-12s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+--------------+--------------+--------------+-----------------+--------------+--------------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Payment ID", "Invoice ID", "Consultation ID", "Patient ID", "Amount", "Method", "Status");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (int i = 0; i < payments.size(); i++) {
+            Payment p = payments.get(i);
+            
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    p.getPaymentId(),
+                    p.getInvoiceId(),
+                    p.getConsultationId(),
+                    p.getPatientId(),
+                    String.format("%.2f", p.getAmount()),
+                    p.getPaymentMethod(),
+                    p.getStatus());
+
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
+    }
+
+    public void printInvoicesTable(ListInterface<Invoice> invoices, String title) {
+        if (invoices.isEmpty()) {
+            System.out.println("------------------------------------------------ No invoices found. ------------------------------------------------");
+            return;
+        }
+
+        if (!title.isEmpty()) {
+            System.out.println(title);
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-12s | %-12s | %-12s | %-12s | %-8s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+--------------+--------------+--------------+--------------+----------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Invoice ID", "Consultation ID", "Amount", "Created Date", "Paid");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (int i = 0; i < invoices.size(); i++) {
+            Invoice inv = invoices.get(i);
+            
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    inv.getInvoiceId(),
+                    inv.getConsultationId(),
+                    String.format("%.2f", inv.getAmount()),
+                    inv.getCreatedTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    inv.isPaid() ? "Yes" : "No");
+
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
+    }
 }

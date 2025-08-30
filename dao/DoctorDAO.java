@@ -32,6 +32,9 @@ public class DoctorDAO {
     public static void saveDoctors(HashMapInterface<String, Doctor> doctorMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# DoctorID|Name|Gender|Birthdate|Phone|Specialty|ConsultationFee|isDeleted");
+            
             for (int i = 0; i < doctorMap.keySet().size(); i++) {
                 String key = doctorMap.keySet().get(i);
                 Doctor d = doctorMap.get(key);

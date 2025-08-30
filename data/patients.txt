@@ -1,1 +1,4 @@
-Student|P1000|john|M|2025-05-05|11111111111|false|111
+# Type|PatientID|Name|Gender|Birthdate|Phone|isDeleted|RoleID|Faculty|Department
+Tutor|P1001|Mary Smith|F|1980-05-25|0987654321|false|TUT001|FOCS
+Staff|P1002|Admin Jones|M|1985-03-20|011222333|false|STF001|Administration
+Student|P1000|John Doe|M|1990-01-01|0123456789|false|STU001

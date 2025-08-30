@@ -30,6 +30,9 @@ public class TreatmentDAO {
     public static void saveTreatments(HashMapInterface<String, Treatment> treatmentMap) {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
+            // Write header comment
+            pw.println("# TreatmentID|DoctorID|PatientID|ConsultationID|Description|TreatmentFee|PrescribedMedicines");
+            
             for (int i = 0; i < treatmentMap.keySet().size(); i++) {
                 String key = treatmentMap.keySet().get(i);
                 Treatment t = treatmentMap.get(key);

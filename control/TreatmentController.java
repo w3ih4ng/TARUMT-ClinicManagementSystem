@@ -4,24 +4,29 @@ import entity.*;
 import adt.*;
 import dao.TreatmentDAO;
 import dao.MedicineDAO;
+import dao.ConsultationDAO;
 import utility.FilterCriteriaUtil;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 
 /**
- * Consolidated Treatment Controller - combines all treatment-related control functionality
+ * Consolidated Treatment Controller - combines all treatment-related control
+ * functionality
  * Handles treatment management, viewing, editing, and business logic
+ * 
  * @author Your Name
  */
 public class TreatmentController {
     private HashMapInterface<String, Treatment> treatmentMap;
     private HashMapInterface<String, Medicine> medicineMap;
+    private HashMapInterface<String, Consultation> consultationMap;
     private Scanner sc;
     private final FilterCriteriaUtil criteriaUtil = new FilterCriteriaUtil();
 
     public TreatmentController() {
         this.treatmentMap = TreatmentDAO.loadTreatments();
         this.medicineMap = MedicineDAO.loadMedicines();
+        this.consultationMap = ConsultationDAO.loadConsultations();
         this.sc = new Scanner(System.in);
     }
 
@@ -30,26 +35,26 @@ public class TreatmentController {
     /**
      * Create a new treatment for a consultation
      */
-    public String createTreatment(String doctorId, String patientId, String consultationId, 
-                                String diagnosis, double treatmentFee, 
-                                ListInterface<MedicinePrescribed> medicines) {
-        
+    public String createTreatment(String doctorId, String patientId, String consultationId,
+            String diagnosis, double treatmentFee,
+            ListInterface<MedicinePrescribed> medicines) {
+
         // Generate treatment ID
         String treatmentId = TreatmentDAO.generateTreatmentId();
-        
+
         // Create treatment
-        Treatment treatment = new Treatment(treatmentId, doctorId, patientId, consultationId, 
-                                          diagnosis, treatmentFee);
-        
+        Treatment treatment = new Treatment(treatmentId, doctorId, patientId, consultationId,
+                diagnosis, treatmentFee);
+
         // Add prescribed medicines
         for (int i = 0; i < medicines.size(); i++) {
             treatment.addPrescribedMedicine(medicines.get(i));
         }
-        
+
         // Save treatment
         treatmentMap.put(treatmentId, treatment);
         TreatmentDAO.saveTreatments(treatmentMap);
-        
+
         return treatmentId;
     }
 
@@ -132,19 +137,18 @@ public class TreatmentController {
         if (treatment != null) {
             // Create a new treatment with updated medicines
             Treatment updatedTreatment = new Treatment(
-                treatment.getTreatmentId(),
-                treatment.getDoctorId(),
-                treatment.getPatientId(),
-                treatment.getConsultationId(),
-                treatment.getDescription(),
-                treatment.getTreatmentFee()
-            );
-            
+                    treatment.getTreatmentId(),
+                    treatment.getDoctorId(),
+                    treatment.getPatientId(),
+                    treatment.getConsultationId(),
+                    treatment.getDescription(),
+                    treatment.getTreatmentFee());
+
             // Add new medicines
             for (int i = 0; i < newMedicines.size(); i++) {
                 updatedTreatment.addPrescribedMedicine(newMedicines.get(i));
             }
-            
+
             // Replace in map
             treatmentMap.put(treatmentId, updatedTreatment);
             TreatmentDAO.saveTreatments(treatmentMap);
@@ -154,9 +158,16 @@ public class TreatmentController {
     /**
      * Delete treatment
      */
-    public void deleteTreatment(String treatmentId) {
-        treatmentMap.remove(treatmentId);
-        TreatmentDAO.saveTreatments(treatmentMap);
+    public boolean deleteTreatment(String treatmentId) {
+        if (treatmentMap.containsKey(treatmentId)) {
+            treatmentMap.remove(treatmentId);
+            TreatmentDAO.saveTreatments(treatmentMap);
+            System.out.println("Treatment deleted successfully: " + treatmentId);
+            return true;
+        } else {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
     }
 
     // ==================== TREATMENT DISPLAY OPERATIONS ====================
@@ -170,7 +181,7 @@ public class TreatmentController {
             System.out.println("Treatment not found: " + treatmentId);
             return;
         }
-        
+
         System.out.println("\n--- Treatment Details ---");
         System.out.println("Treatment ID: " + treatment.getTreatmentId());
         System.out.println("Doctor ID: " + treatment.getDoctorId());
@@ -178,7 +189,7 @@ public class TreatmentController {
         System.out.println("Consultation ID: " + treatment.getConsultationId());
         System.out.println("Diagnosis: " + treatment.getDescription());
         System.out.println("Treatment Fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
-        
+
         // Display prescribed medicines
         ListInterface<MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
         if (!medicines.isEmpty()) {
@@ -190,7 +201,7 @@ public class TreatmentController {
                 System.out.println("  - " + medicineName + " x" + medicine.getQuantity());
             }
         }
-        
+
         double totalCost = calculateTreatmentTotalCost(treatmentId);
         System.out.println("Total Cost: RM " + String.format("%.2f", totalCost));
     }
@@ -206,7 +217,7 @@ public class TreatmentController {
 
         String borderLine = "+------------+------------+------------+------------+---------------------------+---------------------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-25s |%n", 
+        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-25s |%n",
                 "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee");
         System.out.println(borderLine);
 
@@ -241,34 +252,40 @@ public class TreatmentController {
         return criteriaUtil.getCriteriaSummary();
     }
 
-    public HashMapInterface<String, Treatment> filterByDoctor(HashMapInterface<String, Treatment> map, String doctorId) {
+    public HashMapInterface<String, Treatment> filterByDoctor(HashMapInterface<String, Treatment> map,
+            String doctorId) {
         addCriteria("Doctor = " + doctorId);
         return map.filter(treatment -> treatment.getDoctorId().equalsIgnoreCase(doctorId));
     }
 
-    public HashMapInterface<String, Treatment> filterByPatient(HashMapInterface<String, Treatment> map, String patientId) {
+    public HashMapInterface<String, Treatment> filterByPatient(HashMapInterface<String, Treatment> map,
+            String patientId) {
         addCriteria("Patient = " + patientId);
         return map.filter(treatment -> treatment.getPatientId().equalsIgnoreCase(patientId));
     }
 
-    public HashMapInterface<String, Treatment> filterByConsultation(HashMapInterface<String, Treatment> map, String consultationId) {
+    public HashMapInterface<String, Treatment> filterByConsultation(HashMapInterface<String, Treatment> map,
+            String consultationId) {
         addCriteria("Consultation = " + consultationId);
         return map.filter(treatment -> treatment.getConsultationId().equalsIgnoreCase(consultationId));
     }
 
-    public HashMapInterface<String, Treatment> filterByFeeRange(HashMapInterface<String, Treatment> map, double minFee, double maxFee) {
+    public HashMapInterface<String, Treatment> filterByFeeRange(HashMapInterface<String, Treatment> map, double minFee,
+            double maxFee) {
         addCriteria("Fee Range = " + minFee + " - " + maxFee);
         return map.filter(treatment -> treatment.getTreatmentFee() >= minFee && treatment.getTreatmentFee() <= maxFee);
     }
 
     // ==================== SEARCH OPERATIONS ====================
 
-    public HashMapInterface<String, Treatment> searchByDiagnosis(HashMapInterface<String, Treatment> map, String keyword) {
+    public HashMapInterface<String, Treatment> searchByDiagnosis(HashMapInterface<String, Treatment> map,
+            String keyword) {
         addCriteria("Search Diagnosis = " + keyword);
         return map.filter(treatment -> treatment.getDescription().toLowerCase().contains(keyword.toLowerCase()));
     }
 
-    public HashMapInterface<String, Treatment> searchByTreatmentId(HashMapInterface<String, Treatment> map, String treatmentId) {
+    public HashMapInterface<String, Treatment> searchByTreatmentId(HashMapInterface<String, Treatment> map,
+            String treatmentId) {
         addCriteria("Search ID = " + treatmentId);
         return map.filter(treatment -> treatment.getTreatmentId().toLowerCase().contains(treatmentId.toLowerCase()));
     }
@@ -278,7 +295,7 @@ public class TreatmentController {
     public ListInterface<Treatment> sortByTreatmentId(HashMapInterface<String, Treatment> map, boolean ascending) {
         removeOldSortCriteria();
         addCriteria("Sort by ID (" + (ascending ? "A-Z" : "Z-A") + ")");
-        
+
         ListInterface<Treatment> list = toList(map);
         if (ascending) {
             list.sort((t1, t2) -> t1.getTreatmentId().compareTo(t2.getTreatmentId()));
@@ -291,7 +308,7 @@ public class TreatmentController {
     public ListInterface<Treatment> sortByFee(HashMapInterface<String, Treatment> map, boolean ascending) {
         removeOldSortCriteria();
         addCriteria("Sort by Fee (" + (ascending ? "Low-High" : "High-Low") + ")");
-        
+
         ListInterface<Treatment> list = toList(map);
         if (ascending) {
             list.sort((t1, t2) -> Double.compare(t1.getTreatmentFee(), t2.getTreatmentFee()));
@@ -304,7 +321,7 @@ public class TreatmentController {
     public ListInterface<Treatment> sortByDoctor(HashMapInterface<String, Treatment> map, boolean ascending) {
         removeOldSortCriteria();
         addCriteria("Sort by Doctor (" + (ascending ? "A-Z" : "Z-A") + ")");
-        
+
         ListInterface<Treatment> list = toList(map);
         if (ascending) {
             list.sort((t1, t2) -> t1.getDoctorId().compareTo(t2.getDoctorId()));
@@ -342,7 +359,7 @@ public class TreatmentController {
         }
 
         double totalCost = treatment.getTreatmentFee();
-        
+
         // Add medicine costs
         ListInterface<MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
         for (int i = 0; i < medicines.size(); i++) {
@@ -352,8 +369,78 @@ public class TreatmentController {
                 totalCost += med.getPrice() * medicine.getQuantity();
             }
         }
-        
+
         return totalCost;
+    }
+
+    // ==================== NEW WORKFLOW METHODS ====================
+
+    /**
+     * Complete consultation with treatment
+     */
+    public boolean completeConsultationWithTreatment(String consultationId, String diagnosis, double treatmentFee) {
+        // Check if consultation exists and is ready for completion
+        if (consultationMap == null || !consultationMap.containsKey(consultationId)) {
+            System.out.println("Consultation not found: " + consultationId);
+            return false;
+        }
+
+        Consultation consultation = consultationMap.get(consultationId);
+        if (!consultation.getStatus().equals("SCHEDULED")) {
+            System.out.println("Consultation is not ready for completion. Status: " + consultation.getStatus());
+            return false;
+        }
+
+        // Create treatment - use existing constructor
+        String treatmentId = TreatmentDAO.generateTreatmentId();
+        Treatment treatment = new Treatment(treatmentId, consultation.getDoctorId(), consultation.getPatientId(),
+                consultationId, diagnosis, treatmentFee);
+
+        // Add to treatment map
+        treatmentMap.put(treatmentId, treatment);
+        TreatmentDAO.saveTreatments(treatmentMap);
+
+        // Update consultation status and link to treatment
+        consultation.setStatus("COMPLETED");
+        // Note: Consultation entity needs setTreatmentId method
+        consultationMap.put(consultationId, consultation);
+        ConsultationDAO.saveConsultations(consultationMap);
+
+        System.out.println("Treatment created successfully: " + treatmentId);
+        System.out.println("Consultation completed and linked to treatment.");
+        return true;
+    }
+
+    /**
+     * Add medicine prescription to treatment
+     */
+    public boolean addMedicinePrescription(String treatmentId, String medicineId, int quantity) {
+        // Check if treatment exists
+        if (!treatmentMap.containsKey(treatmentId)) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
+
+        // Check if medicine exists
+        if (medicineMap == null || !medicineMap.containsKey(medicineId)) {
+            System.out.println("Medicine not found: " + medicineId);
+            return false;
+        }
+
+        // Create medicine prescription - check constructor
+        MedicinePrescribed prescription = new MedicinePrescribed(medicineId, quantity);
+
+        // Add to treatment's medicine list
+        Treatment treatment = treatmentMap.get(treatmentId);
+        treatment.addPrescribedMedicine(prescription);
+
+        // Update treatment
+        treatmentMap.put(treatmentId, treatment);
+        TreatmentDAO.saveTreatments(treatmentMap);
+
+        System.out.println("\nMedicine prescription added successfully!");
+        System.out.println("\nMedicine: " + medicineId + ", Quantity: " + quantity);
+        return true;
     }
 
     /**
@@ -365,6 +452,56 @@ public class TreatmentController {
         return false;
     }
 
+    /**
+     * Check if medicine exists
+     */
+    public boolean isMedicineExists(String medicineId) {
+        return medicineMap != null && medicineMap.containsKey(medicineId);
+    }
+
+    /**
+     * Display available medicines in table format
+     */
+    public void displayAvailableMedicines() {
+        if (medicineMap == null || medicineMap.isEmpty()) {
+            System.out.println("No medicines available.");
+            return;
+        }
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-25s | %-8s | %-8s | %-10s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+---------------------------+----------+----------+------------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Medicine ID", "Name", "Dosage", "Unit", "Price");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (String key : medicineMap.keySet()) {
+            Medicine medicine = medicineMap.get(key);
+            if (medicine != null && !medicine.isDeleted()) {
+                // Print row
+                System.out.printf(leftAlignFormat,
+                        medicine.getMedicineId(),
+                        medicine.getName(),
+                        String.format("%.1f", medicine.getDosage()),
+                        medicine.getUnit(),
+                        String.format("%.2f", medicine.getPrice()));
+
+                // Print row separator after each row
+                System.out.println(borderLine);
+            }
+        }
+    }
+
     // ==================== REPORTING OPERATIONS ====================
 
     /**
@@ -372,7 +509,7 @@ public class TreatmentController {
      */
     public void generatePatientTreatmentHistoryReport() {
         System.out.println("\n=== PATIENT TREATMENT HISTORY REPORT ===");
-        
+
         if (treatmentMap.isEmpty()) {
             System.out.println("No treatments found for analysis.");
             return;
@@ -380,36 +517,37 @@ public class TreatmentController {
 
         // Group treatments by patient
         HashMapInterface<String, ListInterface<Treatment>> patientTreatments = new HashMapADT<>();
-        
+
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
             String patientId = treatment.getPatientId();
-            
+
             if (!patientTreatments.containsKey(patientId)) {
                 patientTreatments.put(patientId, new ArrayList<>());
             }
-            
+
             patientTreatments.get(patientId).add(treatment);
         }
 
         System.out.println("Patient Treatment Summary:");
         System.out.println("+------------+------------+---------------------------+---------------------------+");
-        System.out.printf("| %-10s | %-10s | %-25s | %-25s |%n", "Patient ID", "Treatment Count", "Total Fees", "Last Treatment");
+        System.out.printf("| %-10s | %-10s | %-25s | %-25s |%n", "Patient ID", "Treatment Count", "Total Fees",
+                "Last Treatment");
         System.out.println("+------------+------------+---------------------------+---------------------------+");
 
         for (String patientId : patientTreatments.keySet()) {
             ListInterface<Treatment> treatments = patientTreatments.get(patientId);
             int count = treatments.size();
-            
+
             double totalFees = 0.0;
             String lastTreatmentDate = "N/A";
-            
+
             for (int i = 0; i < treatments.size(); i++) {
                 Treatment treatment = treatments.get(i);
                 totalFees += treatment.getTreatmentFee();
                 // Note: Treatment entity doesn't have date field, so using "N/A"
             }
-            
+
             System.out.printf("| %-10s | %-10s | %-25s | %-25s |%n",
                     patientId,
                     count,
@@ -424,7 +562,7 @@ public class TreatmentController {
      */
     public void generateDoctorPerformanceReport() {
         System.out.println("\n=== DOCTOR TREATMENT PERFORMANCE REPORT ===");
-        
+
         if (treatmentMap.isEmpty()) {
             System.out.println("No treatments found for analysis.");
             return;
@@ -432,35 +570,36 @@ public class TreatmentController {
 
         // Group treatments by doctor
         HashMapInterface<String, ListInterface<Treatment>> doctorTreatments = new HashMapADT<>();
-        
+
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
             String doctorId = treatment.getDoctorId();
-            
+
             if (!doctorTreatments.containsKey(doctorId)) {
                 doctorTreatments.put(doctorId, new ArrayList<>());
             }
-            
+
             doctorTreatments.get(doctorId).add(treatment);
         }
 
         System.out.println("Doctor Performance Summary:");
         System.out.println("+------------+------------+---------------------------+---------------------------+");
-        System.out.printf("| %-10s | %-10s | %-25s | %-25s |%n", "Doctor ID", "Treatment Count", "Total Revenue", "Average Fee");
+        System.out.printf("| %-10s | %-10s | %-25s | %-25s |%n", "Doctor ID", "Treatment Count", "Total Revenue",
+                "Average Fee");
         System.out.println("+------------+------------+---------------------------+---------------------------+");
 
         for (String doctorId : doctorTreatments.keySet()) {
             ListInterface<Treatment> treatments = doctorTreatments.get(doctorId);
             int count = treatments.size();
-            
+
             double totalRevenue = 0.0;
             for (int i = 0; i < treatments.size(); i++) {
                 Treatment treatment = treatments.get(i);
                 totalRevenue += treatment.getTreatmentFee();
             }
-            
+
             double averageFee = count > 0 ? totalRevenue / count : 0.0;
-            
+
             System.out.printf("| %-10s | %-10s | %-25s | %-25s |%n",
                     doctorId,
                     count,
@@ -475,7 +614,7 @@ public class TreatmentController {
      */
     public void generateMedicinePrescriptionReport() {
         System.out.println("\n=== MEDICINE PRESCRIPTION ANALYSIS REPORT ===");
-        
+
         if (treatmentMap.isEmpty()) {
             System.out.println("No treatments found for analysis.");
             return;
@@ -483,19 +622,19 @@ public class TreatmentController {
 
         // Count medicine prescriptions
         HashMapInterface<String, Integer> medicineCount = new HashMapADT<>();
-        
+
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
             ListInterface<MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
-            
+
             for (int i = 0; i < medicines.size(); i++) {
                 MedicinePrescribed medicine = medicines.get(i);
                 String medicineId = medicine.getMedicineId();
-                
+
                 if (!medicineCount.containsKey(medicineId)) {
                     medicineCount.put(medicineId, 0);
                 }
-                
+
                 medicineCount.put(medicineId, medicineCount.get(medicineId) + medicine.getQuantity());
             }
         }
@@ -507,7 +646,8 @@ public class TreatmentController {
 
         System.out.println("Medicine Prescription Summary:");
         System.out.println("+------------+---------------------------+------------+---------------------------+");
-        System.out.printf("| %-10s | %-25s | %-10s | %-25s |%n", "Medicine ID", "Medicine Name", "Quantity", "Total Value");
+        System.out.printf("| %-10s | %-25s | %-10s | %-25s |%n", "Medicine ID", "Medicine Name", "Quantity",
+                "Total Value");
         System.out.println("+------------+---------------------------+------------+---------------------------+");
 
         for (String medicineId : medicineCount.keySet()) {
@@ -515,7 +655,7 @@ public class TreatmentController {
             Medicine medicine = medicineMap.get(medicineId);
             String medicineName = medicine != null ? medicine.getName() : "Unknown";
             double totalValue = medicine != null ? medicine.getPrice() * quantity : 0.0;
-            
+
             System.out.printf("| %-10s | %-25s | %-10s | %-25s |%n",
                     medicineId,
                     medicineName,
@@ -523,5 +663,99 @@ public class TreatmentController {
                     "RM " + String.format("%.2f", totalValue));
         }
         System.out.println("+------------+---------------------------+------------+---------------------------+");
+    }
+
+    // ==================== TABLE DISPLAY METHODS ====================
+
+    public void printTreatmentsTable(ListInterface<Treatment> treatments, String title) {
+        if (treatments.isEmpty()) {
+            System.out.println("------------------------------------------------ No treatments found. ------------------------------------------------");
+            return;
+        }
+
+        if (!title.isEmpty()) {
+            System.out.println(title);
+        }
+        System.out.println();
+
+        // Define table format widths
+        String leftAlignFormat = "| %-12s | %-12s | %-12s | %-12s | %-30s | %-12s | %-20s |%n";
+
+        // Define border line
+        String borderLine = "+--------------+--------------+--------------+--------------+--------------------------------+--------------+--------------------+";
+
+        // Print top border
+        System.out.println(borderLine);
+
+        // Print header
+        System.out.printf(leftAlignFormat,
+                "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee", "Medicines");
+
+        // Print header separator
+        System.out.println(borderLine);
+
+        // Print each row + row separator
+        for (int i = 0; i < treatments.size(); i++) {
+            Treatment t = treatments.get(i);
+            
+            // Get medicines count
+            int medicineCount = t.getPrescribedMedicines().size();
+            String medicinesInfo = medicineCount + " medicine(s)";
+            
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    t.getTreatmentId(),
+                    t.getDoctorId(),
+                    t.getPatientId(),
+                    t.getConsultationId(),
+                    t.getDescription().length() > 28 ? t.getDescription().substring(0, 25) + "..." : t.getDescription(),
+                    String.format("%.2f", t.getTreatmentFee()),
+                    medicinesInfo);
+
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
+    }
+
+    public void printTreatmentDetails(Treatment treatment) {
+        if (treatment == null) {
+            System.out.println("Treatment not found.");
+            return;
+        }
+
+        System.out.println("\n=== TREATMENT DETAILS ===");
+        System.out.println("Treatment ID: " + treatment.getTreatmentId());
+        System.out.println("Doctor ID: " + treatment.getDoctorId());
+        System.out.println("Patient ID: " + treatment.getPatientId());
+        System.out.println("Consultation ID: " + treatment.getConsultationId());
+        System.out.println("Description: " + treatment.getDescription());
+        System.out.println("Treatment Fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
+        
+        ListInterface<MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
+        if (!medicines.isEmpty()) {
+            System.out.println("\n--- Prescribed Medicines ---");
+            String leftAlignFormat = "| %-12s | %-25s | %-8s | %-10s |%n";
+            String borderLine = "+--------------+---------------------------+----------+------------+";
+            
+            System.out.println(borderLine);
+            System.out.printf(leftAlignFormat, "Medicine ID", "Name", "Quantity", "Price");
+            System.out.println(borderLine);
+            
+            for (int i = 0; i < medicines.size(); i++) {
+                MedicinePrescribed mp = medicines.get(i);
+                Medicine medicine = medicineMap.get(mp.getMedicineId());
+                String medicineName = medicine != null ? medicine.getName() : "Unknown";
+                double price = medicine != null ? medicine.getPrice() : 0.0;
+                
+                System.out.printf(leftAlignFormat,
+                        mp.getMedicineId(),
+                        medicineName,
+                        mp.getQuantity(),
+                        String.format("%.2f", price));
+            }
+            System.out.println(borderLine);
+        } else {
+            System.out.println("\nNo medicines prescribed.");
+        }
     }
 }
