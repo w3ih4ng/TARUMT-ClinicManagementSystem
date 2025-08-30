@@ -12,9 +12,11 @@ public class SystemUtil {
     
     /**
      * Clear screen for better UI experience
+     * Works well in both terminal and IDE environments like NetBeans
      */
     public static void clearScreen() {
         try {
+            // For terminal environments
             if (System.getProperty("os.name").contains("Windows")) {
                 new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
             } else {
@@ -22,10 +24,22 @@ public class SystemUtil {
                 System.out.flush();
             }
         } catch (Exception e) {
-            // Fallback: print newlines to simulate clear screen
-            for (int i = 0; i < 50; i++) {
-                System.out.println();
-            }
+            // IDE-friendly fallback: print newlines to create visual separation
+            printSeparator();
+        }
+    }
+    
+    /**
+     * Print visual separator for IDE environments
+     */
+    public static void printSeparator() {
+        // Print multiple newlines for visual separation
+        for (int i = 0; i < 3; i++) {
+            System.out.println();
+        }
+        System.out.println("=".repeat(80));
+        for (int i = 0; i < 2; i++) {
+            System.out.println();
         }
     }
     
@@ -100,12 +114,13 @@ public class SystemUtil {
      * Display a formatted menu header with navigation
      */
     public static void showMenuHeader(String menuTitle) {
-        //clearScreen();
+        printSeparator();
         showNavigationHeader();
         System.out.println();
-        System.out.println("=".repeat(50));
+        System.out.println("=".repeat(60));
         System.out.println("    " + menuTitle.toUpperCase());
-        System.out.println("=".repeat(50));
+        System.out.println("=".repeat(60));
+        System.out.println();
     }
     
     /**

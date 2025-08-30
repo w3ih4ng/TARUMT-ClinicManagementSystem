@@ -223,16 +223,16 @@ public class ConsultationMenuControl {
     }
 
     /**
-     * Get consultation control for other uses
-     */
-    public ConsultationControl getConsultationControl() {
-        return consultationControl;
-    }
-
-    /**
      * Get treatment control for other uses
      */
     public TreatmentControl getTreatmentControl() {
         return treatmentControl;
+    }
+    
+    /**
+     * Get consultation control for other uses
+     */
+    public ConsultationControl getConsultationControl() {
+        return consultationControl;
     }
 }

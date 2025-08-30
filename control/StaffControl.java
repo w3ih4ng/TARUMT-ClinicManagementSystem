@@ -13,6 +13,7 @@ public class StaffControl {
     private DoctorManagementBoundary doctorManagementBoundary;
     private PharmacyBoundary pharmacyBoundary;
     private DoctorScheduleBoundary doctorScheduleBoundary;
+    private TreatmentManagementBoundary treatmentManagementBoundary;
     private PaymentBoundary paymentBoundary;
     private ConsultationControl sharedConsultationControl; // Shared instance
 
@@ -23,6 +24,7 @@ public class StaffControl {
         // Initialize modules staff can access with shared instance
         this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(), new PatientQueueControl(sharedConsultationControl));
         this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorRecordControl());
+        this.treatmentManagementBoundary = new TreatmentManagementBoundary(new TreatmentControl(), new PatientRecordControl(), new DoctorRecordControl());
         this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
         this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl(), new PatientQueueControl(sharedConsultationControl));
         this.paymentBoundary = new PaymentBoundary(new PaymentControl(), new InvoiceControl());
@@ -49,8 +51,7 @@ public class StaffControl {
     }
 
     public void openTreatmentModule() {
-        System.out.println("[Medical Treatment Module - placeholder]");
-        // later: new TreatmentBoundary(new TreatmentControl()).mainMenu();
+        treatmentManagementBoundary.mainMenu();
     }
 
     public void openPharmacyModule() {
