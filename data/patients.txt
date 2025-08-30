@@ -1,2 +1,1 @@
-# TARUMT Clinic Management System - Patient Records
-# Format: patientId|name|gender|birthdate|phone|isDeleted|role|roleSpecificData
+Student|P1000|john|M|2025-05-05|11111111111|false|111

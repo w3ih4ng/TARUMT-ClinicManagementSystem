@@ -14,14 +14,14 @@ import java.util.Scanner;
  * Control class for consultation management
  * @author Your Name
  */
-public class ConsultationControl {
+public class ConsultationController {
     private HashMapInterface<String, Consultation> consultationMap;
     private HashMapInterface<String, PatientQueueEntry> queueMap;
     private HashMapInterface<String, Doctor> doctorMap;
     private HashMapInterface<String, Patient> patientMap;
     private Scanner sc;
 
-    public ConsultationControl() {
+    public ConsultationController() {
         this.consultationMap = ConsultationDAO.loadConsultations();
         this.queueMap = PatientQueueDAO.loadPatientQueue();
         this.doctorMap = DoctorDAO.loadDoctors();
@@ -34,7 +34,15 @@ public class ConsultationControl {
 
     // --- Create consultation when doctor is assigned ---
     public void createConsultationForQueue(String queueId) {
+        // First try to get from local map
         PatientQueueEntry entry = queueMap.get(queueId);
+        
+        // If not found locally, refresh from file and try again
+        if (entry == null) {
+            this.queueMap = PatientQueueDAO.loadPatientQueue();
+            entry = queueMap.get(queueId);
+        }
+        
         if (entry != null && entry.isAssigned() && entry.getAssignedDoctorId() != null) {
             String consultationId = ConsultationDAO.generateConsultationId();
             Consultation consultation = new Consultation(consultationId, entry.getPatientId(), entry.getSpecialty(), queueId);
@@ -44,8 +52,6 @@ public class ConsultationControl {
             
             consultationMap.put(consultationId, consultation);
             ConsultationDAO.saveConsultations(consultationMap);
-            
-            System.out.println("Consultation created: " + consultationId);
         }
     }
 
@@ -58,9 +64,9 @@ public class ConsultationControl {
             return;
         }
 
-        // Create treatment using TreatmentControl
-        control.TreatmentControl treatmentControl = new control.TreatmentControl();
-        String treatmentId = treatmentControl.createTreatment(
+        // Create treatment
+        control.TreatmentController treatmentController = new control.TreatmentController();
+        String treatmentId = treatmentController.createTreatment(
             consultation.getDoctorId(), 
             consultation.getPatientId(), 
             consultationId, 
@@ -74,23 +80,14 @@ public class ConsultationControl {
         consultationMap.put(consultationId, consultation);
         ConsultationDAO.saveConsultations(consultationMap);
 
-        // Store completed queue entry in history instead of removing
+        // Remove from active queue (history system removed)
         String queueId = consultation.getQueueId();
         if (queueId != null) {
-            PatientQueueEntry queueEntry = queueMap.get(queueId);
-            if (queueEntry != null) {
-                // Store in history
-                control.QueueHistoryControl historyControl = new control.QueueHistoryControl();
-                historyControl.storeCompletedQueueEntry(queueEntry, "CONSULTATION_COMPLETED");
-                
-                // Remove from active queue
-                queueMap.remove(queueId);
-                PatientQueueDAO.savePatientQueue(queueMap);
-                System.out.println("Patient " + consultation.getPatientId() + " moved to history after completion");
-            }
+            queueMap.remove(queueId);
+            PatientQueueDAO.savePatientQueue(queueMap);
         }
 
-        // Automatically generate invoice for payment
+        // Optionally generate invoice via Payment module (amount to be finalized elsewhere)
         generateInvoiceForConsultation(consultationId);
 
         System.out.println("Consultation completed with treatment: " + treatmentId);
@@ -141,11 +138,13 @@ public class ConsultationControl {
         ListInterface<Consultation> pendingConsultations = new ArrayList<>();
         for (String key : consultationMap.keySet()) {
             Consultation c = consultationMap.get(key);
+            
             if (c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
                 c.getStatus().equals("SCHEDULED")) {
                 pendingConsultations.add(c);
             }
         }
+        
         return pendingConsultations;
     }
 
@@ -193,7 +192,7 @@ public class ConsultationControl {
             consultation.getDoctorId().equals(doctorId)) {
             
             // Create treatment record first
-            control.TreatmentControl treatmentControl = new control.TreatmentControl();
+            control.TreatmentController treatmentControl = new control.TreatmentController();
             String treatmentId = treatmentControl.createTreatment(
                 doctorId, 
                 consultation.getPatientId(), 
@@ -235,8 +234,8 @@ public class ConsultationControl {
     // --- Delete existing invoice for re-generation ---
     private void deleteExistingInvoice(String consultationId) {
         try {
-            control.InvoiceControl invoiceControl = new control.InvoiceControl();
-            invoiceControl.deleteInvoiceByConsultation(consultationId);
+            PaymentController paymentController = new PaymentController();
+            paymentController.deleteInvoiceByConsultation(consultationId);
         } catch (Exception e) {
             // Ignore if invoice doesn't exist or deletion fails
         }
@@ -245,17 +244,9 @@ public class ConsultationControl {
     // --- Generate invoice for completed consultation ---
     private void generateInvoiceForConsultation(String consultationId) {
         try {
-            // Create InvoiceControl instance to generate invoice
-            control.InvoiceControl invoiceControl = new control.InvoiceControl();
-            entity.Invoice invoice = invoiceControl.generateInvoice(consultationId);
-            
-            if (invoice != null) {
-                System.out.println("Invoice generated automatically for consultation: " + consultationId);
-                System.out.println("   Invoice ID: " + invoice.getInvoiceId());
-                System.out.println("   Amount: RM " + String.format("%.2f", invoice.getAmount()));
-            } else {
-                System.out.println("Failed to generate invoice for consultation: " + consultationId);
-            }
+            PaymentController paymentController = new PaymentController();
+            // For now, generate zero-amount invoice; Payment module will adjust upon processing
+            paymentController.generateInvoice(consultationId, 0.0);
         } catch (Exception e) {
             System.out.println("Error generating invoice: " + e.getMessage());
         }
@@ -268,8 +259,8 @@ public class ConsultationControl {
             PatientQueueEntry queueEntry = queueMap.get(consultation.getQueueId());
             if (queueEntry != null) {
                 // Store in history
-                control.QueueHistoryControl historyControl = new control.QueueHistoryControl();
-                historyControl.storeCompletedQueueEntry(queueEntry, "CONSULTATION_COMPLETED");
+                // QueueHistoryController historyControl = new QueueHistoryController(); // Removed
+                // historyControl.storeCompletedQueueEntry(queueEntry, "CONSULTATION_COMPLETED"); // Removed
                 
                 // Remove from active queue
                 queueMap.remove(consultation.getQueueId());
@@ -395,14 +386,13 @@ public class ConsultationControl {
     private void createConsultationsForExistingAssignments() {
         for (String key : queueMap.keySet()) {
             PatientQueueEntry entry = queueMap.get(key);
+            
             if (entry.isAssigned() && entry.getAssignedDoctorId() != null) {
                 // Check if consultation already exists for this queue entry
                 boolean consultationExists = false;
                 for (String cKey : consultationMap.keySet()) {
                     Consultation c = consultationMap.get(cKey);
-                    if (c.getPatientId().equals(entry.getPatientId()) && 
-                        c.getDoctorId() != null && 
-                        c.getDoctorId().equals(entry.getAssignedDoctorId())) {
+                    if (c.getQueueId() != null && c.getQueueId().equals(key)) {
                         consultationExists = true;
                         break;
                     }
@@ -418,5 +408,109 @@ public class ConsultationControl {
     // --- Save consultations ---
     public void saveConsultations() {
         ConsultationDAO.saveConsultations(consultationMap);
+    }
+    
+    // --- Refresh queue data from file ---
+    public void refreshQueueData() {
+        this.queueMap = PatientQueueDAO.loadPatientQueue();
+    }
+
+    // ==================== UI WRAPPERS FOR ConsultationUI ====================
+
+    public void viewAllConsultations() {
+        printConsultationsTable(consultationMap.toList(), "All Consultations");
+    }
+
+    public void viewPendingConsultations() {
+        printConsultationsTable(getPendingConsultations(), "Pending Consultations");
+    }
+
+    public void viewCompletedConsultations() {
+        printConsultationsTable(getCompletedConsultations(), "Completed Consultations");
+    }
+
+    public void viewConsultationDetails() {
+        System.out.print("Enter Consultation ID: ");
+        String id = sc.nextLine().trim();
+        Consultation c = consultationMap.get(id);
+        if (c == null) {
+            System.out.println("Consultation not found.");
+            return;
+        }
+        ListInterface<Consultation> one = new ArrayList<>();
+        one.add(c);
+        printConsultationsTable(one, "Consultation Details");
+    }
+
+    public void viewConsultationsByDoctor() {
+        System.out.print("Enter Doctor ID: ");
+        String id = sc.nextLine().trim();
+        printConsultationsTable(getConsultationsByDoctor(id), "Consultations for Doctor " + id);
+    }
+
+    public void viewConsultationsByPatient() {
+        System.out.print("Enter Patient ID: ");
+        String id = sc.nextLine().trim();
+        printConsultationsTable(getConsultationsByPatient(id), "Consultations for Patient " + id);
+    }
+
+    public void completeConsultationWithTreatment() {
+        System.out.print("Enter Consultation ID to complete: ");
+        String consultationId = sc.nextLine().trim();
+        Consultation c = consultationMap.get(consultationId);
+        if (c == null) {
+            System.out.println("Consultation not found.");
+            return;
+        }
+        System.out.print("Enter diagnosis: ");
+        String diagnosis = sc.nextLine().trim();
+        System.out.print("Enter treatment fee (e.g., 100.0): ");
+        double fee = 0.0;
+        try { fee = Double.parseDouble(sc.nextLine().trim()); } catch (Exception ignored) {}
+        ListInterface<entity.MedicinePrescribed> meds = new ArrayList<>();
+        completeConsultation(consultationId, diagnosis, fee, meds);
+    }
+
+    private void printConsultationsTable(ListInterface<Consultation> list, String title) {
+        System.out.println("\n--- " + title + " ---");
+        if (list.isEmpty()) {
+            System.out.println("No records.");
+            return;
+        }
+        String border = "+--------------+------------+------------+-----------+";
+        System.out.println(border);
+        System.out.printf("| %-12s | %-10s | %-10s | %-9s |%n", "ConsultID", "PatientID", "DoctorID", "Status");
+        System.out.println(border);
+        for (int i = 0; i < list.size(); i++) {
+            Consultation c = list.get(i);
+            System.out.printf("| %-12s | %-10s | %-10s | %-9s |%n", c.getConsultationId(), c.getPatientId(),
+                    c.getDoctorId() == null ? "N/A" : c.getDoctorId(), c.getStatus());
+        }
+        System.out.println(border);
+    }
+
+    // ==================== APPOINTMENT BOOKING SUPPORT METHODS ====================
+
+    /**
+     * Create consultation for appointment booking
+     */
+    public String createConsultation(String patientId, String specialty) {
+        String consultationId = ConsultationDAO.generateConsultationId();
+        Consultation consultation = new Consultation(consultationId, patientId, specialty);
+        consultationMap.put(consultationId, consultation);
+        ConsultationDAO.saveConsultations(consultationMap);
+        return consultationId;
+    }
+
+    /**
+     * Assign doctor to consultation for appointment booking
+     */
+    public void assignDoctor(String consultationId, String doctorId, String scheduleId, LocalDateTime consultationTime) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null) {
+            consultation.assignDoctor(doctorId, scheduleId, consultationTime);
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
+        }
     }
 }

@@ -18,52 +18,47 @@ public class StaffMenuBoundary {
 
     public void mainMenu() {
         while (true) {
-            utility.SystemUtil.setNavigationPath("Home", "Staff Portal", "Staff Menu");
-            utility.SystemUtil.showMenuHeader("Staff Dashboard");
-            
-            System.out.println("1. Patient Management");
-            System.out.println("2. Doctor Management");
-            System.out.println("3. Consultation Management");
-            System.out.println("4. Medical Treatment Management");
-            System.out.println("5. Pharmacy Management");
-            System.out.println("6. Payment Management");
-            System.out.println("0. Back to Main Menu");
+            utility.SystemUtil.setNavigationPath("Home", "Clinic Management", "Module Selection");
+            utility.SystemUtil.showMenuHeader("TARUMT Clinic Management Modules");
             System.out.println();
-            System.out.println("=".repeat(50));
-            System.out.print("Enter your choice: ");
+            System.out.println("═══════════════════════════════════════════════════");
+            System.out.println("1. Patient Management Module");
+            System.out.println("2. Doctor Management Module");
+            System.out.println("3. Consultation Management Module");
+            System.out.println("4. Medical Treatment Management Module");
+            System.out.println("5. Pharmacy Management Module");
+            System.out.println("0. Exit System");
+            System.out.println("═══════════════════════════════════════════════════");
+            System.out.print("Select Module (1-5, 0): ");
 
             String choice = sc.nextLine().trim();
 
             switch (choice) {
                 case "1": 
-                    utility.SystemUtil.pushNavigation("Patient Management");
+                    utility.SystemUtil.pushNavigation("Module 1: Patient Management");
                     staffControl.openPatientModule(); 
                     break;
                 case "2": 
-                    utility.SystemUtil.pushNavigation("Doctor Management");
+                    utility.SystemUtil.pushNavigation("Module 2: Doctor Management");
                     staffControl.openDoctorManagementModule(); 
                     break;
                 case "3": 
-                    utility.SystemUtil.pushNavigation("Consultation Management");
+                    utility.SystemUtil.pushNavigation("Module 3: Consultation Management");
                     staffControl.openConsultationModule(); 
                     break;
                 case "4": 
-                    utility.SystemUtil.pushNavigation("Medical Treatment Management");
+                    utility.SystemUtil.pushNavigation("Module 4: Medical Treatment Management");
                     staffControl.openTreatmentModule(); 
                     break;
                 case "5": 
-                    utility.SystemUtil.pushNavigation("Pharmacy Management");
+                    utility.SystemUtil.pushNavigation("Module 5: Pharmacy Management");
                     staffControl.openPharmacyModule(); 
-                    break;
-                case "6": 
-                    utility.SystemUtil.pushNavigation("Payment Management");
-                    staffControl.openPaymentModule(); 
                     break;
                 case "0": 
                     utility.SystemUtil.setNavigationPath("Home");
                     return;
                 default: 
-                    System.out.println("Invalid choice, try again.");
+                    System.out.println("Invalid choice. Please select 1-5 or 0.");
                     utility.SystemUtil.pauseForUser();
             }
         }

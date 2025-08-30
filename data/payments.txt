@@ -1,2 +1,2 @@
-# TARUMT Clinic Management System - Payment Records
-# Format: paymentId|invoiceId|amount|paymentDate|paymentMethod|referenceNumber|notes|isDeleted
+# Payments Data File
+# Format: PaymentID|InvoiceID|Amount|PaymentDate|PaymentMethod|Status

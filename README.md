@@ -53,12 +53,14 @@ TARUMT-ClinicManagementSystem/
 - **Healthcare Workflow**: Complete patient lifecycle management
 - **Data Persistence**: File-based storage with DAO pattern
 
-## 📚 Modules
-1. **Patient Management** - Patient registration and record management
-2. **Doctor Management** - Doctor profiles and scheduling  
-3. **Consultation Management** - Appointment booking and consultations
-4. **Medical Treatment Management** - Treatment records and prescriptions
-5. **Pharmacy Management** - Medicine inventory and stock control
+## 📚 Core Healthcare Modules
+**Module 1: Patient Management** - Patient registration, record maintenance and queuing management  
+**Module 2: Doctor Management** - Doctor information, duty schedules and availability tracking  
+**Module 3: Consultation Management** - Patient consultations and subsequent visit appointments  
+**Module 4: Medical Treatment Management** - Patient diagnosis and treatment history records  
+**Module 5: Pharmacy Management** - Medicine dispensing and stock control  
+
+*Each module includes comprehensive reporting features (minimum 2 summary reports per module)*
 
 ## 🧪 Testing
 Follow the comprehensive test guide in `COMPLETE_TEST_GUIDE.md` for complete system testing.

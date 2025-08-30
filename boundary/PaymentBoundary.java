@@ -1,8 +1,6 @@
 package boundary;
 
-import control.PaymentControl;
-import control.InvoiceControl;
-import control.PaymentMenuControl;
+import control.PaymentController;
 import entity.*;
 import adt.*;
 
@@ -17,15 +15,11 @@ import java.time.format.DateTimeFormatter;
  */
 public class PaymentBoundary {
     private Scanner sc;
-    private PaymentControl paymentControl;
-    private InvoiceControl invoiceControl;
-    private PaymentMenuControl paymentMenuControl;
+    private PaymentController paymentController;
 
-    public PaymentBoundary(PaymentControl paymentControl, InvoiceControl invoiceControl) {
+    public PaymentBoundary(PaymentController paymentController) {
         this.sc = new Scanner(System.in);
-        this.paymentControl = paymentControl;
-        this.invoiceControl = invoiceControl;
-        this.paymentMenuControl = new PaymentMenuControl(paymentControl, invoiceControl);
+        this.paymentController = paymentController;
     }
 
     public void mainMenu() {
@@ -78,7 +72,7 @@ public class PaymentBoundary {
         System.out.println("\n--- Process Payment ---");
         
         // Show unpaid invoices
-        ListInterface<Invoice> unpaidInvoices = paymentMenuControl.getUnpaidInvoices();
+        ListInterface<Invoice> unpaidInvoices = paymentController.getUnpaidInvoices();
         if (unpaidInvoices.isEmpty()) {
             System.out.println("No unpaid invoices found.");
             return;
@@ -115,7 +109,7 @@ public class PaymentBoundary {
         System.out.println("Amount: RM " + String.format("%.2f", invoice.getAmount()));
 
         // Select payment method
-        Payment.PaymentMethod paymentMethod = paymentMenuControl.selectPaymentMethod(sc);
+        Payment.PaymentMethod paymentMethod = paymentController.selectPaymentMethod(sc);
         if (paymentMethod == null) return;
 
         // Get reference number
@@ -138,7 +132,7 @@ public class PaymentBoundary {
         String confirm = sc.nextLine().trim().toLowerCase();
 
         if (confirm.equals("y") || confirm.equals("yes")) {
-            boolean success = paymentMenuControl.processPaymentForInvoice(invoice.getInvoiceId(), paymentMethod, referenceNumber, notes);
+            boolean success = paymentController.processPaymentForInvoice(invoice.getInvoiceId(), paymentMethod, referenceNumber, notes);
             if (success) {
                 System.out.println("Payment processed successfully!");
             } else {
@@ -168,26 +162,26 @@ public class PaymentBoundary {
     }
 
     private void viewAllPayments() {
-        ListInterface<Payment> payments = paymentMenuControl.getAllPayments();
+        ListInterface<Payment> payments = paymentController.getAllPayments();
         if (payments.isEmpty()) {
             System.out.println("No payments found.");
             return;
         }
 
-        paymentMenuControl.displayPaymentsTable(payments, "All Payments");
+        paymentController.displayPaymentsTable(payments, "All Payments");
     }
 
     private void viewPaymentsByPatient() {
         System.out.print("Enter Patient ID: ");
         String patientId = sc.nextLine().trim();
         
-        ListInterface<Payment> payments = paymentMenuControl.getPaymentsByPatient(patientId);
+        ListInterface<Payment> payments = paymentController.getPaymentsByPatient(patientId);
         if (payments.isEmpty()) {
             System.out.println("No payments found for patient: " + patientId);
             return;
         }
 
-        paymentMenuControl.displayPaymentsTable(payments, "Payments for Patient: " + patientId);
+        paymentController.displayPaymentsTable(payments, "Payments for Patient: " + patientId);
     }
 
     private void viewPaymentsByStatus() {
@@ -202,12 +196,12 @@ public class PaymentBoundary {
             int choice = Integer.parseInt(sc.nextLine().trim());
             if (choice >= 1 && choice <= statuses.length) {
                 Payment.PaymentStatus status = statuses[choice - 1];
-                ListInterface<Payment> payments = paymentMenuControl.getPaymentsByStatus(status);
+                ListInterface<Payment> payments = paymentController.getPaymentsByStatus(status);
                 
                 if (payments.isEmpty()) {
                     System.out.println("No " + status + " payments found.");
                 } else {
-                    paymentMenuControl.displayPaymentsTable(payments, status + " Payments");
+                    paymentController.displayPaymentsTable(payments, status + " Payments");
                 }
             } else {
                 System.out.println("Invalid choice.");
@@ -220,14 +214,14 @@ public class PaymentBoundary {
 
 
     private void viewPaymentStatistics() {
-        paymentMenuControl.displayPaymentStatistics();
+        paymentController.displayPaymentStatistics();
     }
 
     private void refundPayment() {
         System.out.println("\n--- Refund Payment ---");
         
         // Show completed payments
-        ListInterface<Payment> completedPayments = paymentMenuControl.getCompletedPayments();
+        ListInterface<Payment> completedPayments = paymentController.getCompletedPayments();
         if (completedPayments.isEmpty()) {
             System.out.println("No completed payments found for refund.");
             return;
@@ -264,7 +258,7 @@ public class PaymentBoundary {
             String confirm = sc.nextLine().trim().toLowerCase();
 
             if (confirm.equals("y") || confirm.equals("yes")) {
-                boolean success = paymentMenuControl.refundPayment(selectedPayment.getPaymentId(), reason);
+                boolean success = paymentController.refundPayment(selectedPayment.getPaymentId(), reason);
                 if (success) {
                     System.out.println("Payment refunded successfully!");
                 } else {
@@ -280,7 +274,7 @@ public class PaymentBoundary {
     }
 
     private void viewUnpaidInvoices() {
-        ListInterface<Invoice> unpaidInvoices = paymentMenuControl.getUnpaidInvoices();
+        ListInterface<Invoice> unpaidInvoices = paymentController.getUnpaidInvoices();
         if (unpaidInvoices.isEmpty()) {
             System.out.println("No unpaid invoices found.");
             return;
@@ -299,7 +293,7 @@ public class PaymentBoundary {
             System.out.printf("| %-6s | %-10s | %-10s | %-6.2f | %-10s |%n",
                     invoice.getInvoiceId(),
                     invoice.getConsultationId(),
-                    paymentMenuControl.getPatientIdFromConsultation(invoice.getConsultationId()),
+                    paymentController.getPatientIdFromConsultation(invoice.getConsultationId()),
                     invoice.getAmount(),
                     invoice.getCreatedTime().format(dateFormatter));
         }

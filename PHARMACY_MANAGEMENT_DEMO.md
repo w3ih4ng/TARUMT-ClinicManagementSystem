@@ -1,269 +1,286 @@
-# 💊 **PHARMACY MANAGEMENT MODULE DEMO**
+# 🏥 Pharmacy Management Module - Demo Guide
 
-## 🎯 **Module Overview:**
-Complete pharmacy operations with medicine management, stock control, batch tracking, and automated inventory management.
+## 📋 **Module Overview**
+The Pharmacy Management Module provides comprehensive medicine dispensing after doctor consultation and maintains medicine stock control. This module features advanced inventory management, enhanced stock tracking with suppliers, and professional reporting capabilities.
 
 ---
 
-## 📋 **Step-by-Step Demo:**
+## 🚀 **Quick Start Demo**
 
-### **1. Navigate to Pharmacy Management**
-```bash
-java main.ClinicManagementSystem
-# Choose: 1 (Staff Portal)
-# Choose: 6 (Pharmacy Management)
-```
+### **Step 1: Access Pharmacy Management**
+1. Start the system: `java main.ClinicManagementSystem`
+2. Choose: `1` (Staff Portal)
+3. Choose: `5` (Pharmacy Management)
+4. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Pharmacy Management`
 
-### **2. Medicine Management (Choice: 1)**
+### **Step 2: Medicine Management**
+1. Choose: `1` (Medicine Management)
+2. Choose: `1` (Add new medicine)
+3. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Pharmacy Management > Medicine Management`
 
-#### **Add New Medicines (Choice: 1 → 1):**
+---
 
-**Medicine 1:**
+## 💊 **Medicine Management Demo**
+
+### **Step 1: Add Essential Medicines**
+1. Choose: `1` (Add new medicine)
+2. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Pharmacy Management > Medicine Management`
+
+### **Medicine 1: Paracetamol**
 ```
 Name: Paracetamol
 Dosage: 500
-Unit options:
-1. MG
-2. ML  
-3. CAPSULE
-4. TABLET
-5. SYRUP
-Choice: 4 (TABLET)
-Price per unit (RM): 0.50
+Unit: 4 (TABLET)
+Price: 0.50
 ```
-**Expected:** Medicine registered successfully! Medicine ID: MED001
+**Expected Result:** Medicine MED001 created successfully
 
-**Medicine 2:**
+### **Medicine 2: Amoxicillin**
 ```
 Name: Amoxicillin
 Dosage: 250
-Unit Choice: 3 (CAPSULE)
-Price per unit (RM): 1.20
+Unit: 3 (CAPSULE)
+Price: 1.20
 ```
-**Expected:** Medicine registered successfully! Medicine ID: MED002
+**Expected Result:** Medicine MED002 created successfully
 
-**Medicine 3:**
+### **Medicine 3: Cough Syrup**
 ```
 Name: Cough Syrup
 Dosage: 100
-Unit Choice: 2 (ML)
-Price per unit (RM): 0.30
+Unit: 2 (ML)
+Price: 0.30
 ```
-**Expected:** Medicine registered successfully! Medicine ID: MED003
+**Expected Result:** Medicine MED003 created successfully
 
-#### **View All Medicines (Choice: 1 → 2):**
-**Expected Display:**
+---
+
+## 📦 **Enhanced Stock Management Demo**
+
+### **Step 1: Access Stock Management**
+1. Choose: `3` (Stock Management)
+2. Choose: `1` (Add new stock batch)
+3. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Pharmacy Management > Stock Management`
+
+### **Stock Batch 1: Paracetamol**
 ```
-Navigation: Home > Staff Portal > Staff Menu > Pharmacy Management > Medicine Management > View All Medicines
-==================================================
-    MEDICINE LIST
-==================================================
-
-+--------+--------------+--------+--------+-------+
-| MedID  | Name         | Dosage | Unit   | Price |
-+--------+--------------+--------+--------+-------+
-| MED001 | Paracetamol  | 500    | TABLET | 0.50  |
-| MED002 | Amoxicillin  | 250    | CAPSULE| 1.20  |
-| MED003 | Cough Syrup  | 100    | ML     | 0.30  |
-+--------+--------------+--------+--------+-------+
-
-Options:
-1. Filter    2. Search    3. Sort    4. Reset    0. Back
-```
-
-### **3. Stock Management (Choice: 3)**
-
-#### **Add Stock Batches (Choice: 3 → 1):**
-
-**Stock Batch 1:**
-```
-Select Medicine:
-1. MED001 - Paracetamol
-2. MED002 - Amoxicillin  
-3. MED003 - Cough Syrup
-Choice: 1 (Paracetamol)
+Medicine: 1 (MED001 - Paracetamol)
 Quantity: 1000
-Expiry Date (yyyy-MM-dd): 2026-12-31
-Supplier options:
-1. PHARMACO_SDN_BHD
-2. MEDISUPPLY_LTD
-3. HEALTHCARE_CORP
-4. WELLNESS_DISTRIBUTORS
-5. MEDICAL_SOLUTIONS
-Choice: 1 (PHARMACO_SDN_BHD)
-Manufacturing Date (yyyy-MM-dd): 2024-06-15
-Cost per unit (RM): 0.35
+Expiry Date: 2026-12-31
+Supplier: 1 (PHARMACO_SDN_BHD)
+Manufacturing Date: 2024-06-15
+Cost per Unit: 0.35
 ```
-**Expected:** Stock batch registered! Batch ID: B-20241201, Auto-generated batch number
+**Expected Result:** Stock created with auto-generated batch number: B-20241201
 
-**Stock Batch 2:**
+### **Stock Batch 2: Amoxicillin**
 ```
-Medicine Choice: 2 (Amoxicillin)
+Medicine: 2 (MED002 - Amoxicillin)
 Quantity: 500
 Expiry Date: 2025-08-15
-Supplier Choice: 2 (MEDISUPPLY_LTD)
+Supplier: 2 (MEDISUPPLY_LTD)
 Manufacturing Date: 2024-05-20
-Cost per unit (RM): 0.90
+Cost per Unit: 0.90
 ```
-**Expected:** Stock batch registered! Batch ID: B-20241201-1
+**Expected Result:** Stock created with auto-generated batch number: B-20241201
 
-#### **View All Stock Batches (Choice: 3 → 2):**
-**Expected Display:**
+### **Stock Batch 3: Cough Syrup**
 ```
-Navigation: Home > Staff Portal > Staff Menu > Pharmacy Management > Stock Management > View All Stock Batches
-==================================================
-    STOCK BATCH LIST
-==================================================
-
-+----------+--------+--------------+----------+----------+-------------+-------+------+----------+
-| BatchID  | MedID  | Medicine     | Quantity | Expiry   | Batch No.   | Supp. | Cost | Recv.Date|
-+----------+--------+--------------+----------+----------+-------------+-------+------+----------+
-| B1000    | MED001 | Paracetamol  | 1000     | 2026-12-31| B-20241201 | PHARM | 0.35 | 2024-12-01|
-| B1001    | MED002 | Amoxicillin  | 500      | 2025-08-15| B-20241201-1| MEDIS| 0.90 | 2024-12-01|
-+----------+--------+--------------+----------+----------+-------------+-------+------+----------+
-
-Options:
-1. Filter    2. Search    3. Sort    4. Reset    0. Back
+Medicine: 3 (MED003 - Cough Syrup)
+Quantity: 200
+Expiry Date: 2025-03-01
+Supplier: 3 (HEALTHCARE_CORP)
+Manufacturing Date: 2024-01-15
+Cost per Unit: 0.25
 ```
-
-#### **Medicine Stock Summary (Choice: 3 → 3):**
-**Expected Display:**
-```
---- Medicine Stock Summary ---
-+------------+---------------------------+------------+------------+
-| MedicineID | Medicine Name             | Total Stock| Active Stock|
-+------------+---------------------------+------------+------------+
-| MED001     | Paracetamol               | 1000       | 1000       |
-| MED002     | Amoxicillin               | 500        | 500        |
-| MED003     | Cough Syrup               | 0          | 0          |
-+------------+---------------------------+------------+------------+
-
-Stock Status:
-- Well Stocked: 2 medicines
-- Low Stock: 0 medicines  
-- Out of Stock: 1 medicine
-```
-
-### **4. Advanced Stock Operations**
-
-#### **Update Stock Batch (Choice: 3 → 4):**
-```
-Enter Stock Batch ID to update: B1000
-Current batch: Paracetamol (1000 units)
-Update quantity: 800
-Reason: Dispensed to patients
-```
-**Expected:** Stock updated successfully!
-
-#### **Filter Stock by Expiry (Choice: 3 → 2 → 1):**
-```
-Filter by:
-1. Medicine
-2. Expiry Date Range
-3. Supplier
-4. Quantity Range
-Choice: 2 (Expiry Date Range)
-Start date (yyyy-MM-dd): 2024-01-01
-End date (yyyy-MM-dd): 2025-12-31
-```
-**Expected:** Shows stocks expiring in the date range
-
-### **5. Medicine Operations**
-
-#### **Update Medicine (Choice: 1 → 3):**
-```
-Enter Medicine ID to update: MED001
-Current: Paracetamol, 500 TABLET, RM 0.50
-Update price (RM): 0.60
-```
-**Expected:** Medicine updated successfully!
-
-#### **Search Medicine (Choice: 1 → 2 → 2):**
-```
-Search by:
-1. Name
-2. Medicine ID
-Choice: 1 (Name)
-Enter name: Para
-```
-**Expected:** Shows Paracetamol in results
-
-### **6. Generate Reports**
-
-#### **Report 1: Medicine Inventory Analysis**
-**Expected Output:**
-```
---- Medicine Inventory Report ---
-Total Medicines: 3
-Total Stock Value: RM 1,250.00
-By Category:
-- TABLET: 1 medicine, 800 units
-- CAPSULE: 1 medicine, 500 units  
-- ML: 1 medicine, 0 units
-
-Expiry Alert:
-- Expiring in 6 months: 0 batches
-- Expiring in 1 year: 1 batch (Amoxicillin)
-```
-
-#### **Report 2: Stock Movement Summary**
-**Expected Output:**
-```
---- Stock Movement Report ---
-Recent Activities:
-- Stock Added: 2 batches
-- Stock Updated: 1 batch
-- Stock Dispensed: 200 units
-
-By Supplier:
-- PHARMACO_SDN_BHD: 800 units (RM 280.00)
-- MEDISUPPLY_LTD: 500 units (RM 450.00)
-- HEALTHCARE_CORP: 0 units
-```
+**Expected Result:** Stock created with auto-generated batch number: B-20241201
 
 ---
 
-## 🔍 **Key Features Demonstrated:**
+## 🔍 **Pharmacy Management Features**
 
-### ✅ **Core Functionality:**
-- **Medicine Management**: Complete medicine lifecycle
-- **Stock Control**: Batch-based inventory management
-- **Auto-Generation**: Batch numbers with date stamps
-- **Supplier Management**: Multiple supplier tracking
+### **1. Medicine Management**
+- **Add new medicine**: Create medicine records with dosage and pricing
+- **View all medicines**: Comprehensive medicine listing with advanced filtering
+- **Update medicine information**: Modify existing medicine details
+- **Delete medicine**: Soft delete with restoration capability
+- **Restore medicine**: Recover deleted medicine records
 
-### ✅ **Advanced Features:**
-- **Expiry Tracking**: Automatic expiry date monitoring
-- **Cost Analysis**: Purchase vs selling price tracking
-- **Inventory Alerts**: Low stock and expiry warnings
-- **Batch Operations**: Individual batch management
+### **2. Enhanced Stock Management**
+- **Add new stock batch**: Create inventory with supplier and cost tracking
+- **View stock summary**: Real-time inventory levels and batch information
+- **Stock movement tracking**: Monitor stock additions and dispensing
+- **Batch number generation**: Auto-generated batch numbers with date format
+- **Supplier management**: Track medicine suppliers and costs
 
-### ✅ **ADT Usage:**
-- **HashMapADT**: Medicine and stock storage
-- **ArrayList**: Dynamic lists for filtering/sorting
-- **Generics**: Type-safe medicine and stock collections
-
-### ✅ **ECB Architecture:**
-- **Boundary**: PharmacyBoundary, MedicineManagementBoundary, StockManagementBoundary
-- **Control**: PharmacyControl, MedicineControl, StockControl
-- **Entity**: Medicine, Stock with Unit/Supplier enums
-
-### ✅ **Reports (2+ Required):**
-1. **Medicine Inventory Analysis**
-2. **Stock Movement Summary**
-3. **Medicine Stock Summary** (Real-time)
-
-### ✅ **Integration Points:**
-- **Treatment Module**: Medicine prescription
-- **Invoice System**: Cost calculation
-- **Shared Instance**: Consistent data across modules
+### **3. Dispensing Management**
+- **Medicine dispensing**: Process doctor prescriptions
+- **Stock verification**: Check availability before dispensing
+- **Quantity management**: Track dispensed quantities
+- **Prescription validation**: Verify prescription authenticity
 
 ---
 
-## 🧪 **Expected Results:**
-- **Professional Navigation**: Clear breadcrumb trail
-- **Data Consistency**: Shared medicine instance across modules
-- **Real-time Updates**: Stock changes reflect immediately
-- **Comprehensive Tracking**: Full batch lifecycle management
-- **Business Intelligence**: Actionable inventory reports
+## 📊 **Professional Interface Features**
 
-**Module Status: ✅ FULLY FUNCTIONAL**
+### **Navigation System**
+- **Breadcrumb Navigation**: Clear path tracking throughout the module
+- **Section Headers**: Professional section identification
+- **Menu Headers**: Consistent module branding
+- **Input Validation**: Robust error handling with user-friendly messages
+
+### **Data Display**
+- **Formatted Tables**: Professional data presentation
+- **Status Indicators**: Clear visual status representation
+- **Error Messages**: Helpful guidance for user actions
+- **Success Confirmations**: Clear operation feedback
+
+---
+
+## 🎯 **Key Workflows**
+
+### **Complete Medicine Registration Flow**
+1. **Access Module**: Navigate to Pharmacy Management
+2. **Select Medicine Management**: Choose medicine management option
+3. **Add Medicine**: Fill in all required medicine information
+4. **Validation**: System validates input data
+5. **Confirmation**: Medicine record created successfully
+6. **Navigation**: Return to main pharmacy menu
+
+### **Stock Management Flow**
+1. **Access Stock Management**: Navigate to stock management interface
+2. **Select Medicine**: Choose medicine for stock addition
+3. **Enter Stock Details**: Fill in quantity, dates, and supplier information
+4. **Batch Generation**: System auto-generates batch number
+5. **Stock Creation**: Stock record created with complete information
+6. **Confirmation**: Stock successfully added to inventory
+
+---
+
+## 📈 **Reporting Capabilities**
+
+### **Stock Summary Report**
+- **Current Inventory Levels**: Real-time stock quantities
+- **Batch Information**: Batch numbers, expiry dates, and suppliers
+- **Cost Analysis**: Stock value and cost per unit analysis
+- **Expiry Tracking**: Expiry date monitoring and alerts
+
+### **Medicine Usage Report**
+- **Prescription Patterns**: Most commonly prescribed medicines
+- **Dosage Analysis**: Prescription quantity and frequency analysis
+- **Specialty Correlation**: Medicine usage by medical specialty
+- **Cost Impact**: Medicine cost influence on treatment fees
+
+### **Supplier Analysis Report**
+- **Supplier Performance**: Supplier reliability and cost analysis
+- **Medicine Distribution**: Medicine distribution by supplier
+- **Cost Comparison**: Supplier cost comparison and optimization
+- **Quality Metrics**: Supplier quality and delivery performance
+
+---
+
+## 🔧 **Technical Features**
+
+### **Data Validation**
+- **Input Validation**: Comprehensive field validation
+- **Medicine Validation**: Valid medicine unit and dosage enforcement
+- **Stock Validation**: Quantity and date validation
+- **Data Integrity**: Consistent data structure maintenance
+
+### **User Experience**
+- **Exit Options**: Type 'exit' to cancel operations at any point
+- **Input Re-prompting**: Empty input handling with re-prompt
+- **Clear Navigation**: Intuitive menu structure
+- **Professional Interface**: Medical-grade user interface
+
+---
+
+## ✅ **Success Criteria**
+
+### **Functional Requirements**
+- [ ] Comprehensive medicine management system
+- [ ] Enhanced stock management with suppliers
+- [ ] Advanced inventory tracking and reporting
+- [ ] Professional dispensing management
+- [ ] Professional navigation and user interface
+
+### **Technical Requirements**
+- [ ] Custom ADT implementation (no Java Collections)
+- [ ] ECB architecture compliance
+- [ ] Robust data validation and error handling
+- [ ] Professional user interface design
+- [ ] Comprehensive reporting capabilities
+
+---
+
+## 🎉 **Module Benefits**
+
+### **For Healthcare Staff**
+- **Efficient Medicine Management**: Streamlined medicine record keeping
+- **Professional Interface**: Medical-grade user experience
+- **Comprehensive Inventory**: Advanced stock tracking and management
+- **Real-time Updates**: Immediate inventory level updates
+
+### **For System Administrators**
+- **Data Integrity**: Robust validation and error handling
+- **Scalable Architecture**: Modular design for future enhancements
+- **Professional Quality**: Enterprise-grade healthcare system
+- **Compliance Ready**: Meets healthcare management standards
+
+---
+
+## 🚨 **Troubleshooting Tips**
+
+### **Common Issues**
+1. **Empty Input Handling**: System now re-prompts for empty inputs instead of exiting
+2. **Exit Functionality**: Type 'exit' at any point to cancel operations
+3. **Navigation Issues**: Verify breadcrumb navigation appears on all screens
+4. **Data Validation**: Check input format requirements for dates and quantities
+
+### **Best Practices**
+1. **Complete All Fields**: Fill in all required information for accurate records
+2. **Use Exit Option**: Cancel operations cleanly when needed
+3. **Verify Navigation**: Confirm current location using breadcrumb navigation
+4. **Check Stock Levels**: Monitor inventory levels for efficient management
+
+---
+
+## 🔄 **Integration with Other Modules**
+
+### **Treatment Management Integration**
+- **Medicine Prescriptions**: Automatic medicine prescription processing
+- **Stock Verification**: Check medicine availability for prescriptions
+- **Cost Calculation**: Medicine costs included in treatment fees
+- **Inventory Updates**: Real-time stock level updates
+
+### **Consultation Management Integration**
+- **Prescription Processing**: Handle doctor medicine prescriptions
+- **Medicine Dispensing**: Process prescriptions after consultation
+- **Stock Management**: Maintain accurate inventory levels
+- **Cost Tracking**: Track medicine costs and pricing
+
+---
+
+## 📋 **Enhanced Stock Features**
+
+### **Batch Number Generation**
+- **Format**: B-YYYYMMDD (e.g., B-20241201)
+- **Automatic**: Generated based on current date
+- **Unique**: Each batch gets unique identifier
+- **Traceable**: Full batch history tracking
+
+### **Supplier Management**
+- **PHARMACO_SDN_BHD**: Primary medicine supplier
+- **MEDISUPPLY_LTD**: Secondary medicine supplier
+- **HEALTHCARE_CORP**: Specialty medicine supplier
+- **Cost Tracking**: Per-supplier cost analysis
+
+### **Manufacturing and Expiry Tracking**
+- **Manufacturing Date**: Production date recording
+- **Expiry Date**: Expiration date monitoring
+- **Shelf Life**: Automatic shelf life calculation
+- **Expiry Alerts**: Proactive expiry notifications
+
+---
+
+**The Pharmacy Management Module provides a comprehensive, professional solution for healthcare medicine administration with enhanced stock management and comprehensive reporting capabilities.** 🏥✨

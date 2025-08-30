@@ -23,20 +23,20 @@
    Navigation: Home
    ============================================================
    
-   ==================================================
-       TARUMT CLINIC MANAGEMENT SYSTEM
-   ==================================================
-   1. Staff Portal
-   2. Doctor Portal
+   🏥 Welcome to TARUMT Clinic Management System
+      Complete healthcare management solution
+
+   1. Access Management System
    0. Exit System
    ```
 
-2. **Navigate to Staff Portal**
-   - Choose: `1` (Staff Portal)
-   **Expected Navigation:** `Home > Staff Portal > Staff Menu`
+2. **Navigate to Management System**
+   - Choose: `1` (Access Management System)
+   **Expected Navigation:** `Home > Clinic Management > Module Selection`
 
 3. **Create Doctor First**
    - Choose: `2` (Doctor Management)
+   - Choose: `1` (Doctor Details Management)
    - Choose: `1` (Add Doctor)
    - Enter Details:
      ```
@@ -48,14 +48,14 @@
      Consultation Fee: 100.00
      ```
    - ✅ **Expected**: Doctor registered with ID `D1000`
-   **Expected Navigation:** `Home > Staff Portal > Staff Menu > Doctor Management`
+   **Expected Navigation:** `Home > Staff Portal > Staff Menu > Doctor Management > Doctor Details`
 
 ---
 
 ### **PHASE 2: Medicine & Stock Setup**
 
 4. **Add Medicines**
-   - Choose: `6` (Pharmacy Management)
+   - Choose: `5` (Pharmacy Management)
    - Choose: `1` (Medicine Management)
    - Choose: `1` (Add new medicine)
    **Expected Navigation:** `Home > Staff Portal > Staff Menu > Pharmacy Management > Medicine Management`
@@ -171,17 +171,18 @@
 
 ### **PHASE 4: Queue & Appointment Management**
 
-7. **Book Appointment (Dynamic Scheduling)**
-   - Choose: `3` (Doctor Schedule Management)
-   - Choose: `2` (Book Appointment)
-   **Expected Navigation:** `Home > Staff Portal > Staff Menu > Doctor Schedule Management`
+7. **Book Appointment (Simplified Booking)**
+   - Choose: `2` (Doctor Management)
+   - Choose: `2` (Doctor Schedule Management)
+   - Choose: `4` (Book Appointment)
+   **Expected Navigation:** `Home > Staff Portal > Staff Menu > Doctor Management > Doctor Schedule`
    ```
-   Doctor: 1 (D1000 - Sarah Chen)
+   Doctor ID: D1000
    Patient ID: P1002
    Appointment Date: 2025-08-30
-   Time Slot: 2 (10:00-11:00)
+   Time Slot: 2 (10:00-10:30)
    ```
-   - ✅ **Expected**: Appointment booked, consultation C1002 auto-created
+   - ✅ **Expected**: Appointment booked automatically creates schedule & consultation
 
 8. **Add Walk-in Patient**
    - Go back to Patient Management
@@ -252,7 +253,7 @@
 15. **Return to Staff Portal for Payment**
     - Return to main menu: `0`
     - Choose: `1` (Staff Portal)
-    - Choose: `7` (Payment Management)
+    - Choose: `6` (Payment Management)
     **Expected Navigation:** `Home > Staff Portal > Staff Menu > Payment Management`
 
 16. **View Unpaid Invoices**
@@ -280,7 +281,7 @@
     - ✅ **Expected**: Shows all 3 patients with complete information
 
 19. **Generate Doctor Reports**
-    - Navigate to Doctor Management → View All Doctors
+    - Navigate to Doctor Management → View Doctors
     - Generate doctors by specialty report
     - ✅ **Expected**: Shows specialty distribution
 

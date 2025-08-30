@@ -1,64 +1,59 @@
 package control;
 
 import boundary.*;
-import control.*;
-import control.ConsultationMenuControl;
 
 /**
  * Control class for staff management and coordination
  * @author Your Name
  */
 public class StaffControl {
-    private PatientManagementBoundary patientManagementBoundary;
-    private DoctorManagementBoundary doctorManagementBoundary;
-    private PharmacyBoundary pharmacyBoundary;
-    private DoctorScheduleBoundary doctorScheduleBoundary;
-    private TreatmentManagementBoundary treatmentManagementBoundary;
-    private PaymentBoundary paymentBoundary;
-    private ConsultationControl sharedConsultationControl; // Shared instance
+    // Core 5 Module Boundaries
+    private PatientUI patientManagementBoundary;          // Module 1
+    private DoctorUI doctorManagementBoundary;            // Module 2  
+    private ConsultationUI consultationManagementBoundary; // Module 3
+    private TreatmentUI treatmentManagementBoundary;      // Module 4
+    private PharmacyUI pharmacyBoundary;                  // Module 5
+    
+    private ConsultationController sharedConsultationControl; // Shared instance
+    public DoctorController sharedDoctorController; // Shared doctor instance
 
-    public StaffControl(ConsultationControl consultationControl) {
+    public StaffControl(ConsultationController consultationControl) {
         // Use the shared consultation control from main system
         this.sharedConsultationControl = consultationControl;
         
-        // Initialize modules staff can access with shared instance
-        this.patientManagementBoundary = new PatientManagementBoundary(new PatientRecordControl(), new PatientQueueControl(sharedConsultationControl));
-        this.doctorManagementBoundary = new DoctorManagementBoundary(new DoctorRecordControl());
-        this.treatmentManagementBoundary = new TreatmentManagementBoundary(new TreatmentControl(), new PatientRecordControl(), new DoctorRecordControl());
-        this.pharmacyBoundary = new PharmacyBoundary(new PharmacyControl());
-        this.doctorScheduleBoundary = new DoctorScheduleBoundary(new DoctorScheduleControl(), new DoctorRecordControl(), new PatientQueueControl(sharedConsultationControl));
-        this.paymentBoundary = new PaymentBoundary(new PaymentControl(), new InvoiceControl());
+        // Create shared doctor controller instance
+        this.sharedDoctorController = new DoctorController();
+        
+        // Initialize the 5 core modules with shared instances
+        this.patientManagementBoundary = new PatientUI(new PatientController(sharedConsultationControl), sharedDoctorController);
+        this.doctorManagementBoundary = new DoctorUI(sharedDoctorController);
+        this.consultationManagementBoundary = new ConsultationUI(sharedConsultationControl);
+        this.treatmentManagementBoundary = new TreatmentUI(new TreatmentController(), new PatientController(sharedConsultationControl), sharedDoctorController);
+        this.pharmacyBoundary = new PharmacyUI(new PharmacyController());
     }
 
+    // ==================== MODULE 1: PATIENT MANAGEMENT ====================
     public void openPatientModule() {
         patientManagementBoundary.mainMenu();
     }
 
+    // ==================== MODULE 2: DOCTOR MANAGEMENT ====================
     public void openDoctorManagementModule() {
         doctorManagementBoundary.mainMenu();
     }
 
+    // ==================== MODULE 3: CONSULTATION MANAGEMENT ====================
     public void openConsultationModule() {
-        // Use shared consultation control instance
-        control.TreatmentControl treatmentControl = new control.TreatmentControl();
-        control.PatientQueueControl queueControl = new control.PatientQueueControl(sharedConsultationControl);
-        control.ConsultationMenuControl consultationMenuControl = new control.ConsultationMenuControl(sharedConsultationControl, treatmentControl, queueControl);
-        new boundary.ConsultationMenuBoundary(consultationMenuControl).mainMenu();
+        consultationManagementBoundary.mainMenu();
     }
 
-    public void openDoctorScheduleModule() {
-        doctorScheduleBoundary.mainMenu();
-    }
-
+    // ==================== MODULE 4: MEDICAL TREATMENT MANAGEMENT ====================
     public void openTreatmentModule() {
         treatmentManagementBoundary.mainMenu();
     }
 
+    // ==================== MODULE 5: PHARMACY MANAGEMENT ====================
     public void openPharmacyModule() {
         pharmacyBoundary.mainMenu();
-    }
-
-    public void openPaymentModule() {
-        paymentBoundary.mainMenu();
     }
 }

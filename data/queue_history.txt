@@ -1,2 +1,2 @@
-# TARUMT Clinic Management System - Queue History Records
-# Format: historyId|queueId|patientId|queueType|specialty|timestamp|status|consultationId|processedTime|isDeleted
+# Queue History Data File
+# Format: QueueID|PatientID|Specialty|QueueType|ArrivalTime|ScheduledStartTime|AssignedDoctorID|QueueStatus|CompletionReason|CompletionDate

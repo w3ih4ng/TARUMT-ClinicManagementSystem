@@ -1,0 +1,763 @@
+package control;
+
+import entity.*;
+import adt.*;
+import dao.MedicineDAO;
+import dao.StockDAO;
+import utility.FilterCriteriaUtil;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Scanner;
+
+/**
+ * Consolidated Pharmacy Controller - combines all pharmacy-related control functionality
+ * Handles medicine management, stock management, and business logic
+ * @author Your Name
+ */
+public class PharmacyController {
+    private HashMapInterface<String, Medicine> medicineMap;
+    private HashMapInterface<String, Stock> stockMap;
+    private Scanner sc;
+    private int medicineCounter = 1; // start from MED001
+    private final FilterCriteriaUtil criteriaUtil = new FilterCriteriaUtil();
+
+    public PharmacyController() {
+        this.medicineMap = MedicineDAO.loadMedicines();
+        this.stockMap = StockDAO.loadStocks();
+        this.sc = new Scanner(System.in);
+        initCounterFromMap();
+    }
+
+    // ==================== COUNTER INITIALIZATION ====================
+
+    private void initCounterFromMap() {
+        int max = 0;
+        ListInterface<String> keys = medicineMap.keySet();
+        for (int i = 0; i < keys.size(); i++) {
+            String key = keys.get(i);
+            try {
+                int num = Integer.parseInt(key.substring(3));
+                if (num > max)
+                    max = num;
+            } catch (NumberFormatException e) {
+                // ignore invalid keys
+            }
+        }
+        medicineCounter = max + 1;
+    }
+
+    private String generateMedicineId() {
+        String id;
+        do {
+            id = String.format("MED%03d", medicineCounter++);
+        } while (medicineMap.containsKey(id));
+        return id;
+    }
+
+    // ==================== MEDICINE CRUD OPERATIONS ====================
+
+    public void addMedicine() {
+        System.out.println("\n--- Add New Medicine ---");
+        System.out.println("Type 'exit' at any point to cancel.\n");
+
+        // --- Name Input ---
+        String name;
+        while (true) {
+            System.out.print("Enter medicine name: ");
+            name = sc.nextLine().trim();
+            if (name.equalsIgnoreCase("exit")) {
+                System.out.println("Medicine addition cancelled.");
+                return;
+            }
+            if (!name.isEmpty()) {
+                break;
+            }
+            System.out.println("Name cannot be empty. Please try again.");
+        }
+
+        // --- Dosage Input ---
+        double dosage;
+        while (true) {
+            System.out.print("Enter dosage: ");
+            String dosageStr = sc.nextLine().trim();
+            if (dosageStr.equalsIgnoreCase("exit")) {
+                System.out.println("Medicine addition cancelled.");
+                return;
+            }
+            try {
+                dosage = Double.parseDouble(dosageStr);
+                if (dosage > 0) {
+                    break;
+                } else {
+                    System.out.println("Dosage must be positive.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        // --- Unit Input ---
+        Medicine.Unit unit;
+        while (true) {
+            System.out.println("\nAvailable units:");
+            Medicine.Unit[] units = Medicine.Unit.values();
+            for (int i = 0; i < units.length; i++) {
+                System.out.println((i + 1) + ". " + units[i]);
+            }
+            System.out.print("Choose unit (1-" + units.length + "): ");
+            String choice = sc.nextLine().trim();
+            
+            if (choice.equalsIgnoreCase("exit")) {
+                System.out.println("Medicine addition cancelled.");
+                return;
+            }
+            
+            try {
+                int unitChoice = Integer.parseInt(choice);
+                if (unitChoice >= 1 && unitChoice <= units.length) {
+                    unit = units[unitChoice - 1];
+                    break;
+                } else {
+                    System.out.println("Please enter a number between 1 and " + units.length);
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        // --- Price Input ---
+        double price;
+        while (true) {
+            System.out.print("Enter price per unit: ");
+            String priceStr = sc.nextLine().trim();
+            if (priceStr.equalsIgnoreCase("exit")) {
+                System.out.println("Medicine addition cancelled.");
+                return;
+            }
+            try {
+                price = Double.parseDouble(priceStr);
+                if (price >= 0) {
+                    break;
+                } else {
+                    System.out.println("Price cannot be negative.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        // Create and save medicine
+        String medicineId = generateMedicineId();
+        Medicine medicine = new Medicine(medicineId, name, dosage, unit, price);
+        medicineMap.put(medicineId, medicine);
+        MedicineDAO.saveMedicines(medicineMap);
+
+        System.out.println("\n✓ Medicine added successfully!");
+        System.out.println("Medicine ID: " + medicineId);
+        System.out.println("Name: " + name);
+        System.out.println("Dosage: " + dosage + " " + unit);
+        System.out.println("Price: RM " + String.format("%.2f", price));
+    }
+
+    public void viewAllMedicines() {
+        System.out.println("\n--- All Medicines ---");
+        if (medicineMap.isEmpty()) {
+            System.out.println("No medicines found.");
+            return;
+        }
+
+        String borderLine = "+------------+---------------------------+------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-10s | %-25s | %-10s | %-25s | %-25s |%n", "Medicine ID", "Name", "Dosage", "Unit", "Price");
+        System.out.println(borderLine);
+
+        for (String key : medicineMap.keySet()) {
+            Medicine medicine = medicineMap.get(key);
+            if (!medicine.isDeleted()) {
+                System.out.printf("| %-10s | %-25s | %-10s | %-25s | %-25s |%n",
+                        medicine.getMedicineId(),
+                        medicine.getName(),
+                        medicine.getDosage(),
+                        medicine.getUnit(),
+                        "RM " + String.format("%.2f", medicine.getPrice()));
+            }
+        }
+        System.out.println(borderLine);
+    }
+
+    public void viewMedicineDetails() {
+        System.out.println("\n--- View Medicine Details ---");
+        System.out.print("Enter Medicine ID: ");
+        String medicineId = sc.nextLine().trim().toUpperCase();
+
+        if (medicineId.isEmpty()) {
+            System.out.println("Medicine ID cannot be empty!");
+            return;
+        }
+
+        Medicine medicine = medicineMap.get(medicineId);
+        if (medicine == null) {
+            System.out.println("Medicine not found: " + medicineId);
+            return;
+        }
+
+        if (medicine.isDeleted()) {
+            System.out.println("Medicine has been deleted.");
+            return;
+        }
+
+        System.out.println("\n--- Medicine Details ---");
+        System.out.println("Medicine ID: " + medicine.getMedicineId());
+        System.out.println("Name: " + medicine.getName());
+        System.out.println("Dosage: " + medicine.getDosage());
+        System.out.println("Unit: " + medicine.getUnit());
+        System.out.println("Price: RM " + String.format("%.2f", medicine.getPrice()));
+    }
+
+    public void updateMedicine() {
+        System.out.println("\n--- Update Medicine ---");
+        System.out.print("Enter Medicine ID to update: ");
+        String medicineId = sc.nextLine().trim().toUpperCase();
+
+        if (medicineId.isEmpty()) {
+            System.out.println("Medicine ID cannot be empty!");
+            return;
+        }
+
+        Medicine medicine = medicineMap.get(medicineId);
+        if (medicine == null) {
+            System.out.println("Medicine not found: " + medicineId);
+            return;
+        }
+
+        if (medicine.isDeleted()) {
+            System.out.println("Cannot update deleted medicine.");
+            return;
+        }
+
+        System.out.println("\nCurrent medicine details:");
+        System.out.println("Name: " + medicine.getName());
+        System.out.println("Dosage: " + medicine.getDosage());
+        System.out.println("Unit: " + medicine.getUnit());
+        System.out.println("Price: RM " + String.format("%.2f", medicine.getPrice()));
+
+        System.out.println("\nEnter new values (press Enter to keep current value):");
+
+        // Update name
+        System.out.print("New name [" + medicine.getName() + "]: ");
+        String newName = sc.nextLine().trim();
+        if (!newName.isEmpty()) {
+            medicine.setName(newName);
+        }
+
+        // Update price
+        System.out.print("New price [" + String.format("%.2f", medicine.getPrice()) + "]: ");
+        String newPriceStr = sc.nextLine().trim();
+        if (!newPriceStr.isEmpty()) {
+            try {
+                double newPrice = Double.parseDouble(newPriceStr);
+                if (newPrice >= 0) {
+                    medicine.setPrice(newPrice);
+                } else {
+                    System.out.println("Price cannot be negative. Keeping current price.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid price format. Keeping current price.");
+            }
+        }
+
+        // Save changes
+        medicineMap.put(medicineId, medicine);
+        MedicineDAO.saveMedicines(medicineMap);
+        System.out.println("\n✓ Medicine updated successfully!");
+    }
+
+    public void deleteMedicine() {
+        System.out.println("\n--- Delete Medicine ---");
+        System.out.print("Enter Medicine ID to delete: ");
+        String medicineId = sc.nextLine().trim().toUpperCase();
+
+        if (medicineId.isEmpty()) {
+            System.out.println("Medicine ID cannot be empty!");
+            return;
+        }
+
+        Medicine medicine = medicineMap.get(medicineId);
+        if (medicine == null) {
+            System.out.println("Medicine not found: " + medicineId);
+            return;
+        }
+
+        if (medicine.isDeleted()) {
+            System.out.println("Medicine is already deleted.");
+            return;
+        }
+
+        System.out.println("\nMedicine to delete:");
+        System.out.println("ID: " + medicine.getMedicineId());
+        System.out.println("Name: " + medicine.getName());
+        System.out.println("Dosage: " + medicine.getDosage() + " " + medicine.getUnit());
+
+        System.out.print("\nAre you sure you want to delete this medicine? (y/n): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        if (confirm.equals("y") || confirm.equals("yes")) {
+            medicine.delete();
+            medicineMap.put(medicineId, medicine);
+            MedicineDAO.saveMedicines(medicineMap);
+            System.out.println("✓ Medicine deleted successfully!");
+        } else {
+            System.out.println("Delete operation cancelled.");
+        }
+    }
+
+    public void restoreMedicine() {
+        System.out.println("\n--- Restore Deleted Medicine ---");
+        System.out.print("Enter Medicine ID to restore: ");
+        String medicineId = sc.nextLine().trim().toUpperCase();
+
+        if (medicineId.isEmpty()) {
+            System.out.println("Medicine ID cannot be empty!");
+            return;
+        }
+
+        Medicine medicine = medicineMap.get(medicineId);
+        if (medicine == null) {
+            System.out.println("Medicine not found: " + medicineId);
+            return;
+        }
+
+        if (!medicine.isDeleted()) {
+            System.out.println("Medicine is not deleted.");
+            return;
+        }
+
+        System.out.println("\nMedicine to restore:");
+        System.out.println("ID: " + medicine.getMedicineId());
+        System.out.println("Name: " + medicine.getName());
+        System.out.println("Dosage: " + medicine.getDosage() + " " + medicine.getUnit());
+
+        System.out.print("\nAre you sure you want to restore this medicine? (y/n): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        if (confirm.equals("y") || confirm.equals("yes")) {
+            medicine.restore();
+            medicineMap.put(medicineId, medicine);
+            MedicineDAO.saveMedicines(medicineMap);
+            System.out.println("✓ Medicine restored successfully!");
+        } else {
+            System.out.println("Restore operation cancelled.");
+        }
+    }
+
+    // ==================== STOCK MANAGEMENT OPERATIONS ====================
+
+    public void addStockBatch() {
+        System.out.println("\n--- Add New Stock Batch ---");
+        System.out.println("Type 'exit' at any point to cancel.\n");
+
+        // Show available medicines
+        ListInterface<Medicine> medicines = medicineMap.toList();
+        medicines.sort((m1, m2) -> m1.getMedicineId().compareTo(m2.getMedicineId()));
+
+        System.out.println("\nAvailable Medicines:");
+        System.out.println("+------------+---------------------------+");
+        System.out.printf("| %-10s | %-25s |%n", "Med ID", "Name");
+        System.out.println("+------------+---------------------------+");
+        for (int i = 0; i < medicines.size(); i++) {
+            Medicine m = medicines.get(i);
+            if (!m.isDeleted()) {
+                System.out.printf("| %-10s | %-25s |%n", m.getMedicineId(), m.getName());
+            }
+        }
+        System.out.println("+------------+---------------------------+");
+
+        // --- Select Medicine ID ---
+        String medId;
+        while (true) {
+            System.out.print("Enter Medicine ID to add stock: ");
+            medId = sc.nextLine().trim().toUpperCase();
+            if (medId.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return;
+            }
+            if (!medId.isEmpty() && medicineMap.containsKey(medId)) {
+                Medicine med = medicineMap.get(medId);
+                if (!med.isDeleted()) {
+                    break;
+                } else {
+                    System.out.println("Medicine is deleted. Please choose another.");
+                }
+            } else {
+                System.out.println("Invalid Medicine ID. Please try again.");
+            }
+        }
+
+        // --- Quantity Input ---
+        int quantity;
+        while (true) {
+            System.out.print("Enter quantity: ");
+            String quantityStr = sc.nextLine().trim();
+            if (quantityStr.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return;
+            }
+            try {
+                quantity = Integer.parseInt(quantityStr);
+                if (quantity > 0) {
+                    break;
+                } else {
+                    System.out.println("Quantity must be positive.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        // --- Expiry Date Input ---
+        LocalDate expiryDate;
+        while (true) {
+            System.out.print("Enter expiry date (YYYY-MM-DD): ");
+            String dateStr = sc.nextLine().trim();
+            if (dateStr.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return;
+            }
+            try {
+                expiryDate = LocalDate.parse(dateStr);
+                if (expiryDate.isAfter(LocalDate.now())) {
+                    break;
+                } else {
+                    System.out.println("Expiry date must be in the future.");
+                }
+            } catch (Exception e) {
+                System.out.println("Invalid date format. Use YYYY-MM-DD.");
+            }
+        }
+
+        // --- Supplier Input ---
+        Stock.Supplier supplier;
+        while (true) {
+            System.out.println("\nAvailable suppliers:");
+            Stock.Supplier[] suppliers = Stock.Supplier.values();
+            for (int i = 0; i < suppliers.length; i++) {
+                System.out.println((i + 1) + ". " + suppliers[i]);
+            }
+            System.out.print("Choose supplier (1-" + suppliers.length + "): ");
+            String choice = sc.nextLine().trim();
+            
+            if (choice.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return;
+            }
+            
+            try {
+                int supplierChoice = Integer.parseInt(choice);
+                if (supplierChoice >= 1 && supplierChoice <= suppliers.length) {
+                    supplier = suppliers[supplierChoice - 1];
+                    break;
+                } else {
+                    System.out.println("Please enter a number between 1 and " + suppliers.length);
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        // --- Manufacturing Date Input ---
+        LocalDate manufacturingDate;
+        while (true) {
+            System.out.print("Enter manufacturing date (YYYY-MM-DD): ");
+            String dateStr = sc.nextLine().trim();
+            if (dateStr.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return;
+            }
+            try {
+                manufacturingDate = LocalDate.parse(dateStr);
+                if (manufacturingDate.isBefore(LocalDate.now().plusDays(1))) { // Allow today or earlier
+                    if (manufacturingDate.isBefore(expiryDate)) {
+                        break;
+                    } else {
+                        System.out.println("Manufacturing date must be before expiry date.");
+                    }
+                } else {
+                    System.out.println("Manufacturing date cannot be in the future.");
+                }
+            } catch (Exception e) {
+                System.out.println("Invalid date format. Use YYYY-MM-DD.");
+            }
+        }
+
+        // --- Cost Per Unit Input ---
+        double costPerUnit;
+        while (true) {
+            System.out.print("Enter cost per unit: ");
+            String costStr = sc.nextLine().trim();
+            if (costStr.equalsIgnoreCase("exit")) {
+                System.out.println("Stock addition cancelled.");
+                return;
+            }
+            try {
+                costPerUnit = Double.parseDouble(costStr);
+                if (costPerUnit >= 0) {
+                    break;
+                } else {
+                    System.out.println("Cost cannot be negative.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        // Create and save stock batch
+        String stockId = generateStockId();
+        String batchNumber = generateBatchNumber();
+        LocalDate receivedDate = LocalDate.now();
+        
+        Stock stock = new Stock(stockId, medId, batchNumber, supplier, quantity, 
+                               manufacturingDate, expiryDate, receivedDate, costPerUnit);
+        
+        stockMap.put(stockId, stock);
+        StockDAO.saveStocks(stockMap);
+
+        System.out.println("\n✓ Stock batch added successfully!");
+        System.out.println("Stock ID: " + stockId);
+        System.out.println("Batch Number: " + batchNumber);
+        System.out.println("Medicine: " + medId);
+        System.out.println("Quantity: " + quantity);
+        System.out.println("Manufacturing Date: " + manufacturingDate);
+        System.out.println("Expiry Date: " + expiryDate);
+        System.out.println("Supplier: " + supplier);
+        System.out.println("Cost per Unit: RM " + String.format("%.2f", costPerUnit));
+    }
+
+    private String generateStockId() {
+        int counter = 1;
+        String stockId;
+        do {
+            stockId = "S" + String.format("%04d", counter++);
+        } while (stockMap.containsKey(stockId));
+        return stockId;
+    }
+
+    private String generateBatchNumber() {
+        LocalDate today = LocalDate.now();
+        String dateStr = today.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        return "B-" + dateStr;
+    }
+
+    public void viewAllStockBatches() {
+        System.out.println("\n--- All Stock Batches ---");
+        if (stockMap.isEmpty()) {
+            System.out.println("No stock batches found.");
+            return;
+        }
+
+        String borderLine = "+------------+------------+---------------------------+------------+------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-10s | %-10s | %-25s | %-10s | %-10s | %-25s | %-25s |%n", 
+                "Stock ID", "Medicine ID", "Medicine Name", "Batch Number", "Quantity", "Supplier", "Expiry Date");
+        System.out.println(borderLine);
+
+        for (String key : stockMap.keySet()) {
+            Stock stock = stockMap.get(key);
+            if (!stock.isDeleted()) {
+                Medicine medicine = medicineMap.get(stock.getMedicineId());
+                String medicineName = medicine != null ? medicine.getName() : "Unknown";
+                
+                System.out.printf("| %-10s | %-10s | %-25s | %-10s | %-10s | %-25s | %-25s |%n",
+                        stock.getStockId(),
+                        stock.getMedicineId(),
+                        medicineName,
+                        stock.getBatchNumber(),
+                        stock.getQuantity(),
+                        stock.getSupplier(),
+                        stock.getExpiryDate());
+            }
+        }
+        System.out.println(borderLine);
+    }
+
+    public void viewMedicineStockSummary() {
+        System.out.println("\n--- Medicine Stock Summary ---");
+        if (stockMap.isEmpty()) {
+            System.out.println("No stock found.");
+            return;
+        }
+
+        // Group stock by medicine
+        HashMapInterface<String, ListInterface<Stock>> medicineStock = new HashMapADT<>();
+        
+        for (String key : stockMap.keySet()) {
+            Stock stock = stockMap.get(key);
+            if (!stock.isDeleted()) {
+                String medicineId = stock.getMedicineId();
+                
+                if (!medicineStock.containsKey(medicineId)) {
+                    medicineStock.put(medicineId, new ArrayList<>());
+                }
+                
+                medicineStock.get(medicineId).add(stock);
+            }
+        }
+
+        if (medicineStock.isEmpty()) {
+            System.out.println("No active stock found.");
+            return;
+        }
+
+        System.out.println("Stock Summary by Medicine:");
+        String borderLine = "+------------+---------------------------+------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-10s | %-25s | %-10s | %-25s | %-25s |%n", 
+                "Medicine ID", "Medicine Name", "Total Stock", "Total Value", "Low Stock Alert");
+        System.out.println(borderLine);
+
+        for (String medicineId : medicineStock.keySet()) {
+            ListInterface<Stock> stocks = medicineStock.get(medicineId);
+            Medicine medicine = medicineMap.get(medicineId);
+            String medicineName = medicine != null ? medicine.getName() : "Unknown";
+            
+            int totalStock = 0;
+            double totalValue = 0.0;
+            
+            for (int i = 0; i < stocks.size(); i++) {
+                Stock stock = stocks.get(i);
+                totalStock += stock.getQuantity();
+                totalValue += stock.getCostPerUnit() * stock.getQuantity();
+            }
+            
+            String lowStockAlert = totalStock < 100 ? "⚠️ LOW STOCK" : "✓ OK";
+            
+            System.out.printf("| %-10s | %-25s | %-10s | %-25s | %-25s |%n",
+                    medicineId,
+                    medicineName,
+                    totalStock,
+                    "RM " + String.format("%.2f", totalValue),
+                    lowStockAlert);
+        }
+        System.out.println(borderLine);
+    }
+
+    // ==================== FILTERING AND VIEWING OPERATIONS ====================
+
+    public void clearCriteria() {
+        criteriaUtil.clearCriteria();
+    }
+
+    public void addCriteria(String text) {
+        criteriaUtil.addCriteria(text);
+    }
+
+    private void removeOldSortCriteria() {
+        criteriaUtil.removeOldSortCriteria();
+    }
+
+    public String getCriteriaSummary() {
+        return criteriaUtil.getCriteriaSummary();
+    }
+
+    // Medicine filters
+    public HashMapInterface<String, Medicine> filterByDosageValue(HashMapInterface<String, Medicine> map, double dosage) {
+        addCriteria("Dosage = " + dosage);
+        return map.filter(m -> !m.isDeleted() && m.getDosage() == dosage);
+    }
+
+    public HashMapInterface<String, Medicine> filterByUnit(HashMapInterface<String, Medicine> map, Medicine.Unit unit) {
+        addCriteria("Unit = " + unit.name());
+        return map.filter(m -> !m.isDeleted() && m.getUnit() == unit);
+    }
+
+    public HashMapInterface<String, Medicine> filterShowDeleted(HashMapInterface<String, Medicine> map) {
+        addCriteria("Show Deleted");
+        return map.filter(Medicine::isDeleted);
+    }
+
+    public HashMapInterface<String, Medicine> filterNotDeleted(HashMapInterface<String, Medicine> map) {
+        addCriteria("Hide Deleted");
+        return map.filter(m -> !m.isDeleted());
+    }
+
+    public HashMapInterface<String, Medicine> searchByName(HashMapInterface<String, Medicine> map, String keyword) {
+        addCriteria("Search Name = " + keyword);
+        return map.filter(m -> !m.isDeleted() && m.getName().toLowerCase().contains(keyword.toLowerCase()));
+    }
+
+    public HashMapInterface<String, Medicine> searchByMedicineId(HashMapInterface<String, Medicine> map, String medicineId) {
+        addCriteria("Search ID = " + medicineId);
+        return map.filter(m -> !m.isDeleted() && m.getMedicineId().toLowerCase().contains(medicineId.toLowerCase()));
+    }
+
+    // Stock filters
+    public HashMapInterface<String, Stock> filterExpired(HashMapInterface<String, Stock> map) {
+        addCriteria("Expired Stock");
+        LocalDate today = LocalDate.now();
+        return map.filter(s -> !s.isDeleted() && s.getExpiryDate().isBefore(today));
+    }
+
+    public HashMapInterface<String, Stock> filterActive(HashMapInterface<String, Stock> map) {
+        addCriteria("Active Stock");
+        LocalDate today = LocalDate.now();
+        return map.filter(s -> !s.isDeleted() && !s.getExpiryDate().isBefore(today));
+    }
+
+    public HashMapInterface<String, Stock> filterByExpiryBefore(HashMapInterface<String, Stock> map, LocalDate date) {
+        addCriteria("Expiry before " + date.toString());
+        return map.filter(s -> !s.isDeleted() && s.getExpiryDate().isBefore(date));
+    }
+
+    public HashMapInterface<String, Stock> filterByMedicineId(HashMapInterface<String, Stock> map, String medicineId) {
+        addCriteria("Medicine = " + medicineId);
+        return map.filter(s -> !s.isDeleted() && s.getMedicineId().equalsIgnoreCase(medicineId));
+    }
+
+    public HashMapInterface<String, Stock> filterBySupplier(HashMapInterface<String, Stock> map, Stock.Supplier supplier) {
+        addCriteria("Supplier = " + supplier.name());
+        return map.filter(s -> !s.isDeleted() && s.getSupplier() == supplier);
+    }
+
+    // ==================== UTILITY METHODS ====================
+
+    public Medicine getMedicineById(String medicineId) {
+        return medicineMap.get(medicineId);
+    }
+
+    public ListInterface<Medicine> getAllMedicines() {
+        return toList(medicineMap);
+    }
+
+    public HashMapInterface<String, Medicine> getMedicineMap() {
+        return medicineMap;
+    }
+
+    public Stock getStockById(String stockId) {
+        return stockMap.get(stockId);
+    }
+
+    public HashMapInterface<String, Stock> getStockMap() {
+        return stockMap;
+    }
+
+    public ListInterface<Medicine> toList(HashMapInterface<String, Medicine> map) {
+        ListInterface<Medicine> list = new ArrayList<>();
+        for (String key : map.keySet()) {
+            list.add(map.get(key));
+        }
+        return list;
+    }
+
+    public ListInterface<Stock> stockToList(HashMapInterface<String, Stock> map) {
+        ListInterface<Stock> list = new ArrayList<>();
+        for (String key : map.keySet()) {
+            list.add(map.get(key));
+        }
+        return list;
+    }
+
+    public void saveMedicines() {
+        MedicineDAO.saveMedicines(medicineMap);
+    }
+
+    public void saveStocks() {
+        StockDAO.saveStocks(stockMap);
+    }
+}

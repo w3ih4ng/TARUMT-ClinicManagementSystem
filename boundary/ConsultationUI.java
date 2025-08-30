@@ -1,22 +1,24 @@
 package boundary;
 
-import control.ConsultationMenuControl;
+import control.ConsultationController;
 import entity.Consultation;
 import java.util.Scanner;
 
 /**
- * Boundary class for consultation management user interface
- * Follows ECB pattern - contains only UI logic
+ * Consolidated Consultation UI - combines all consultation-related boundary functionality
+ * Handles consultation management, viewing, and reporting operations
  * @author Your Name
  */
-public class ConsultationMenuBoundary {
+public class ConsultationUI {
     private Scanner sc;
-    private ConsultationMenuControl consultationMenuControl;
+    private ConsultationController consultationController;
 
-    public ConsultationMenuBoundary(ConsultationMenuControl consultationMenuControl) {
+    public ConsultationUI(ConsultationController consultationController) {
         this.sc = new Scanner(System.in);
-        this.consultationMenuControl = consultationMenuControl;
+        this.consultationController = consultationController;
     }
+
+    // ==================== MAIN CONSULTATION MENU ====================
 
     public void mainMenu() {
         while (true) {
@@ -42,38 +44,45 @@ public class ConsultationMenuBoundary {
             System.out.println("Note: Appointment scheduling is available through Patient Queue Management");
             System.out.println();
             System.out.println("=".repeat(60));
-            System.out.print("Enter your choice (1-8, 0): ");
+            System.out.print("\n\nEnter your choice (1-8, 0): ");
 
             String choice = sc.nextLine().trim();
 
             switch (choice) {
                 case "1": 
                     utility.SystemUtil.showSectionHeader("View All Consultations");
-                    consultationMenuControl.viewAllConsultations(); 
+                    consultationController.viewAllConsultations(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "2": 
                     utility.SystemUtil.showSectionHeader("View Pending Consultations");
-                    consultationMenuControl.viewPendingConsultations(); 
+                    consultationController.viewPendingConsultations(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "3": 
                     utility.SystemUtil.showSectionHeader("View Completed Consultations");
-                    consultationMenuControl.viewCompletedConsultations(); 
+                    consultationController.viewCompletedConsultations(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "4": 
                     utility.SystemUtil.showSectionHeader("View Consultation Details");
-                    consultationMenuControl.viewConsultationDetails(); 
+                    consultationController.viewConsultationDetails(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "5": 
                     utility.SystemUtil.showSectionHeader("Complete Consultation (Staff)");
-                    consultationMenuControl.completeConsultationWithTreatment(); 
+                    consultationController.completeConsultationWithTreatment(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "6": 
                     utility.SystemUtil.showSectionHeader("Consultations by Doctor Report");
-                    consultationMenuControl.viewConsultationsByDoctor(); 
+                    consultationController.viewConsultationsByDoctor(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "7": 
                     utility.SystemUtil.showSectionHeader("Consultations by Patient Report");
-                    consultationMenuControl.viewConsultationsByPatient(); 
+                    consultationController.viewConsultationsByPatient(); 
+                    utility.SystemUtil.pauseForUser();
                     break;
                 case "8": 
                     utility.SystemUtil.showSectionHeader("Consultation Statistics Report");
@@ -95,35 +104,39 @@ public class ConsultationMenuBoundary {
         System.out.println();
         
         // Get consultation statistics
-        var allConsultations = consultationMenuControl.getConsultationControl().getConsultationMap();
+        var allConsultations = consultationController.getConsultationMap();
+        
+        if (allConsultations.isEmpty()) {
+            System.out.println("No consultations found in the system.");
+            utility.SystemUtil.pauseForUser();
+            return;
+        }
+        
+        // Calculate statistics
         int totalConsultations = 0;
-        int pendingCount = 0;
-        int scheduledCount = 0;
-        int completedCount = 0;
+        int pendingConsultations = 0;
+        int completedConsultations = 0;
         
         for (String key : allConsultations.keySet()) {
             Consultation consultation = allConsultations.get(key);
             totalConsultations++;
             
-            String status = consultation.getStatus();
-            switch (status) {
-                case "PENDING":
-                    pendingCount++;
-                    break;
-                case "SCHEDULED":
-                    scheduledCount++;
-                    break;
-                case "COMPLETED":
-                    completedCount++;
-                    break;
+            if (consultation.getStatus().equals("PENDING")) {
+                pendingConsultations++;
+            } else if (consultation.getStatus().equals("COMPLETED")) {
+                completedConsultations++;
             }
         }
         
-        System.out.println("Total Consultations: " + totalConsultations);
-        System.out.println("  - Pending: " + pendingCount);
-        System.out.println("  - Scheduled: " + scheduledCount);
-        System.out.println("  - Completed: " + completedCount);
-        System.out.println();
+        // Display report
+        System.out.println("CONSULTATION STATISTICS SUMMARY");
+        System.out.println("=".repeat(40));
+        System.out.printf("Total Consultations: %d%n", totalConsultations);
+        System.out.printf("Pending Consultations: %d%n", pendingConsultations);
+        System.out.printf("Completed Consultations: %d%n", completedConsultations);
+        System.out.printf("Completion Rate: %.1f%%%n", 
+            totalConsultations > 0 ? (double) completedConsultations / totalConsultations * 100 : 0.0);
+        System.out.println("=".repeat(40));
         
         utility.SystemUtil.pauseForUser();
     }

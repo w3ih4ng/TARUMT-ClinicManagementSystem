@@ -1,2 +1,0 @@
-# TARUMT Clinic Management System - Patient Queue Records
-# Format: queueId|patientId|queueType|specialty|timestamp|status|consultationId|isDeleted

@@ -138,10 +138,8 @@ public class SystemUtil {
      */
     public static void pauseForUser() {
         System.out.println();
-        System.out.println("Type 'exit' to continue:");
+        System.out.println("Press Enter to continue...");
         java.util.Scanner sc = new java.util.Scanner(System.in);
-        while (!sc.nextLine().trim().equalsIgnoreCase("exit")) {
-            System.out.println("Type 'exit' to continue:");
-        }
+        sc.nextLine();
     }
 }

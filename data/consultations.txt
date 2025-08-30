@@ -1,2 +1,2 @@
-# TARUMT Clinic Management System - Consultation Records
-# Format: consultationId|patientId|doctorId|consultationDate|consultationTime|status|treatmentId|consultationFee|isDeleted
+C1001|P1001|D1000|GENERAL MEDICINE|SCH0001|2025-08-30 10:00|T1001|NONE|COMPLETED|NONE
+C1002|P1000|D1000|GENERAL MEDICINE|NONE|2025-08-30 21:01|T1002|NONE|COMPLETED|Q1001

@@ -1,279 +1,263 @@
-# 🩺 **CONSULTATION MANAGEMENT MODULE DEMO**
+# 🏥 Consultation Management Module - Demo Guide
 
-## 🎯 **Module Overview:**
-Complete consultation lifecycle from patient assignment to treatment completion, including doctor scheduling, consultation processing, and treatment management.
-
----
-
-## 📋 **Step-by-Step Demo:**
-
-### **1. Navigate to Consultation Management**
-```bash
-java main.ClinicManagementSystem
-# Choose: 1 (Staff Portal)
-# Choose: 4 (Consultation Management)
-```
-
-### **2. Initial Setup (Prerequisites)**
-**Ensure you have:**
-- ✅ Patients registered (P1000, P1001, P1002)
-- ✅ Doctors registered (D1000 - Pediatrics, D1001 - Cardiology)
-- ✅ Medicines registered (MED001, MED002, MED003)
-
-### **3. Doctor Schedule Management (Choice: 1 → 3)**
-
-#### **Book Appointment (Choice: 3 → 2):**
-```
-Select Doctor:
-1. D1000 - Sarah Chen (PEDIATRICS)
-2. D1001 - Michael Johnson (CARDIOLOGY)
-Choice: 1 (Dr. Sarah Chen)
-
-Enter Patient ID: P1000
-Appointment Date (yyyy-MM-dd): 2025-08-30
-Available time slots:
-1. 09:00-10:00
-2. 10:00-11:00
-3. 11:00-12:00
-4. 14:00-15:00
-5. 15:00-16:00
-Choice: 2 (10:00-11:00)
-```
-**Expected:** 
-- Appointment booked successfully!
-- Schedule ID: SCH1000
-- Consultation ID: C1002 (auto-created)
-
-#### **View Doctor's Appointments (Choice: 3 → 1):**
-```
-Enter Doctor ID: D1000
-```
-**Expected Display:**
-```
---- Dr. Sarah Chen's Booked Appointments ---
-Weekly Timetable (Aug 25 - Aug 31, 2025):
-
-Time  | Mon | Tue | Wed | Thu | Fri | Sat | Sun
-------|-----|-----|-----|-----|-----|-----|-----
-09:00 |     |     |     |     |     |     |
-10:00 |     |     |     |     | P1000|     |    <- Appointment shows here
-11:00 |     |     |     |     |     |     |
-14:00 |     |     |     |     |     |     |
-15:00 |     |     |     |     |     |     |
-```
-
-### **4. Patient Queue Management (Choice: 1 → 1)**
-
-#### **Add Walk-in Patient (Choice: 1 → 1):**
-```
-Enter Patient ID: P1001
-Select Specialty:
-1. GENERAL_PRACTICE
-2. CARDIOLOGY
-3. DERMATOLOGY
-4. PEDIATRICS
-Choice: 2 (CARDIOLOGY)
-```
-**Expected:** Patient added to queue with consultation C1003
-
-#### **Call Next Patient (Choice: 1 → 4):**
-```
-Next patient: Mary Smith (P1001) - CARDIOLOGY
-Available doctors:
-- D1001: Michael Johnson (CARDIOLOGY)
-Auto-assigned to Dr. Michael Johnson
-```
-**Expected:** Consultation C1003 ready for doctor
-
-### **5. Doctor Portal - Complete Consultations**
-```
-# Switch to Doctor Portal
-# Choose: 2 (Doctor Portal)
-# Enter Doctor ID: D1000
-```
-
-#### **View Pending Consultations (Choice: 2):**
-**Expected Display:**
-```
-Navigation: Home > Doctor Portal > Dr. Sarah Chen
-
---- My Pending Consultations ---
-No. | Consultation ID | Patient ID | Patient Name | Specialty   | Date
-1   | C1002          | P1000      | John Doe     | PEDIATRICS  | 2025-08-30
-```
-
-#### **Complete Consultation (Choice: 3):**
-```
-Select consultation to complete: 1 (C1002)
-
---- Treatment Details Collection ---
-Enter diagnosis: Common cold with fever
-Enter treatment fee (RM): 25.00
-
---- Medicine Prescriptions ---
-Add medicine? (Y/N): Y
-Medicine ID: MED001
-Quantity: 10
-
-Add another medicine? (Y/N): Y  
-Medicine ID: MED003
-Quantity: 1
-
-Add another medicine? (Y/N): N
-
---- Treatment Summary ---
-Diagnosis: Common cold with fever
-Treatment Fee: RM 25.00
-Medicines Prescribed: 2
-  - MED001 x10
-  - MED003 x1
-
-Options:
-1. Complete consultation with this treatment
-2. Edit treatment details  
-3. Start over (clear all details)
-0. Cancel and return to menu
-Choice: 1
-```
-**Expected:** 
-- Treatment created: T1000
-- Consultation completed successfully!
-- Invoice generated: I1002 (RM 161.00)
-
-### **6. Edit Completed Consultation (Choice: 4)**
-```
-Completed Consultations:
-No. | Consultation ID | Patient ID | Date       | Treatment ID
-1   | C1002          | P1000      | 2025-08-30 | T1000
-
-Enter consultation number to edit: 1
-
-Current Treatment:
-Diagnosis: Common cold with fever
-Treatment Fee: RM 25.00
-Medicines: 2 items
-
-Edit Options:
-1. Change diagnosis
-2. Change treatment fee
-3. Edit medicines
-4. Save changes
-0. Cancel editing
-Choice: 2
-
-New treatment fee (RM): 30.00
-Choose: 4 (Save changes)
-```
-**Expected:** 
-- Treatment updated successfully!
-- Invoice regenerated with new amount: RM 166.00
-
-### **7. Consultation History & Analytics**
-
-#### **View Consultation History (Choice: 5):**
-**Expected Display:**
-```
---- My Consultation History ---
-+--------+----------+-------------+------------+--------+----------+
-| ConsID | PatientID| Patient Name| Date       | Status | Treatment|
-+--------+----------+-------------+------------+--------+----------+
-| C1002  | P1000    | John Doe    | 2025-08-30 | COMPLETED| T1000  |
-+--------+----------+-------------+------------+--------+----------+
-
-Total Consultations: 1
-Completed: 1, Pending: 0
-```
-
-### **8. Generate Reports**
-
-#### **Report 1: Consultation Summary (Staff Portal → 4):**
-**Expected Output:**
-```
---- Consultation Management Report ---
-Total Consultations: 2
-- Completed: 1
-- Scheduled: 1  
-- Pending: 0
-
-By Specialty:
-- PEDIATRICS: 1 consultation
-- CARDIOLOGY: 1 consultation
-
-By Doctor:
-- Dr. Sarah Chen (D1000): 1 consultation
-- Dr. Michael Johnson (D1001): 1 consultation
-
-Revenue Generated: RM 166.00
-Average Consultation Value: RM 166.00
-```
-
-#### **Report 2: Treatment Analysis:**
-**Expected Output:**
-```
---- Treatment Analysis Report ---
-Total Treatments: 1
-Average Treatment Fee: RM 30.00
-
-Common Diagnoses:
-1. Common cold with fever: 1 case
-
-Most Prescribed Medicines:
-1. MED001 (Paracetamol): 10 units
-2. MED003 (Cough Syrup): 1 unit
-
-Treatment Success Rate: 100%
-Patient Satisfaction: High
-```
+## 📋 **Module Overview**
+The Consultation Management Module provides comprehensive patient consultation management and arranges subsequent visit appointments. This module features advanced consultation tracking, status management, and comprehensive reporting for healthcare professionals.
 
 ---
 
-## 🔍 **Key Features Demonstrated:**
+## 🚀 **Quick Start Demo**
 
-### ✅ **Core Functionality:**
-- **Dynamic Scheduling**: Schedules created when appointments booked
-- **Queue Management**: Walk-ins and appointments combined
-- **Treatment Documentation**: Complete diagnosis and prescription
-- **Editable Workflow**: Modify treatments until payment
+### **Step 1: Access Consultation Management**
+1. Start the system: `java main.ClinicManagementSystem`
+2. Choose: `1` (Staff Portal)
+3. Choose: `3` (Consultation Management)
+4. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Consultation Management`
 
-### ✅ **Advanced Features:**
-- **Timetable View**: Weekly doctor schedule display
-- **Auto-Assignment**: Smart doctor assignment for queue
-- **Treatment Validation**: Summary and confirmation process
-- **Invoice Integration**: Automatic billing generation
-
-### ✅ **Shared Instance Architecture:**
-- **Consistent Data**: Single ConsultationControl across modules
-- **Real-time Sync**: Queue changes visible to doctors immediately
-- **Cross-module Integration**: Works with all other modules
-
-### ✅ **ADT Usage:**
-- **HashMapADT**: Consultation storage and retrieval
-- **ArrayList**: Dynamic consultation lists
-- **Generics**: Type-safe consultation management
-
-### ✅ **ECB Architecture:**
-- **Boundary**: ConsultationMenuBoundary, DoctorMenuBoundary, DoctorScheduleBoundary
-- **Control**: ConsultationControl, DoctorScheduleControl, TreatmentControl
-- **Entity**: Consultation, Treatment, DoctorSchedule, MedicinePrescribed
-
-### ✅ **Reports (2+ Required):**
-1. **Consultation Management Summary**
-2. **Treatment Analysis Report**
-3. **Doctor Performance Analytics**
-
-### ✅ **Integration Points:**
-- **Patient Management**: Patient assignment
-- **Doctor Management**: Doctor availability
-- **Pharmacy**: Medicine prescriptions
-- **Payment System**: Invoice generation
+### **Step 2: View Consultation Operations**
+1. Choose: `1` (View All Consultations)
+2. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Consultation Management > View All Consultations`
 
 ---
 
-## 🧪 **Expected Results:**
-- **Professional Workflow**: Healthcare-grade consultation process
-- **Data Integrity**: All consultations properly tracked
-- **Real-time Updates**: Changes reflect across all modules
-- **Flexible Editing**: Treatments modifiable until payment
-- **Comprehensive Tracking**: Complete consultation lifecycle
+## 🔍 **Consultation Management Features**
 
-**Module Status: ✅ FULLY FUNCTIONAL**
+### **1. Consultation Operations**
+- **View All Consultations**: Comprehensive consultation listing with advanced filtering
+- **View Pending Consultations**: Consultations awaiting completion
+- **View Completed Consultations**: Finished consultation records
+- **View Consultation Details**: Detailed consultation information
+- **Complete Consultation (Staff)**: Staff-assisted consultation completion
+
+### **2. Advanced Consultation Analysis**
+- **Status Tracking**: Real-time consultation status monitoring
+- **Doctor Assignment**: Doctor-consultation relationship management
+- **Patient History**: Patient consultation history tracking
+- **Specialty Management**: Specialty-specific consultation handling
+- **Appointment Integration**: Seamless appointment-consultation linking
+
+### **3. Professional Reporting System**
+- **Consultations by Doctor Report**: Doctor-specific consultation analysis
+- **Consultations by Patient Report**: Patient consultation history analysis
+- **Consultation Statistics Report**: Comprehensive consultation analytics
+
+---
+
+## 📊 **Consultation Viewing Demo**
+
+### **Step 1: View All Consultations**
+1. Choose: `1` (View All Consultations)
+2. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Consultation Management > View All Consultations`
+
+### **Step 2: View Pending Consultations**
+1. Choose: `2` (View Pending Consultations)
+2. **Expected Result:** Display of all pending consultations
+
+### **Step 3: View Completed Consultations**
+1. Choose: `3` (View Completed Consultations)
+2. **Expected Result:** Display of all completed consultations
+
+### **Step 4: View Consultation Details**
+1. Choose: `4` (View Consultation Details)
+2. Enter Consultation ID: C1002
+3. **Expected Result:** Detailed consultation information display
+
+---
+
+## 🔧 **Consultation Completion Demo**
+
+### **Step 1: Access Consultation Completion**
+1. Choose: `5` (Complete Consultation (Staff))
+2. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Consultation Management > Complete Consultation`
+
+### **Step 2: Complete Consultation Process**
+```
+Consultation Completion Process:
+1. Select consultation to complete
+2. Enter treatment details
+3. Add medicine prescriptions
+4. Confirm completion
+5. Generate invoice
+```
+**Expected Result:** Consultation completed successfully
+
+---
+
+## 📈 **Reporting Capabilities**
+
+### **Report 1: Consultations by Doctor Report**
+- **Doctor Performance**: Consultation volume per doctor
+- **Specialty Analysis**: Consultation distribution by specialty
+- **Efficiency Metrics**: Consultation completion time analysis
+- **Patient Assignment**: Doctor-patient relationship analysis
+
+### **Report 2: Consultations by Patient Report**
+- **Patient History**: Complete consultation timeline
+- **Treatment Evolution**: Treatment changes over time
+- **Cost Analysis**: Consultation cost trends
+- **Outcome Tracking**: Treatment effectiveness monitoring
+
+### **Report 3: Consultation Statistics Report**
+- **Overall Statistics**: Total consultation counts and trends
+- **Status Distribution**: Pending vs completed consultations
+- **Specialty Distribution**: Consultation distribution by medical specialty
+- **Performance Metrics**: System-wide consultation performance
+
+---
+
+## 📊 **Professional Interface Features**
+
+### **Navigation System**
+- **Breadcrumb Navigation**: Clear path tracking throughout the module
+- **Section Headers**: Professional section identification
+- **Menu Headers**: Consistent module branding
+- **Input Validation**: Robust error handling with user-friendly messages
+
+### **Data Display**
+- **Formatted Tables**: Professional data presentation
+- **Status Indicators**: Clear visual status representation
+- **Error Messages**: Helpful guidance for user actions
+- **Success Confirmations**: Clear operation feedback
+
+---
+
+## 🎯 **Key Workflows**
+
+### **Complete Consultation Viewing Flow**
+1. **Access Module**: Navigate to Consultation Management
+2. **Select Viewing**: Choose consultation viewing option
+3. **Apply Filters**: Use advanced filtering and sorting
+4. **View Details**: Access comprehensive consultation information
+5. **Generate Reports**: Create detailed analysis reports
+6. **Navigation**: Return to main consultation menu
+
+### **Consultation Completion Flow**
+1. **Access Completion**: Navigate to consultation completion interface
+2. **Select Consultation**: Choose consultation to complete
+3. **Enter Details**: Input treatment and medicine information
+4. **Validate Information**: Confirm all details are correct
+5. **Complete Process**: Finalize consultation completion
+6. **Confirmation**: Verify successful completion
+
+---
+
+## 🔧 **Technical Features**
+
+### **Data Validation**
+- **Input Validation**: Comprehensive field validation
+- **Consultation Status Validation**: Status transition enforcement
+- **Doctor Assignment Check**: Validates doctor-consultation relationships
+- **Data Integrity**: Consistent data structure maintenance
+
+### **User Experience**
+- **Exit Options**: Type 'exit' to cancel operations at any point
+- **Input Re-prompting**: Empty input handling with re-prompt
+- **Clear Navigation**: Intuitive menu structure
+- **Professional Interface**: Medical-grade user interface
+
+---
+
+## ✅ **Success Criteria**
+
+### **Functional Requirements**
+- [ ] Comprehensive consultation viewing and analysis
+- [ ] Advanced consultation status management
+- [ ] Complete consultation completion workflow
+- [ ] Professional reporting system
+- [ ] Professional navigation and user interface
+
+### **Technical Requirements**
+- [ ] Custom ADT implementation (no Java Collections)
+- [ ] ECB architecture compliance
+- [ ] Robust data validation and error handling
+- [ ] Professional user interface design
+- [ ] Comprehensive reporting capabilities
+
+---
+
+## 🎉 **Module Benefits**
+
+### **For Healthcare Staff**
+- **Efficient Consultation Management**: Streamlined consultation record keeping
+- **Professional Interface**: Medical-grade user experience
+- **Comprehensive Analysis**: Advanced consultation and status analysis
+- **Real-time Updates**: Immediate consultation status updates
+
+### **For System Administrators**
+- **Data Integrity**: Robust validation and error handling
+- **Scalable Architecture**: Modular design for future enhancements
+- **Professional Quality**: Enterprise-grade healthcare system
+- **Compliance Ready**: Meets healthcare management standards
+
+---
+
+## 🚨 **Troubleshooting Tips**
+
+### **Common Issues**
+1. **Empty Input Handling**: System now re-prompts for empty inputs instead of exiting
+2. **Exit Functionality**: Type 'exit' at any point to cancel operations
+3. **Navigation Issues**: Verify breadcrumb navigation appears on all screens
+4. **Consultation Status**: Check consultation status for proper operations
+
+### **Best Practices**
+1. **Complete All Fields**: Fill in all required information for accurate records
+2. **Use Exit Option**: Cancel operations cleanly when needed
+3. **Verify Navigation**: Confirm current location using breadcrumb navigation
+4. **Check Consultation Status**: Verify consultation status for proper operations
+
+---
+
+## 🔄 **Integration with Other Modules**
+
+### **Patient Management Integration**
+- **Patient Assignment**: Seamless patient-consultation linking
+- **Queue Management**: Integration with patient queue system
+- **History Tracking**: Patient consultation history management
+- **Status Synchronization**: Real-time status updates
+
+### **Doctor Management Integration**
+- **Doctor Assignment**: Doctor-consultation relationship management
+- **Specialty Management**: Specialty-specific consultation handling
+- **Schedule Integration**: Doctor availability and scheduling
+- **Performance Tracking**: Doctor consultation performance monitoring
+
+### **Treatment Management Integration**
+- **Treatment Creation**: Automatic treatment record generation
+- **Medicine Prescriptions**: Medicine prescription management
+- **Cost Calculation**: Consultation and treatment cost tracking
+- **Invoice Generation**: Automatic invoice creation
+
+---
+
+## 📋 **Consultation Status Management**
+
+### **Status Types**
+- **PENDING**: Consultation awaiting completion
+- **COMPLETED**: Consultation finished with treatment
+- **CANCELLED**: Consultation cancelled or rescheduled
+- **IN_PROGRESS**: Consultation currently being processed
+
+### **Status Transitions**
+- **PENDING → IN_PROGRESS**: Consultation started
+- **IN_PROGRESS → COMPLETED**: Consultation finished
+- **PENDING → CANCELLED**: Consultation cancelled
+- **COMPLETED → IN_PROGRESS**: Treatment modification (before payment)
+
+---
+
+## 🎯 **Appointment Integration**
+
+### **Appointment-Consultation Linking**
+- **Automatic Creation**: Consultation created with appointment booking
+- **Status Synchronization**: Appointment and consultation status alignment
+- **Doctor Assignment**: Automatic doctor assignment from appointment
+- **Specialty Management**: Specialty-specific consultation handling
+
+### **Walk-in Patient Handling**
+- **Immediate Creation**: Consultation created for walk-in patients
+- **Queue Management**: Integration with patient queue system
+- **Doctor Assignment**: Manual or automatic doctor assignment
+- **Status Tracking**: Real-time consultation status updates
+
+---
+
+**The Consultation Management Module provides a comprehensive, professional solution for healthcare consultation administration with advanced status management and comprehensive reporting capabilities.** 🏥✨

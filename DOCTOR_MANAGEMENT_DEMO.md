@@ -1,211 +1,233 @@
-# 👩‍⚕️ **DOCTOR MANAGEMENT MODULE DEMO**
+# 🏥 Doctor Management Module - Demo Guide
 
-## 🎯 **Module Overview:**
-Complete doctor lifecycle management with specialty assignment, consultation fee configuration, and scheduling integration.
+## 📋 **Module Overview**
+The Doctor Management Module provides comprehensive doctor information management, duty schedules, and availability tracking. This module features a professional interface with advanced scheduling capabilities and real-time availability monitoring.
 
 ---
 
-## 📋 **Step-by-Step Demo:**
+## 🚀 **Quick Start Demo**
 
-### **1. Navigate to Doctor Management**
-```bash
-java main.ClinicManagementSystem
-# Choose: 1 (Staff Portal)
-# Choose: 2 (Doctor Management)
-```
+### **Step 1: Access Doctor Management**
+1. Start the system: `java main.ClinicManagementSystem`
+2. Choose: `1` (Staff Portal)
+3. Choose: `2` (Doctor Management)
+4. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Doctor Management`
 
-### **2. Add New Doctors (Choice: 1)**
+### **Step 2: Doctor Details Management**
+1. Choose: `1` (Doctor Details Management)
+2. Choose: `1` (Add Doctor)
+3. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Doctor Management > Doctor Details`
 
-#### **Doctor 1 - Pediatrician:**
+---
+
+## 👨‍⚕️ **Doctor Registration Demo**
+
+### **Complete Doctor Registration**
 ```
 Name: Sarah Chen
-Gender (M/F): F
-Birthdate (yyyy-MM-dd): 1985-03-15
-Phone (digits only): 0123456789
-Select Specialty:
-1. GENERAL_PRACTICE
-2. CARDIOLOGY
-3. DERMATOLOGY  
-4. PEDIATRICS
-5. ORTHOPEDICS
-Choice: 4 (PEDIATRICS)
-Consultation Fee (RM): 100.00
+Gender: F
+Birthdate: 1985-03-15
+Phone: 0123456789
+Specialty: 4 (PEDIATRICS)
+Consultation Fee: 100.00
 ```
-**Expected:** Doctor registered successfully! Doctor ID: D1000
+**Expected Result:** Doctor D1000 created successfully
 
-#### **Doctor 2 - Cardiologist:**
+### **Additional Doctor Registration**
 ```
-Name: Michael Johnson
-Gender (M/F): M
-Birthdate (yyyy-MM-dd): 1978-11-22
-Phone (digits only): 0198765432
-Specialty Choice: 2 (CARDIOLOGY)
-Consultation Fee (RM): 150.00
+Name: Dr. Michael Wong
+Gender: M
+Birthdate: 1980-07-22
+Phone: 0123456790
+Specialty: 1 (GENERAL_PRACTICE)
+Consultation Fee: 80.00
 ```
-**Expected:** Doctor registered successfully! Doctor ID: D1001
-
-#### **Doctor 3 - General Practitioner:**
-```
-Name: Lisa Rodriguez  
-Gender (M/F): F
-Birthdate (yyyy-MM-dd): 1982-07-08
-Phone (digits only): 0176543210
-Specialty Choice: 1 (GENERAL_PRACTICE)
-Consultation Fee (RM): 80.00
-```
-**Expected:** Doctor registered successfully! Doctor ID: D1002
-
-### **3. View All Doctors (Choice: 2)**
-**Expected Display:**
-```
-Navigation: Home > Staff Portal > Staff Menu > Doctor Management > View All Doctors
-==================================================
-    DOCTOR LIST
-==================================================
-
-+----------+----------------+--------+------------+----------------+-----------------+--------+
-| DoctorID | Name           | Gender | Birthdate  | Phone          | Specialty       | Fee(RM)|
-+----------+----------------+--------+------------+----------------+-----------------+--------+
-| D1000    | Sarah Chen     | F      | 1985-03-15 | 0123456789     | PEDIATRICS      | 100.00 |
-| D1001    | Michael Johnson| M      | 1978-11-22 | 0198765432     | CARDIOLOGY      | 150.00 |
-| D1002    | Lisa Rodriguez | F      | 1982-07-08 | 0176543210     | GENERAL_PRACTICE| 80.00  |
-+----------+----------------+--------+------------+----------------+-----------------+--------+
-
-Options:
-1. Filter    2. Search    3. Sort    4. Reset    0. Back
-```
-
-### **4. Filter Doctors by Specialty**
-```
-Choose: 1 (Filter)
-Filter by:
-1. Gender
-2. Specialty
-Choice: 2 (Specialty)
-Select Specialty: 4 (PEDIATRICS)
-```
-**Expected:** Only shows Dr. Sarah Chen (Pediatrics)
-
-### **5. Update Doctor Information (Choice: 3)**
-```
-Enter Doctor ID to update: D1000
-Current Doctor: Sarah Chen
-Update options:
-1. Name
-2. Phone  
-3. Consultation Fee
-Choice: 3 (Consultation Fee)
-Current fee: RM 100.00
-New consultation fee (RM): 120.00
-```
-**Expected:** Doctor updated successfully!
-
-### **6. Search Functionality**
-```
-Choose: 2 (View All Doctors) → 2 (Search)
-Search by:
-1. Name
-2. Phone
-3. Doctor ID
-Choice: 1 (Name)
-Enter name to search: Johnson
-```
-**Expected:** Shows Michael Johnson results
-
-### **7. Sort Doctors**
-```
-Choose: 2 (View All Doctors) → 3 (Sort)
-Sort by:
-1. Name (A-Z)
-2. Name (Z-A)
-3. Consultation Fee (Low to High)
-4. Consultation Fee (High to Low)
-Choice: 3 (Fee Low to High)
-```
-**Expected:** Lisa Rodriguez (80.00) → Sarah Chen (120.00) → Michael Johnson (150.00)
-
-### **8. Delete and Restore Doctor (Choice: 4 & 5)**
-```
-# Delete Doctor
-Choose: 4 (Delete Doctor)
-Enter Doctor ID to delete: D1002
-Confirm deletion? (Y/N): Y
-```
-**Expected:** Doctor soft-deleted (isDeleted = true)
-
-```
-# Restore Doctor  
-Choose: 5 (Restore Doctor)
-Enter Doctor ID to restore: D1002
-```
-**Expected:** Doctor restored successfully!
-
-### **9. Generate Reports**
-
-#### **Report 1: Doctors by Specialty**
-**Expected Output:**
-```
---- Doctors by Specialty Summary ---
-PEDIATRICS: 1
-CARDIOLOGY: 1  
-GENERAL_PRACTICE: 1
-DERMATOLOGY: 0
-ORTHOPEDICS: 0
-Total Active Doctors: 3
-```
-
-#### **Report 2: Consultation Fee Analysis**
-**Expected Output:**
-```
---- Consultation Fee Analysis ---
-Average Fee: RM 116.67
-Lowest Fee: RM 80.00 (Lisa Rodriguez)
-Highest Fee: RM 150.00 (Michael Johnson)
-Fee Range: RM 70.00
-```
+**Expected Result:** Doctor D1001 created successfully
 
 ---
 
-## 🔍 **Key Features Demonstrated:**
+## 🔍 **Doctor Management Features**
 
-### ✅ **Core Functionality:**
-- **Doctor Registration**: Complete profile with specialty and fees
-- **Specialty Management**: 5 medical specialties supported
-- **Fee Configuration**: Custom consultation fees per doctor
-- **Advanced Operations**: Search, filter, sort capabilities
+### **1. Doctor Details Management**
+- **Add Doctor**: Create new doctor records with comprehensive information
+- **View Doctors**: Advanced doctor listing with filtering and sorting
+- **Update Doctor**: Modify existing doctor details
+- **Delete Doctor**: Soft delete with restoration capability
+- **Restore Doctor**: Recover deleted doctor records
 
-### ✅ **Data Management:**
-- **Soft Delete**: Doctors marked as deleted, not removed
-- **Restore Capability**: Recover soft-deleted doctors
-- **Update Operations**: Modify doctor information
-- **Validation**: Input validation for all fields
+### **2. Advanced Doctor Viewing**
+- **Filter Options:**
+  - By Specialty (GENERAL_PRACTICE, CARDIOLOGY, DERMATOLOGY, PEDIATRICS)
+  - By Gender (M/F)
+  - Show/Hide Deleted Records
+- **Search Functionality:**
+  - Keyword-based search across all fields
+  - Real-time results display
+- **Sorting Options:**
+  - Doctor ID, Name, Specialty, Consultation Fee
+  - Ascending/Descending order
 
-### ✅ **ADT Usage:**
-- **HashMapADT**: Doctor storage with ID-based retrieval
-- **ArrayList**: Dynamic doctor lists for filtering/sorting
-- **Generics**: Type-safe doctor collections
-
-### ✅ **ECB Architecture:**
-- **Boundary**: DoctorManagementBoundary, ViewAllDoctorBoundary
-- **Control**: DoctorRecordControl, ViewDoctorControl
-- **Entity**: Doctor class with Specialty enum
-
-### ✅ **Reports (2+ Required):**
-1. **Doctors by Specialty Distribution**
-2. **Consultation Fee Analysis**
-
-### ✅ **Integration Points:**
-- **Patient Queue**: Doctors available for assignment
-- **Consultation System**: Doctor assignment to patients
-- **Schedule Management**: Doctor availability tracking
+### **3. Doctor Schedule Management**
+- **Book Appointment**: Create patient appointments with automatic schedule generation
+- **View Schedules**: Real-time schedule display by date and time
+- **Schedule Management**: Dynamic schedule creation and modification
+- **Availability Tracking**: Monitor doctor availability and capacity
 
 ---
 
-## 🧪 **Expected Results:**
-- **Professional Interface**: Clean navigation and formatting
-- **Data Integrity**: All changes persisted to files
-- **Real-time Updates**: Changes reflect across modules
-- **Robust Validation**: Proper error handling
-- **Specialty Integration**: Works with other modules
+## 📅 **Schedule Management Demo**
 
-**Module Status: ✅ FULLY FUNCTIONAL**
+### **Step 1: Access Schedule Management**
+1. Choose: `2` (Doctor Schedule Management)
+2. Choose: `2` (Book Appointment)
+3. **Expected Navigation:** `Home > Staff Portal > Staff Menu > Doctor Management > Doctor Schedule`
+
+### **Step 2: Book Appointment**
+```
+Doctor: 1 (D1000 - Sarah Chen)
+Patient ID: P1002
+Appointment Date: 2025-08-30
+Time Slot: 2 (10:00-11:00)
+```
+**Expected Result:** Appointment booked, consultation C1002 auto-created
+
+### **Step 3: View Generated Schedule**
+1. Choose: `1` (View Schedules)
+2. Select date: 2025-08-30
+3. **Expected Result:** See appointment in doctor's schedule
+
+---
+
+## 📊 **Professional Interface Features**
+
+### **Navigation System**
+- **Breadcrumb Navigation**: Clear path tracking throughout the module
+- **Section Headers**: Professional section identification
+- **Menu Headers**: Consistent module branding
+- **Input Validation**: Robust error handling with user-friendly messages
+
+### **Data Display**
+- **Formatted Tables**: Professional data presentation
+- **Status Indicators**: Clear visual status representation
+- **Error Messages**: Helpful guidance for user actions
+- **Success Confirmations**: Clear operation feedback
+
+---
+
+## 🎯 **Key Workflows**
+
+### **Complete Doctor Registration Flow**
+1. **Access Module**: Navigate to Doctor Management
+2. **Select Registration**: Choose doctor registration option
+3. **Enter Details**: Fill in all required doctor information
+4. **Validation**: System validates input data
+5. **Confirmation**: Doctor record created successfully
+6. **Navigation**: Return to main doctor menu
+
+### **Appointment Scheduling Flow**
+1. **Schedule Access**: Navigate to Doctor Schedule Management
+2. **Appointment Creation**: Book new patient appointment
+3. **Schedule Generation**: System automatically creates schedule entry
+4. **Consultation Creation**: Consultation record auto-generated
+5. **Schedule Update**: Real-time schedule availability update
+6. **Confirmation**: Appointment successfully scheduled
+
+---
+
+## 📈 **Reporting Capabilities**
+
+### **Doctor Performance Report**
+- **Specialty Distribution**: Doctor count by medical specialty
+- **Consultation Statistics**: Doctor consultation performance metrics
+- **Schedule Utilization**: Doctor availability and booking efficiency
+- **Patient Assignment**: Doctor-patient assignment analysis
+
+### **Schedule Analysis Report**
+- **Appointment Distribution**: Time slot utilization analysis
+- **Specialty Scheduling**: Specialty-specific scheduling patterns
+- **Capacity Planning**: Doctor availability and capacity planning
+- **Efficiency Metrics**: Schedule optimization opportunities
+
+---
+
+## 🔧 **Technical Features**
+
+### **Data Validation**
+- **Input Validation**: Comprehensive field validation
+- **Specialty Validation**: Valid medical specialty enforcement
+- **Duplicate Prevention**: Unique ID enforcement
+- **Data Integrity**: Consistent data structure maintenance
+
+### **User Experience**
+- **Exit Options**: Type 'exit' to cancel operations at any point
+- **Input Re-prompting**: Empty input handling with re-prompt
+- **Clear Navigation**: Intuitive menu structure
+- **Professional Interface**: Medical-grade user interface
+
+---
+
+## ✅ **Success Criteria**
+
+### **Functional Requirements**
+- [ ] Doctor registration with comprehensive information
+- [ ] Advanced doctor record management
+- [ ] Dynamic schedule creation and management
+- [ ] Real-time availability tracking
+- [ ] Professional navigation and user interface
+
+### **Technical Requirements**
+- [ ] Custom ADT implementation (no Java Collections)
+- [ ] ECB architecture compliance
+- [ ] Robust data validation and error handling
+- [ ] Professional user interface design
+- [ ] Comprehensive reporting capabilities
+
+---
+
+## 🎉 **Module Benefits**
+
+### **For Healthcare Staff**
+- **Efficient Doctor Management**: Streamlined registration and record keeping
+- **Professional Interface**: Medical-grade user experience
+- **Comprehensive Scheduling**: Advanced appointment and schedule management
+- **Real-time Updates**: Immediate availability and schedule updates
+
+### **For System Administrators**
+- **Data Integrity**: Robust validation and error handling
+- **Scalable Architecture**: Modular design for future enhancements
+- **Professional Quality**: Enterprise-grade healthcare system
+- **Compliance Ready**: Meets healthcare management standards
+
+---
+
+## 🚨 **Troubleshooting Tips**
+
+### **Common Issues**
+1. **Empty Input Handling**: System now re-prompts for empty inputs instead of exiting
+2. **Exit Functionality**: Type 'exit' at any point to cancel operations
+3. **Navigation Issues**: Verify breadcrumb navigation appears on all screens
+4. **Data Validation**: Check input format requirements for dates and phone numbers
+
+### **Best Practices**
+1. **Complete All Fields**: Fill in all required information for accurate records
+2. **Use Exit Option**: Cancel operations cleanly when needed
+3. **Verify Navigation**: Confirm current location using breadcrumb navigation
+4. **Check Schedule Status**: Monitor doctor availability for efficient scheduling
+
+---
+
+## 🔄 **Integration with Other Modules**
+
+### **Patient Management Integration**
+- **Appointment Booking**: Seamless patient appointment scheduling
+- **Queue Management**: Doctor assignment for patient queues
+- **Consultation Creation**: Automatic consultation record generation
+
+### **Treatment Management Integration**
+- **Doctor Assignment**: Doctor selection for treatment procedures
+- **Consultation Linking**: Treatment-consultation relationship management
+- **Performance Tracking**: Doctor treatment performance monitoring
+
+---
+
+**The Doctor Management Module provides a comprehensive, professional solution for healthcare doctor administration with advanced scheduling capabilities and a user-friendly interface.** 🏥✨

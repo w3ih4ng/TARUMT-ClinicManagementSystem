@@ -1,2 +1,1 @@
-# TARUMT Clinic Management System - Medicine Records
-# Format: medicineId|name|dosage|unit|pricePerUnit|isDeleted
+MED001|Paracetamol|500.0|TABLET|0.5|false
