@@ -6,6 +6,7 @@ import dao.ConsultationDAO;
 import dao.PatientQueueDAO;
 import dao.DoctorDAO;
 import dao.PatientDAO;
+import dao.PaymentDAO;
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
@@ -708,8 +709,10 @@ public class ConsultationController {
                          "Consultation ID", "Patient ID", "Specialty", "Status", "Doctor ID");
         System.out.println(borderLine);
 
+        int availableCount = 0;
         for (String key : consultationMap.keySet()) {
             Consultation c = consultationMap.get(key);
+            // Only show consultations that are SCHEDULED and have a doctor assigned
             if (c.getStatus().equals("SCHEDULED") && c.getDoctorId() != null) {
                 System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n",
                     c.getConsultationId(),
@@ -717,10 +720,19 @@ public class ConsultationController {
                     c.getSpecialty(),
                     c.getStatus(),
                     c.getDoctorId());
+                availableCount++;
             }
         }
         System.out.println(borderLine);
+        
+        if (availableCount == 0) {
+            System.out.println("No consultations available for completion.");
+        } else {
+            System.out.println("Total available consultations: " + availableCount);
+        }
     }
+
+
 
     // --- Get consultation map for other controls ---
     public HashMapInterface<String, Consultation> getConsultationMap() {
@@ -857,5 +869,131 @@ public class ConsultationController {
             consultationMap.put(consultationId, consultation);
             ConsultationDAO.saveConsultations(consultationMap);
         }
+    }
+    
+    // ==================== PAYMENT PROCESSING METHODS ====================
+    
+    /**
+     * View consultations that require payment
+     */
+    public void viewConsultationsForPayment() {
+        ListInterface<Consultation> consultationsForPayment = new ArrayList<>();
+        
+        for (String key : consultationMap.keySet()) {
+            Consultation c = consultationMap.get(key);
+            // Show consultations that are completed but don't have a payment ID
+            if (c.getStatus().equals("COMPLETED") && c.getPaymentId() == null) {
+                consultationsForPayment.add(c);
+            }
+        }
+        
+        if (consultationsForPayment.isEmpty()) {
+            System.out.println("No consultations require payment.");
+            return;
+        }
+        
+        printConsultationsTable(consultationsForPayment, "Consultations Requiring Payment");
+    }
+    
+    /**
+     * Get count of consultations requiring payment
+     */
+    public int getConsultationsForPaymentCount() {
+        int count = 0;
+        for (String key : consultationMap.keySet()) {
+            Consultation c = consultationMap.get(key);
+            if (c.getStatus().equals("COMPLETED") && c.getPaymentId() == null) {
+                count++;
+            }
+        }
+        return count;
+    }
+    
+    /**
+     * Check if consultation is eligible for payment
+     */
+    public boolean isConsultationEligibleForPayment(String consultationId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation == null) {
+            return false;
+        }
+        // Consultation must be completed and not already paid
+        return consultation.getStatus().equals("COMPLETED") && consultation.getPaymentId() == null;
+    }
+    
+    /**
+     * Process payment for a consultation
+     */
+    public boolean processConsultationPayment(String consultationId, double amount, 
+                                           entity.Payment.PaymentMethod paymentMethod, 
+                                           String referenceNumber, String notes) {
+        try {
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation == null) {
+                System.out.println("Consultation not found: " + consultationId);
+                return false;
+            }
+            
+            if (!isConsultationEligibleForPayment(consultationId)) {
+                System.out.println("Consultation is not eligible for payment: " + consultationId);
+                return false;
+            }
+            
+            // Create payment controller and process payment
+            PaymentController paymentController = new PaymentController();
+            
+            // Get the invoice for this consultation
+            Invoice invoice = paymentController.getInvoiceByConsultation(consultationId);
+            if (invoice == null) {
+                System.out.println("No invoice found for consultation: " + consultationId);
+                return false;
+            }
+            
+            // Create a new invoice with the correct amount if needed
+            if (invoice.getAmount() != amount) {
+                // Delete old invoice and create new one with correct amount
+                paymentController.deleteInvoiceByConsultation(consultationId);
+                paymentController.generateInvoice(consultationId, amount);
+                invoice = paymentController.getInvoiceByConsultation(consultationId);
+            }
+            
+            // Process the payment
+            boolean paymentSuccess = paymentController.processPayment(invoice.getInvoiceId(), paymentMethod, 
+                                                                   referenceNumber, notes);
+            
+            if (paymentSuccess) {
+                // Update consultation with payment ID (get it from the payment map)
+                String paymentId = getPaymentIdFromInvoice(invoice.getInvoiceId());
+                consultation.setPayment(paymentId);
+                consultationMap.put(consultationId, consultation);
+                ConsultationDAO.saveConsultations(consultationMap);
+                
+                System.out.println("Payment processed successfully for consultation: " + consultationId);
+                return true;
+            } else {
+                System.out.println("Failed to process payment for consultation: " + consultationId);
+                return false;
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Error processing payment: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Helper method to get payment ID from invoice ID
+     */
+    private String getPaymentIdFromInvoice(String invoiceId) {
+        PaymentController paymentController = new PaymentController();
+        HashMapInterface<String, Payment> payments = paymentController.getPaymentMap();
+        
+        for (String key : payments.keySet()) {
+            Payment payment = payments.get(key);
+            if (payment != null && payment.getInvoiceId().equals(invoiceId)) {
+                return payment.getPaymentId();
+            }
+        }
+        return null;
     }
 }

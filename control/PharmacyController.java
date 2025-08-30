@@ -855,4 +855,304 @@ public class PharmacyController {
             System.out.println(borderLine);
         }
     }
+
+    // ==================== MEDICINE DISPENSING METHODS ====================
+
+    /**
+     * Display medicines prescribed for a specific treatment
+     */
+    public boolean displayMedicinesForTreatment(String treatmentId) {
+        // Load treatment data
+        HashMapInterface<String, entity.Treatment> treatmentMap = dao.TreatmentDAO.loadTreatments();
+        entity.Treatment treatment = treatmentMap.get(treatmentId);
+        
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
+        
+        if (treatment.getPrescribedMedicines().isEmpty()) {
+            System.out.println("No medicines prescribed for treatment: " + treatmentId);
+            return false;
+        }
+        
+        // Display treatment details
+        System.out.println("\n--- Treatment Details ---");
+        System.out.println("Treatment ID: " + treatment.getTreatmentId());
+        System.out.println("Patient ID: " + treatment.getPatientId());
+        System.out.println("Consultation ID: " + treatment.getConsultationId());
+        System.out.println("Diagnosis: " + treatment.getDescription());
+        System.out.println("Treatment Fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
+        
+        // Display prescribed medicines table
+        System.out.println("\n--- Prescribed Medicines ---");
+        String borderLine = "+------------------+---------------------------+------------+------------+------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-16s | %-25s | %-10s | %-10s | %-10s |%n", 
+                         "Medicine ID", "Medicine Name", "Quantity", "Unit Price", "Total Cost");
+        System.out.println(borderLine);
+        
+        double totalMedicineCost = 0.0;
+        for (int i = 0; i < treatment.getPrescribedMedicines().size(); i++) {
+            entity.MedicinePrescribed prescribed = treatment.getPrescribedMedicines().get(i);
+            String medicineId = prescribed.getMedicineId();
+            int quantity = prescribed.getQuantity();
+            
+            // Get medicine details
+            Medicine medicine = medicineMap.get(medicineId);
+            if (medicine != null) {
+                double unitPrice = medicine.getPrice();
+                double totalCost = unitPrice * quantity;
+                totalMedicineCost += totalCost;
+                
+                System.out.printf("| %-16s | %-25s | %-10s | %-10s | %-10s |%n",
+                    medicineId,
+                    medicine.getName(),
+                    quantity,
+                    "RM " + String.format("%.2f", unitPrice),
+                    "RM " + String.format("%.2f", totalCost));
+            } else {
+                System.out.printf("| %-16s | %-25s | %-10s | %-10s | %-10s |%n",
+                    medicineId,
+                    "NOT FOUND",
+                    quantity,
+                    "N/A",
+                    "N/A");
+            }
+        }
+        System.out.println(borderLine);
+        System.out.printf("| %-16s | %-25s | %-10s | %-10s | %-10s |%n",
+                         "", "", "", "TOTAL:", "RM " + String.format("%.2f", totalMedicineCost));
+        System.out.println(borderLine);
+        
+        // Show total invoice amount that will be generated
+        double totalInvoiceAmount = totalMedicineCost + treatment.getTreatmentFee();
+        System.out.println("\n--- Invoice Summary ---");
+        System.out.println("Medicine cost: RM " + String.format("%.2f", totalMedicineCost));
+        System.out.println("Treatment fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
+        System.out.println("Total invoice amount: RM " + String.format("%.2f", totalInvoiceAmount));
+        
+        return true;
+    }
+
+    /**
+     * Display treatments that have medicine prescriptions
+     */
+    public void displayTreatmentsWithPrescriptions() {
+        // Load treatments and show those with prescriptions
+        HashMapInterface<String, entity.Treatment> treatmentMap = dao.TreatmentDAO.loadTreatments();
+        
+        if (treatmentMap.isEmpty()) {
+            System.out.println("No treatments found.");
+            return;
+        }
+        
+        System.out.println("\n--- Treatments with Medicine Prescriptions ---");
+        String borderLine = "+------------------+------------+---------------------------+---------------------------+---------------------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n", 
+                         "Treatment ID", "Patient ID", "Consultation ID", "Description", "Prescribed Medicines");
+        System.out.println(borderLine);
+        
+        int count = 0;
+        for (String key : treatmentMap.keySet()) {
+            entity.Treatment treatment = treatmentMap.get(key);
+            if (treatment != null && !treatment.getPrescribedMedicines().isEmpty()) {
+                System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n",
+                    treatment.getTreatmentId(),
+                    treatment.getPatientId(),
+                    treatment.getConsultationId(),
+                    treatment.getDescription().substring(0, Math.min(23, treatment.getDescription().length())) + "...",
+                    treatment.getPrescribedMedicines().size() + " medicines");
+                count++;
+            }
+        }
+        System.out.println(borderLine);
+        
+        if (count == 0) {
+            System.out.println("No treatments with medicine prescriptions found.");
+        } else {
+            System.out.println("Total treatments with prescriptions: " + count);
+        }
+    }
+
+    /**
+     * Dispense medicines for a specific treatment
+     * This method will:
+     * 1. Get the treatment and its prescribed medicines
+     * 2. Check stock availability
+     * 3. Reduce stock quantities
+     * 4. Calculate total medicine cost
+     * 5. Generate invoice for patient payment
+     */
+    public boolean dispenseMedicinesForTreatment(String treatmentId) {
+        System.out.println("Dispensing medicines for treatment: " + treatmentId);
+        
+        // Load treatment data
+        HashMapInterface<String, entity.Treatment> treatmentMap = dao.TreatmentDAO.loadTreatments();
+        entity.Treatment treatment = treatmentMap.get(treatmentId);
+        
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
+        
+        if (treatment.getPrescribedMedicines().isEmpty()) {
+            System.out.println("No medicines prescribed for this treatment.");
+            return false;
+        }
+        
+        // Check stock availability and calculate total cost
+        double totalMedicineCost = 0.0;
+        boolean allMedicinesAvailable = true;
+        
+        System.out.println("\n--- Medicine Dispensing Summary ---");
+        System.out.println("Patient ID: " + treatment.getPatientId());
+        System.out.println("Consultation ID: " + treatment.getConsultationId());
+        System.out.println();
+        
+        for (int i = 0; i < treatment.getPrescribedMedicines().size(); i++) {
+            entity.MedicinePrescribed prescribed = treatment.getPrescribedMedicines().get(i);
+            String medicineId = prescribed.getMedicineId();
+            int requiredQuantity = prescribed.getQuantity();
+            
+            // Get medicine details
+            Medicine medicine = medicineMap.get(medicineId);
+            if (medicine == null) {
+                System.out.println("ERROR: Medicine " + medicineId + " not found in system!");
+                allMedicinesAvailable = false;
+                continue;
+            }
+            
+            // Check stock availability
+            int availableStock = getAvailableStockForMedicine(medicineId);
+            
+            if (availableStock < requiredQuantity) {
+                System.out.println("INSUFFICIENT STOCK: " + medicine.getName() + " (ID: " + medicineId + ")");
+                System.out.println("  Required: " + requiredQuantity + ", Available: " + availableStock);
+                allMedicinesAvailable = false;
+            } else {
+                // Calculate cost for this medicine
+                double medicineCost = medicine.getPrice() * requiredQuantity;
+                totalMedicineCost += medicineCost;
+                
+                System.out.println(medicine.getName() + " (ID: " + medicineId + ")");
+                System.out.println("  Quantity: " + requiredQuantity + " x RM " + String.format("%.2f", medicine.getPrice()) + " = RM " + String.format("%.2f", medicineCost));
+                
+                // Reduce stock
+                reduceStockForMedicine(medicineId, requiredQuantity);
+            }
+        }
+        
+        if (!allMedicinesAvailable) {
+            System.out.println("\nCannot dispense medicines due to insufficient stock.");
+            return false;
+        }
+        
+        // All medicines available, complete dispensing
+        System.out.println("\n✅ All medicines dispensed successfully!");
+        System.out.println("Total medicine cost: RM " + String.format("%.2f", totalMedicineCost));
+        
+        // Generate invoice for medicines
+        generateInvoiceForMedicines(treatment, totalMedicineCost);
+        
+        return true;
+    }
+
+    /**
+     * Display dispensing history
+     */
+    public void displayDispensingHistory() {
+        System.out.println("Dispensing history functionality not yet implemented.");
+        System.out.println("This would show records of all medicine dispensations.");
+    }
+
+    // ==================== MEDICINE DISPENSING METHODS ====================
+
+    /**
+     * Get available stock quantity for a specific medicine
+     */
+    private int getAvailableStockForMedicine(String medicineId) {
+        int totalAvailable = 0;
+        
+        for (String key : stockMap.keySet()) {
+            Stock stock = stockMap.get(key);
+            if (stock != null && stock.getMedicineId().equals(medicineId) && !stock.isDeleted()) {
+                totalAvailable += stock.getQuantity();
+            }
+        }
+        
+        return totalAvailable;
+    }
+
+    /**
+     * Reduce stock quantity for a specific medicine
+     * Uses FIFO (First In, First Out) approach
+     */
+    private void reduceStockForMedicine(String medicineId, int quantityToReduce) {
+        int remainingToReduce = quantityToReduce;
+        
+        // Get all stock entries for this medicine, sorted by received date (FIFO)
+        ListInterface<Stock> medicineStocks = new adt.ArrayList<>();
+        for (String key : stockMap.keySet()) {
+            Stock stock = stockMap.get(key);
+            if (stock != null && stock.getMedicineId().equals(medicineId) && !stock.isDeleted()) {
+                medicineStocks.add(stock);
+            }
+        }
+        
+        // Sort by received date (earliest first for FIFO)
+        // For simplicity, we'll just process them in order
+        for (int i = 0; i < medicineStocks.size() && remainingToReduce > 0; i++) {
+            Stock stock = medicineStocks.get(i);
+            int availableInThisBatch = stock.getQuantity();
+            
+            if (availableInThisBatch >= remainingToReduce) {
+                // This batch has enough
+                stock.setQuantity(availableInThisBatch - remainingToReduce);
+                remainingToReduce = 0;
+            } else {
+                // Use all from this batch
+                remainingToReduce -= availableInThisBatch;
+                stock.setQuantity(0);
+            }
+            
+            // Update the stock map
+            stockMap.put(stock.getStockId(), stock);
+        }
+        
+        // Save updated stocks
+        StockDAO.saveStocks(stockMap);
+    }
+
+    /**
+     * Generate invoice for medicines dispensed
+     */
+    private void generateInvoiceForMedicines(entity.Treatment treatment, double medicineCost) {
+        try {
+            // Load existing invoices
+            HashMapInterface<String, entity.Invoice> invoiceMap = dao.InvoiceDAO.loadInvoices();
+            
+            // Generate invoice ID
+            String invoiceId = dao.InvoiceDAO.generateInvoiceId();
+            
+            // Calculate total amount including treatment fee
+            double totalAmount = medicineCost + treatment.getTreatmentFee();
+            
+            // Create invoice for total amount (medicines + treatment fee)
+            entity.Invoice totalInvoice = new entity.Invoice(invoiceId, treatment.getConsultationId(), totalAmount);
+            
+            // Save invoice
+            invoiceMap.put(invoiceId, totalInvoice);
+            dao.InvoiceDAO.saveInvoices(invoiceMap);
+            
+            System.out.println("Invoice generated: " + invoiceId);
+            System.out.println("Medicine cost: RM " + String.format("%.2f", medicineCost));
+            System.out.println("Treatment fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
+            System.out.println("Total amount: RM " + String.format("%.2f", totalAmount));
+            
+        } catch (Exception e) {
+            System.out.println("Error generating invoice: " + e.getMessage());
+        }
+    }
 }

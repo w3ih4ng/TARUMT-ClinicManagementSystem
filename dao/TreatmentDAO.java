@@ -47,6 +47,7 @@ public class TreatmentDAO {
     public static HashMapInterface<String, Treatment> loadTreatments() {
         ensureFile();
         HashMapInterface<String, Treatment> map = new HashMapADT<>();
+        int maxTreatmentNumber = 1000; // Start from 1000
 
         try (BufferedReader br = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
@@ -58,12 +59,29 @@ public class TreatmentDAO {
                 }
                 
                 Treatment t = fromFileString(line);
-                if (t != null)
+                if (t != null) {
                     map.put(t.getTreatmentId(), t);
+                    
+                    // Update counter to ensure unique IDs
+                    String treatmentId = t.getTreatmentId();
+                    if (treatmentId.startsWith("T")) {
+                        try {
+                            int number = Integer.parseInt(treatmentId.substring(1));
+                            if (number > maxTreatmentNumber) {
+                                maxTreatmentNumber = number;
+                            }
+                        } catch (NumberFormatException e) {
+                            // Ignore parsing errors
+                        }
+                    }
+                }
             }
         } catch (IOException e) {
             System.out.println("Error loading treatments: " + e.getMessage());
         }
+        
+        // Set the counter to the next available number
+        treatmentCounter = maxTreatmentNumber + 1;
 
         return map;
     }

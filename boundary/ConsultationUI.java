@@ -31,18 +31,19 @@ public class ConsultationUI {
             System.out.println("=== CONSULTATION MANAGEMENT ===");
             System.out.println("  1. View All Consultations");
             System.out.println("  2. Conduct Consultation");
+            System.out.println("  3. Process Payment");
             System.out.println();
             
             System.out.println("=== DOCTOR SCHEDULE MANAGEMENT ===");
-            System.out.println("  3. View Doctor Schedules");
-            System.out.println("  4. Make Appointment");
-            System.out.println("  5. View Available Time Slots");
+            System.out.println("  4. View Doctor Schedules");
+            System.out.println("  5. Make Appointment");
+            System.out.println("  6. View Available Time Slots");
             System.out.println();
             
             System.out.println("=== CONSULTATION REPORTS ===");
-            System.out.println("  6. Consultations by Doctor Report");
-            System.out.println("  7. Consultations by Patient Report");
-            System.out.println("  8. Daily Consultation Summary");
+            System.out.println("  7. Consultations by Doctor Report");
+            System.out.println("  8. Consultations by Patient Report");
+            System.out.println("  9. Daily Consultation Summary");
             System.out.println();
             
             System.out.println("=== NAVIGATION ===");
@@ -52,7 +53,7 @@ public class ConsultationUI {
             System.out.println("      Treatment completion is in Treatment Module");
             System.out.println();
             System.out.println("=".repeat(60));
-            System.out.print("\n\nEnter your choice (1-8, 0): ");
+            System.out.print("\n\nEnter your choice (1-9, 0): ");
 
             String choice = sc.nextLine().trim();
 
@@ -68,31 +69,36 @@ public class ConsultationUI {
                     utility.SystemUtil.pauseForUser();
                     break;
                 case "3": 
+                    utility.SystemUtil.showSectionHeader("Process Payment");
+                    processPayment(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "4": 
                     utility.SystemUtil.showSectionHeader("View Doctor Schedules");
                     viewDoctorSchedules(); 
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "4": 
+                case "5": 
                     utility.SystemUtil.showSectionHeader("Make Appointment");
                     makeAppointment(); 
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "5": 
+                case "6": 
                     utility.SystemUtil.showSectionHeader("Available Time Slots");
                     viewAvailableTimeSlots(); 
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "6": 
+                case "7": 
                     utility.SystemUtil.showSectionHeader("Consultations by Doctor Report");
                     consultationController.viewConsultationsByDoctor(); 
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "7": 
+                case "8": 
                     utility.SystemUtil.showSectionHeader("Consultations by Patient Report");
                     consultationController.viewConsultationsByPatient(); 
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "8": 
+                case "9": 
                     utility.SystemUtil.showSectionHeader("Daily Consultation Summary");
                     generateDailyConsultationSummary();
                     break;
@@ -101,7 +107,7 @@ public class ConsultationUI {
                     return;
                 default: 
                     System.out.println();
-                    System.out.println("Invalid choice! Please enter 1-10 or 0.");
+                    System.out.println("Invalid choice! Please enter 1-9 or 0.");
                     utility.SystemUtil.pauseForUser();
             }
         }
@@ -338,6 +344,116 @@ public class ConsultationUI {
             consultationController.generateDailyConsultationSummary();
         } else {
             consultationController.generateDailyConsultationSummary(dateStr);
+        }
+    }
+    
+    // ==================== PAYMENT PROCESSING ====================
+    
+    private void processPayment() {
+        System.out.println("\n--- Process Payment for Consultation ---");
+        
+        // Show consultations that need payment
+        System.out.println("Consultations requiring payment:");
+        consultationController.viewConsultationsForPayment();
+        
+        if (consultationController.getConsultationsForPaymentCount() == 0) {
+            System.out.println("No consultations require payment at this time.");
+            return;
+        }
+        
+        // Get consultation selection
+        System.out.print("\nEnter Consultation ID to process payment: ");
+        String consultationId = sc.nextLine().trim();
+        
+        if (consultationId.isEmpty()) {
+            System.out.println("Consultation ID cannot be empty.");
+            return;
+        }
+        
+        // Validate consultation exists and needs payment
+        if (!consultationController.isConsultationEligibleForPayment(consultationId)) {
+            System.out.println("Consultation ID '" + consultationId + "' is not eligible for payment.");
+            return;
+        }
+        
+        // Get payment amount
+        double paymentAmount = 0.0;
+        while (true) {
+            System.out.print("Enter payment amount: RM ");
+            String amountStr = sc.nextLine().trim();
+            try {
+                paymentAmount = Double.parseDouble(amountStr);
+                if (paymentAmount > 0) {
+                    break;
+                } else {
+                    System.out.println("Payment amount must be positive.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+        
+        // Show payment methods
+        System.out.println("\n--- Available Payment Methods ---");
+        System.out.println("1. Cash");
+        System.out.println("2. Credit Card");
+        System.out.println("3. Debit Card");
+        System.out.println("4. Bank Transfer");
+        System.out.println("5. Insurance");
+        System.out.println("6. Online Payment");
+        
+        // Get payment method selection
+        int paymentMethodChoice = 0;
+        while (true) {
+            System.out.print("Choose payment method (1-6): ");
+            String choiceStr = sc.nextLine().trim();
+            try {
+                paymentMethodChoice = Integer.parseInt(choiceStr);
+                if (paymentMethodChoice >= 1 && paymentMethodChoice <= 6) {
+                    break;
+                } else {
+                    System.out.println("Please choose 1-6.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+        
+        // Convert choice to PaymentMethod enum
+        entity.Payment.PaymentMethod paymentMethod = getPaymentMethodFromChoice(paymentMethodChoice);
+        
+        // Get reference number (optional)
+        System.out.print("Enter reference number (optional): ");
+        String referenceNumber = sc.nextLine().trim();
+        
+        // Get notes (optional)
+        System.out.print("Enter payment notes (optional): ");
+        String notes = sc.nextLine().trim();
+        
+        // Process payment
+        System.out.println("\nProcessing payment...");
+        boolean success = consultationController.processConsultationPayment(consultationId, paymentAmount, 
+                                                                        paymentMethod, referenceNumber, notes);
+        
+        if (success) {
+            System.out.println("✓ Payment processed successfully!");
+            System.out.println("Consultation ID: " + consultationId);
+            System.out.println("Amount: RM " + String.format("%.2f", paymentAmount));
+            System.out.println("Method: " + paymentMethod);
+        } else {
+            System.out.println("✗ Failed to process payment for consultation: " + consultationId);
+        }
+    }
+    
+    private entity.Payment.PaymentMethod getPaymentMethodFromChoice(int choice) {
+        switch (choice) {
+            case 1: return entity.Payment.PaymentMethod.CASH;
+            case 2: return entity.Payment.PaymentMethod.CREDIT_CARD;
+            case 3: return entity.Payment.PaymentMethod.DEBIT_CARD;
+            case 4: return entity.Payment.PaymentMethod.BANK_TRANSFER;
+            case 5: return entity.Payment.PaymentMethod.INSURANCE;
+            case 6: return entity.Payment.PaymentMethod.ONLINE_PAYMENT;
+            default: return entity.Payment.PaymentMethod.CASH;
         }
     }
 }

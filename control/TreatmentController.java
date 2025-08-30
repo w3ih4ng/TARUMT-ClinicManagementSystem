@@ -215,21 +215,23 @@ public class TreatmentController {
             return;
         }
 
-        String borderLine = "+------------+------------+------------+------------+---------------------------+---------------------------+";
+        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-25s |%n",
-                "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee");
+        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
+                "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee", "Medicine Prescribed");
         System.out.println(borderLine);
 
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
-            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-25s |%n",
+            String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
+            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
                     treatment.getTreatmentId(),
                     treatment.getDoctorId(),
                     treatment.getPatientId(),
                     treatment.getConsultationId(),
                     treatment.getDescription(),
-                    "RM " + String.format("%.2f", treatment.getTreatmentFee()));
+                    "RM " + String.format("%.2f", treatment.getTreatmentFee()),
+                    medicineStatus);
         }
         System.out.println(borderLine);
     }
@@ -401,8 +403,7 @@ public class TreatmentController {
         TreatmentDAO.saveTreatments(treatmentMap);
 
         // Update consultation status and link to treatment
-        consultation.setStatus("COMPLETED");
-        // Note: Consultation entity needs setTreatmentId method
+        consultation.completeConsultation(treatmentId);
         consultationMap.put(consultationId, consultation);
         ConsultationDAO.saveConsultations(consultationMap);
 
@@ -484,20 +485,49 @@ public class TreatmentController {
         // Print header separator
         System.out.println(borderLine);
 
-        // Print each row + row separator
+        // Convert to list and sort by Medicine ID (ascending)
+        ListInterface<Medicine> sortedMedicines = new ArrayList<>();
         for (String key : medicineMap.keySet()) {
             Medicine medicine = medicineMap.get(key);
             if (medicine != null && !medicine.isDeleted()) {
-                // Print row
-                System.out.printf(leftAlignFormat,
-                        medicine.getMedicineId(),
-                        medicine.getName(),
-                        String.format("%.1f", medicine.getDosage()),
-                        medicine.getUnit(),
-                        String.format("%.2f", medicine.getPrice()));
+                sortedMedicines.add(medicine);
+            }
+        }
+        
+        // Sort medicines by ID (ascending)
+        sortMedicinesById(sortedMedicines);
+        
+        // Print each row + row separator
+        for (int i = 0; i < sortedMedicines.size(); i++) {
+            Medicine medicine = sortedMedicines.get(i);
+            // Print row
+            System.out.printf(leftAlignFormat,
+                    medicine.getMedicineId(),
+                    medicine.getName(),
+                    String.format("%.1f", medicine.getDosage()),
+                    medicine.getUnit(),
+                    String.format("%.2f", medicine.getPrice()));
 
-                // Print row separator after each row
-                System.out.println(borderLine);
+            // Print row separator after each row
+            System.out.println(borderLine);
+        }
+    }
+    
+    /**
+     * Sort medicines by ID in ascending order
+     */
+    private void sortMedicinesById(ListInterface<Medicine> medicines) {
+        // Simple bubble sort for Medicine ID (ascending)
+        for (int i = 0; i < medicines.size() - 1; i++) {
+            for (int j = 0; j < medicines.size() - i - 1; j++) {
+                Medicine current = medicines.get(j);
+                Medicine next = medicines.get(j + 1);
+                
+                if (current.getMedicineId().compareTo(next.getMedicineId()) > 0) {
+                    // Swap medicines
+                    medicines.set(j, next);
+                    medicines.set(j + 1, current);
+                }
             }
         }
     }

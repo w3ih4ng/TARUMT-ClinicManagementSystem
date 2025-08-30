@@ -1,2 +1,16 @@
 # MedicineID|Name|Dosage|Unit|Price|isDeleted
 MED001|Aspirin|500.0|TABLET|1.5|false
+MED002|Paracetamol|500.0|TABLET|0.8|false
+MED003|Ibuprofen|400.0|TABLET|1.2|false
+MED004|Amoxicillin|250.0|CAPSULE|2.5|false
+MED005|Omeprazole|20.0|CAPSULE|3.0|false
+MED006|Metformin|500.0|TABLET|1.8|false
+MED007|Lisinopril|10.0|TABLET|2.2|false
+MED008|Simvastatin|20.0|TABLET|2.8|false
+MED009|Cetirizine|10.0|TABLET|1.5|false
+MED010|Ranitidine|150.0|TABLET|1.6|false
+MED011|Diclofenac|50.0|TABLET|1.4|false
+MED012|Ciprofloxacin|500.0|TABLET|3.5|false
+MED013|Azithromycin|250.0|TABLET|4.2|false
+MED014|Loratadine|10.0|TABLET|1.8|false
+MED015|Pantoprazole|40.0|TABLET|3.5|false

@@ -1,2 +1,2 @@
 # StockID|MedicineID|BatchNumber|Supplier|Quantity|ManufacturingDate|ExpiryDate|ReceivedDate|CostPerUnit|isDeleted
-S0001|MED001|B-20250831|PHARMACORP|1000|2024-12-31|2026-12-31|2025-08-31|0.4|false
+S0001|MED001|B-20250831|PHARMACORP|980|2024-12-31|2026-12-31|2025-08-31|0.4|false

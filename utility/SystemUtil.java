@@ -117,9 +117,9 @@ public class SystemUtil {
         printSeparator();
         showNavigationHeader();
         System.out.println();
-        System.out.println("=".repeat(60));
+        System.out.println("=".repeat(80));
         System.out.println("    " + menuTitle.toUpperCase());
-        System.out.println("=".repeat(60));
+        System.out.println("=".repeat(80));
         System.out.println();
     }
     

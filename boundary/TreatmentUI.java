@@ -63,10 +63,11 @@ public class TreatmentUI {
             System.out.println("=== NAVIGATION ===");
             System.out.println("  0. Back to Staff Menu");
             System.out.println();
-            System.out.println("Note: Consultations must be completed before creating treatments");
-            System.out.println("      Medicine dispensing is handled in Pharmacy Module");
+                    System.out.println("Note: Consultations must be completed before creating treatments");
+        System.out.println("      Medicine dispensing is handled in Pharmacy Module");
+        System.out.println("      After completing treatment, use Pharmacy Module to dispense medicines");
             System.out.println();
-            System.out.println("=".repeat(60));
+            System.out.println("=".repeat(80));
             System.out.print("\n\nEnter your choice (1-10, 0): ");
 
             String choice = sc.nextLine().trim();
@@ -132,207 +133,155 @@ public class TreatmentUI {
     // ==================== VIEW ALL TREATMENTS FUNCTIONALITY ====================
 
     private void viewAllTreatments() {
+        utility.SystemUtil.showSectionHeader("All Treatments");
+        treatmentController.displayAllTreatments();
+        
+        // Show simplified options
+        showTreatmentOptions();
+    }
+    
+    private void showTreatmentOptions() {
         while (true) {
-            utility.SystemUtil.showMenuHeader("Treatment List");
+            System.out.println("\n--- Treatment Options ---");
+            System.out.println("1. Sort Treatments");
+            System.out.println("2. Search Treatments");
+            System.out.println("0. Back to Treatment Management");
+            System.out.print("\nChoose option: ");
             
-            // Display treatments
-            treatmentController.displayAllTreatments();
-            
-            System.out.println("\nOptions:");
-            System.out.println("1. Filter by Doctor");
-            System.out.println("2. Filter by Patient");
-            System.out.println("3. Filter by Fee Range");
-            System.out.println("4. Search by Diagnosis");
-            System.out.println("5. Search by Treatment ID");
-            System.out.println("6. Sort by Treatment ID");
-            System.out.println("7. Sort by Fee");
-            System.out.println("8. Sort by Doctor");
-            System.out.println("0. Back");
-            System.out.print("\n\nChoose: ");
             String choice = sc.nextLine().trim();
-
+            
             switch (choice) {
                 case "1":
-                    utility.SystemUtil.showSectionHeader("Filter by Doctor");
-                    filterByDoctor();
+                    utility.SystemUtil.showSectionHeader("Sort Treatments");
+                    sortTreatments();
                     break;
                 case "2":
-                    utility.SystemUtil.showSectionHeader("Filter by Patient");
-                    filterByPatient();
-                    break;
-                case "3":
-                    utility.SystemUtil.showSectionHeader("Filter by Fee Range");
-                    filterByFeeRange();
-                    break;
-                case "4":
-                    utility.SystemUtil.showSectionHeader("Search by Diagnosis");
-                    searchByDiagnosis();
-                    break;
-                case "5":
-                    utility.SystemUtil.showSectionHeader("Search by Treatment ID");
-                    searchByTreatmentId();
-                    break;
-                case "6":
-                    utility.SystemUtil.showSectionHeader("Sort by Treatment ID");
-                    sortByTreatmentId();
-                    break;
-                case "7":
-                    utility.SystemUtil.showSectionHeader("Sort by Fee");
-                    sortByFee();
-                    break;
-                case "8":
-                    utility.SystemUtil.showSectionHeader("Sort by Doctor");
-                    sortByDoctor();
+                    utility.SystemUtil.showSectionHeader("Search Treatments");
+                    searchTreatments();
                     break;
                 case "0":
                     return;
                 default:
-                    System.out.println("Invalid choice.");
+                    System.out.println("Invalid choice, try again.");
             }
         }
     }
-
-    // ==================== FILTER AND SEARCH METHODS ====================
-
-    private void filterByDoctor() {
-        System.out.print("Enter Doctor ID: ");
-        String doctorId = sc.nextLine().trim().toUpperCase();
+    
+    private void sortTreatments() {
+        System.out.println("\n--- Sort Options ---");
+        System.out.println("1. Sort by Treatment ID (A-Z)");
+        System.out.println("2. Sort by Treatment ID (Z-A)");
+        System.out.println("3. Sort by Fee (Low to High)");
+        System.out.println("4. Sort by Fee (High to Low)");
+        System.out.println("0. Back to Treatment Options");
+        System.out.print("\nChoose: ");
         
-        if (doctorId.isEmpty()) {
-            System.out.println("Doctor ID cannot be empty!");
+        String choice = sc.nextLine().trim();
+        
+        switch (choice) {
+            case "1":
+                ListInterface<Treatment> sortedAsc = treatmentController.sortByTreatmentId(treatmentController.getTreatmentMap(), true);
+                System.out.println("\nSorted Results (A-Z):");
+                displayTreatmentsFromList(sortedAsc);
+                break;
+            case "2":
+                ListInterface<Treatment> sortedDesc = treatmentController.sortByTreatmentId(treatmentController.getTreatmentMap(), false);
+                System.out.println("\nSorted Results (Z-A):");
+                displayTreatmentsFromList(sortedDesc);
+                break;
+            case "3":
+                ListInterface<Treatment> feeAsc = treatmentController.sortByFee(treatmentController.getTreatmentMap(), true);
+                System.out.println("\nSorted Results (Low to High):");
+                displayTreatmentsFromList(feeAsc);
+                break;
+            case "4":
+                ListInterface<Treatment> feeDesc = treatmentController.sortByFee(treatmentController.getTreatmentMap(), false);
+                System.out.println("\nSorted Results (High to Low):");
+                displayTreatmentsFromList(feeDesc);
+                break;
+            case "0":
+                return;
+            default:
+                System.out.println("Invalid choice.");
+        }
+        utility.SystemUtil.pauseForUser();
+    }
+    
+    private void searchTreatments() {
+        System.out.println("\n--- Search Treatments ---");
+        System.out.println("Enter search term to find treatments by:");
+        System.out.println("- Treatment ID");
+        System.out.println("- Diagnosis");
+        System.out.println("- Doctor ID");
+        System.out.println("- Patient ID");
+        System.out.println("- Consultation ID");
+        System.out.println();
+        System.out.print("Search term: ");
+        
+        String searchTerm = sc.nextLine().trim();
+        
+        if (searchTerm.isEmpty()) {
+            System.out.println("Search term cannot be empty!");
             return;
         }
         
-        HashMapInterface<String, Treatment> filtered = treatmentController.filterByDoctor(treatmentController.getTreatmentMap(), doctorId);
-        System.out.println("\nFiltered Results:");
-        displayTreatmentsFromMap(filtered);
-        utility.SystemUtil.pauseForUser();
-    }
-
-    private void filterByPatient() {
-        System.out.print("Enter Patient ID: ");
-        String patientId = sc.nextLine().trim().toUpperCase();
+        // Search across all fields
+        HashMapInterface<String, Treatment> searchResults = searchAcrossAllFields(searchTerm);
         
-        if (patientId.isEmpty()) {
-            System.out.println("Patient ID cannot be empty!");
-            return;
+        if (searchResults.isEmpty()) {
+            System.out.println("No treatments found matching: " + searchTerm);
+        } else {
+            System.out.println("\nSearch Results for: " + searchTerm);
+            displayTreatmentsFromMap(searchResults);
         }
         
-        HashMapInterface<String, Treatment> filtered = treatmentController.filterByPatient(treatmentController.getTreatmentMap(), patientId);
-        System.out.println("\nFiltered Results:");
-        displayTreatmentsFromMap(filtered);
         utility.SystemUtil.pauseForUser();
     }
-
-    private void filterByFeeRange() {
-        System.out.println("Enter fee range:");
-        System.out.print("Minimum fee: ");
-        String minFeeStr = sc.nextLine().trim();
-        System.out.print("Maximum fee: ");
-        String maxFeeStr = sc.nextLine().trim();
+    
+    private HashMapInterface<String, Treatment> searchAcrossAllFields(String searchTerm) {
+        HashMapInterface<String, Treatment> results = new HashMapADT<>();
+        String upperSearchTerm = searchTerm.toUpperCase();
         
-        if (minFeeStr.isEmpty() || maxFeeStr.isEmpty()) {
-            System.out.println("Both fee values are required!");
-            return;
+        for (String key : treatmentController.getTreatmentMap().keySet()) {
+            Treatment treatment = treatmentController.getTreatmentMap().get(key);
+            
+            // Search in Treatment ID
+            if (treatment.getTreatmentId().toUpperCase().contains(upperSearchTerm)) {
+                results.put(treatment.getTreatmentId(), treatment);
+                continue;
+            }
+            
+            // Search in Doctor ID
+            if (treatment.getDoctorId().toUpperCase().contains(upperSearchTerm)) {
+                results.put(treatment.getTreatmentId(), treatment);
+                continue;
+            }
+            
+            // Search in Patient ID
+            if (treatment.getPatientId().toUpperCase().contains(upperSearchTerm)) {
+                results.put(treatment.getTreatmentId(), treatment);
+                continue;
+            }
+            
+            // Search in Consultation ID
+            if (treatment.getConsultationId().toUpperCase().contains(upperSearchTerm)) {
+                results.put(treatment.getTreatmentId(), treatment);
+                continue;
+            }
+            
+            // Search in Diagnosis (case-insensitive)
+            if (treatment.getDescription().toLowerCase().contains(searchTerm.toLowerCase())) {
+                results.put(treatment.getTreatmentId(), treatment);
+                continue;
+            }
         }
         
-        try {
-            double minFee = Double.parseDouble(minFeeStr);
-            double maxFee = Double.parseDouble(maxFeeStr);
-            HashMapInterface<String, Treatment> filtered = treatmentController.filterByFeeRange(treatmentController.getTreatmentMap(), minFee, maxFee);
-            System.out.println("\nFiltered Results:");
-            displayTreatmentsFromMap(filtered);
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid fee format. Please enter valid numbers.");
-        }
-        utility.SystemUtil.pauseForUser();
+        return results;
     }
+    
 
-    private void searchByDiagnosis() {
-        System.out.print("Enter diagnosis keywords: ");
-        String keywords = sc.nextLine().trim();
-        
-        if (keywords.isEmpty()) {
-            System.out.println("Keywords cannot be empty!");
-            return;
-        }
-        
-        HashMapInterface<String, Treatment> searchResults = treatmentController.searchByDiagnosis(treatmentController.getTreatmentMap(), keywords);
-        System.out.println("\nSearch Results:");
-        displayTreatmentsFromMap(searchResults);
-        utility.SystemUtil.pauseForUser();
-    }
 
-    private void searchByTreatmentId() {
-        System.out.print("Enter Treatment ID: ");
-        String treatmentId = sc.nextLine().trim().toUpperCase();
-        
-        if (treatmentId.isEmpty()) {
-            System.out.println("Treatment ID cannot be empty!");
-            return;
-        }
-        
-        HashMapInterface<String, Treatment> searchResults = treatmentController.searchByTreatmentId(treatmentController.getTreatmentMap(), treatmentId);
-        System.out.println("\nSearch Results:");
-        displayTreatmentsFromMap(searchResults);
-        utility.SystemUtil.pauseForUser();
-    }
 
-    // ==================== SORT METHODS ====================
-
-    private void sortByTreatmentId() {
-        System.out.println("Sort order:");
-        System.out.println("1. A-Z (Ascending)");
-        System.out.println("2. Z-A (Descending)");
-        System.out.print("Choose: ");
-        
-        try {
-            int choice = Integer.parseInt(sc.nextLine().trim());
-            boolean ascending = (choice == 1);
-            ListInterface<Treatment> sorted = treatmentController.sortByTreatmentId(treatmentController.getTreatmentMap(), ascending);
-            System.out.println("\nSorted Results:");
-            displayTreatmentsFromList(sorted);
-        } catch (NumberFormatException e) {
-            System.out.println("Please enter a valid number.");
-        }
-        utility.SystemUtil.pauseForUser();
-    }
-
-    private void sortByFee() {
-        System.out.println("Sort order:");
-        System.out.println("1. Lowest First");
-        System.out.println("2. Highest First");
-        System.out.print("Choose: ");
-        
-        try {
-            int choice = Integer.parseInt(sc.nextLine().trim());
-            boolean ascending = (choice == 1);
-            ListInterface<Treatment> sorted = treatmentController.sortByFee(treatmentController.getTreatmentMap(), ascending);
-            System.out.println("\nSorted Results:");
-            displayTreatmentsFromList(sorted);
-        } catch (NumberFormatException e) {
-            System.out.println("Please enter a valid number.");
-        }
-        utility.SystemUtil.pauseForUser();
-    }
-
-    private void sortByDoctor() {
-        System.out.println("Sort order:");
-        System.out.println("1. A-Z (Ascending)");
-        System.out.println("2. Z-A (Descending)");
-        System.out.print("Choose: ");
-        
-        try {
-            int choice = Integer.parseInt(sc.nextLine().trim());
-            boolean ascending = (choice == 1);
-            ListInterface<Treatment> sorted = treatmentController.sortByDoctor(treatmentController.getTreatmentMap(), ascending);
-            System.out.println("\nSorted Results:");
-            displayTreatmentsFromList(sorted);
-        } catch (NumberFormatException e) {
-            System.out.println("Please enter a valid number.");
-        }
-        utility.SystemUtil.pauseForUser();
-    }
 
     // ==================== VIEW TREATMENT DETAILS ====================
 
@@ -398,13 +347,17 @@ public class TreatmentUI {
         if (success) {
             System.out.println("Consultation completed successfully with treatment!");
             System.out.println("You can now add medicine prescriptions to the treatment.");
+            System.out.println();
+            System.out.println("Next steps:");
+            System.out.println("1. Add medicine prescriptions to the treatment");
+            System.out.println("2. Use Pharmacy Module to dispense medicines (reduces stock, generates invoice)");
         } else {
             System.out.println("Failed to complete consultation with treatment.");
         }
     }
 
     private void addMedicinePrescription() {
-        System.out.println("\n--- Add Medicine Prescription to Treatment ---");
+        System.out.println("\n--- Add Medicine Prescriptions to Treatment ---");
         
         // Show treatments
         System.out.println("Available treatments:");
@@ -419,52 +372,71 @@ public class TreatmentUI {
             return;
         }
         
+        // Validate treatment exists
+        if (treatmentController.getTreatmentById(treatmentId) == null) {
+            System.out.println("Treatment ID '" + treatmentId + "' does not exist.");
+            return;
+        }
+        
         // Show available medicines
         System.out.println("\nAvailable medicines:");
         treatmentController.displayAvailableMedicines();
         
-        // Get medicine selection
-        System.out.print("Enter Medicine ID: ");
-        String medicineId = sc.nextLine().trim();
-        
-        if (medicineId.isEmpty()) {
-            System.out.println("Medicine ID cannot be empty.");
-            return;
-        }
-        
-        // Validate medicine exists
-        if (!treatmentController.isMedicineExists(medicineId)) {
-            System.out.println("Medicine ID '" + medicineId + "' does not exist. Please check the available medicines list above.");
-            return;
-        }
-        
-        // Get quantity
-        int quantity = 0;
+        // Allow multiple medicines to be added
         while (true) {
-            System.out.print("Enter quantity: ");
-            String qtyStr = sc.nextLine().trim();
-            try {
-                quantity = Integer.parseInt(qtyStr);
-                if (quantity > 0) {
-                    break;
-                } else {
-                    System.out.println("Quantity must be positive.");
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Please enter a valid number.");
+            System.out.println("\n--- Add Medicine ---");
+            
+            // Get medicine selection
+            System.out.print("Enter Medicine ID (or 'done' to finish): ");
+            String medicineId = sc.nextLine().trim();
+            
+            if (medicineId.equalsIgnoreCase("done")) {
+                break;
             }
+            
+            if (medicineId.isEmpty()) {
+                System.out.println("Medicine ID cannot be empty.");
+                continue;
+            }
+            
+            // Validate medicine exists
+            if (!treatmentController.isMedicineExists(medicineId)) {
+                System.out.println("Medicine ID '" + medicineId + "' does not exist. Please check the available medicines list above.");
+                continue;
+            }
+            
+            // Get quantity
+            int quantity = 0;
+            while (true) {
+                System.out.print("Enter quantity: ");
+                String qtyStr = sc.nextLine().trim();
+                try {
+                    quantity = Integer.parseInt(qtyStr);
+                    if (quantity > 0) {
+                        break;
+                    } else {
+                        System.out.println("Quantity must be positive.");
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Please enter a valid number.");
+                }
+            }
+            
+            // Add medicine prescription
+            boolean success = treatmentController.addMedicinePrescription(treatmentId, medicineId, quantity);
+            if (success) {
+                System.out.println("✓ Medicine '" + medicineId + "' added successfully with quantity: " + quantity);
+            } else {
+                System.out.println("✗ Failed to add medicine prescription for '" + medicineId + "'.");
+            }
+            
+            System.out.println("\nContinue adding medicines or type 'done' to finish.");
         }
         
-        // Add medicine prescription
-        boolean success = treatmentController.addMedicinePrescription(treatmentId, medicineId, quantity);
-        if (success) {
-        } else {
-            System.out.println("Failed to add medicine prescription.");
-        }
+        System.out.println("\nMedicine prescription process completed for treatment: " + treatmentId);
     }
 
     private void viewAvailableConsultations() {
-        System.out.println("\n--- Available Consultations for Completion ---");
         consultationController.viewAvailableConsultations();
     }
 
@@ -576,10 +548,10 @@ public class TreatmentUI {
             return;
         }
 
-        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+";
+        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n", 
-            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee");
+        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n", 
+            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee", "Medicine Prescribed");
         System.out.println(borderLine);
 
         for (String key : treatmentMap.keySet()) {
@@ -589,13 +561,15 @@ public class TreatmentUI {
                 description = description.substring(0, 20) + "...";
             }
             
-            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+            String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
+            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
                     treatment.getTreatmentId(),
                     treatment.getDoctorId(),
                     treatment.getPatientId(),
                     treatment.getConsultationId(),
                     description,
-                    String.format("%.2f", treatment.getTreatmentFee()));
+                    String.format("%.2f", treatment.getTreatmentFee()),
+                    medicineStatus);
         }
         System.out.println(borderLine);
     }
@@ -606,10 +580,10 @@ public class TreatmentUI {
             return;
         }
 
-        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+";
+        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n", 
-            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee");
+        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n", 
+            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee", "Medicine Prescribed");
         System.out.println(borderLine);
 
         for (int i = 0; i < treatmentList.size(); i++) {
@@ -619,13 +593,15 @@ public class TreatmentUI {
                 description = description.substring(0, 20) + "...";
             }
             
-            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+            String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
+            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
                     treatment.getTreatmentId(),
                     treatment.getDoctorId(),
                     treatment.getPatientId(),
                     treatment.getConsultationId(),
                     description,
-                    String.format("%.2f", treatment.getTreatmentFee()));
+                    String.format("%.2f", treatment.getTreatmentFee()),
+                    medicineStatus);
         }
         System.out.println(borderLine);
     }

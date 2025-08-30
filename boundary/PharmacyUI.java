@@ -29,6 +29,7 @@ public class PharmacyUI {
             
             System.out.println("1. Medicine Management");
             System.out.println("2. Stock Management");
+            System.out.println("3. Medicine Dispensing");
             System.out.println("0. Back to Staff Menu");
             System.out.print("\n\nEnter choice: ");
 
@@ -43,6 +44,11 @@ public class PharmacyUI {
                 case "2":
                     utility.SystemUtil.pushNavigation("Stock Management");
                     stockManagement(); 
+                    utility.SystemUtil.popNavigation();
+                    break;
+                case "3":
+                    utility.SystemUtil.pushNavigation("Medicine Dispensing");
+                    medicineDispensing(); 
                     utility.SystemUtil.popNavigation();
                     break;
                 case "0": 
@@ -106,113 +112,123 @@ public class PharmacyUI {
     // ==================== VIEW ALL MEDICINES ====================
 
     private void viewAllMedicines() {
+        utility.SystemUtil.showSectionHeader("All Medicines");
+        pharmacyController.viewAllMedicines(); 
+        
+        // Show filter/sort/search options after displaying medicines
+        showMedicineOptions();
+    }
+    
+    private void showMedicineOptions() {
         while (true) {
-            utility.SystemUtil.showMenuHeader("View All Medicines");
-            
-            System.out.println("1. View All Medicines");
-            System.out.println("2. Filter Medicines");
-            System.out.println("3. Search Medicine");
-            System.out.println("4. View Medicine Details");
+            System.out.println("\n--- Medicine Options ---");
+            System.out.println("1. Filter Medicines");
+            System.out.println("2. Search Medicine");
+            System.out.println("3. View Medicine Details");
             System.out.println("0. Back to Medicine Management");
-            System.out.print("\n\nChoose: ");
+            System.out.print("\nChoose option: ");
+            
             String choice = sc.nextLine().trim();
-
+            
             switch (choice) {
-                case "1": 
-                    utility.SystemUtil.showSectionHeader("All Medicines");
-                    pharmacyController.viewAllMedicines(); 
-                    utility.SystemUtil.pauseForUser();
-                    break;
-                case "2": 
+                case "1":
                     utility.SystemUtil.showSectionHeader("Filter Medicines");
-                    filterMedicines(); 
+                    filterMedicines();
                     break;
-                case "3": 
+                case "2":
                     utility.SystemUtil.showSectionHeader("Search Medicine");
-                    searchMedicine(); 
+                    searchMedicine();
                     break;
-                case "4": 
+                case "3":
                     utility.SystemUtil.showSectionHeader("View Medicine Details");
-                    pharmacyController.viewMedicineDetails(); 
+                    pharmacyController.viewMedicineDetails();
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "0": 
+                case "0":
                     return;
-                default: 
+                default:
                     System.out.println("Invalid choice, try again.");
             }
         }
     }
-
-    // ==================== FILTER MEDICINES ====================
-
+    
     private void filterMedicines() {
         while (true) {
-            utility.SystemUtil.showMenuHeader("Filter Medicines");
-            
+            System.out.println("\n--- Filter Medicines ---");
             System.out.println("1. Filter by Unit");
             System.out.println("2. Filter by Active Status");
-            System.out.println("0. Back to View All Medicines");
-            System.out.print("\n\nChoose: ");
+            System.out.println("0. Back to Medicine Options");
+            System.out.print("\nChoose: ");
             String choice = sc.nextLine().trim();
 
             switch (choice) {
-                case "1": 
+                case "1":
                     utility.SystemUtil.showSectionHeader("Filter by Unit");
-                    filterByUnit(); 
+                    filterByUnit();
                     break;
-                case "2": 
+                case "2":
                     utility.SystemUtil.showSectionHeader("Filter by Active Status");
-                    filterByStatus(); 
+                    filterByStatus();
                     break;
-                case "0": 
+                case "0":
                     return;
-                default: 
+                default:
                     System.out.println("Invalid choice, try again.");
             }
         }
     }
-
-    // ==================== STOCK MANAGEMENT ====================
-
-    private void stockManagement() {
-        while (true) {
-            utility.SystemUtil.showMenuHeader("Stock Management");
-            
-            System.out.println("1. Add Stock Batch");
-            System.out.println("2. View All Stock Batches");
-            System.out.println("3. View Medicine Stock Summary");
-            System.out.println("0. Back to Pharmacy Menu");
-            System.out.print("\n\nEnter choice: ");
-
-            String choice = sc.nextLine();
-
-            switch (choice) {
-                case "1": 
-                    utility.SystemUtil.showSectionHeader("Add Stock Batch");
-                    pharmacyController.addStockBatch(); 
-                    utility.SystemUtil.pauseForUser();
-                    break;
-                case "2": 
-                    utility.SystemUtil.showSectionHeader("View All Stock Batches");
-                    pharmacyController.viewAllStockBatches(); 
-                    utility.SystemUtil.pauseForUser();
-                    break;
-                case "3": 
-                    utility.SystemUtil.showSectionHeader("View Medicine Stock Summary");
-                    pharmacyController.viewMedicineStockSummary(); 
-                    utility.SystemUtil.pauseForUser();
-                    break;
-                case "0": 
-                    return;
-                default: 
-                    System.out.println("Invalid choice, try again.");
-            }
+    
+    private void filterByUnit() {
+        System.out.println("\n--- Filter by Unit ---");
+        System.out.println("Available units:");
+        Medicine.Unit[] units = Medicine.Unit.values();
+        for (int i = 0; i < units.length; i++) {
+            System.out.println((i + 1) + ". " + units[i]);
         }
+        
+        System.out.print("Select unit number: ");
+        try {
+            int choice = Integer.parseInt(sc.nextLine().trim());
+            if (choice >= 1 && choice <= units.length) {
+                Medicine.Unit selectedUnit = units[choice - 1];
+                HashMapInterface<String, Medicine> filtered = pharmacyController.filterByUnit(pharmacyController.getMedicineMap(), selectedUnit);
+                System.out.println("\nFiltered Results:");
+                displayMedicinesFromMap(filtered);
+            } else {
+                System.out.println("Invalid unit selection.");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid number.");
+        }
+        utility.SystemUtil.pauseForUser();
     }
-
-    // ==================== HELPER METHODS ====================
-
+    
+    private void filterByStatus() {
+        System.out.println("\n--- Filter by Status ---");
+        System.out.println("1. Active Medicines");
+        System.out.println("2. Deleted Medicines");
+        System.out.print("Choose: ");
+        
+        try {
+            int choice = Integer.parseInt(sc.nextLine().trim());
+            HashMapInterface<String, Medicine> filtered;
+            if (choice == 1) {
+                filtered = pharmacyController.filterNotDeleted(pharmacyController.getMedicineMap());
+                System.out.println("\n--- Active Medicines ---");
+            } else if (choice == 2) {
+                filtered = pharmacyController.filterShowDeleted(pharmacyController.getMedicineMap());
+                System.out.println("\n--- Deleted Medicines ---");
+            } else {
+                System.out.println("Invalid choice.");
+                return;
+            }
+            displayMedicinesFromMap(filtered);
+        } catch (NumberFormatException e) {
+            System.out.println("Please enter a valid number.");
+        }
+        utility.SystemUtil.pauseForUser();
+    }
+    
     private void searchMedicine() {
         System.out.println("\n--- Search Medicine ---");
         System.out.println("1. Search by Name");
@@ -256,60 +272,7 @@ public class PharmacyUI {
         }
         utility.SystemUtil.pauseForUser();
     }
-
-    private void filterByUnit() {
-        System.out.println("\n--- Filter by Unit ---");
-        System.out.println("Available units:");
-        Medicine.Unit[] units = Medicine.Unit.values();
-        for (int i = 0; i < units.length; i++) {
-            System.out.println((i + 1) + ". " + units[i]);
-        }
-        
-        System.out.print("Select unit number: ");
-        try {
-            int choice = Integer.parseInt(sc.nextLine().trim());
-            if (choice >= 1 && choice <= units.length) {
-                Medicine.Unit selectedUnit = units[choice - 1];
-                HashMapInterface<String, Medicine> filtered = pharmacyController.filterByUnit(pharmacyController.getMedicineMap(), selectedUnit);
-                System.out.println("\nFiltered Results:");
-                displayMedicinesFromMap(filtered);
-            } else {
-                System.out.println("Invalid unit selection.");
-            }
-        } catch (NumberFormatException e) {
-            System.out.println("Please enter a valid number.");
-        }
-        utility.SystemUtil.pauseForUser();
-    }
-
-    private void filterByStatus() {
-        System.out.println("\n--- Filter by Status ---");
-        System.out.println("1. Active Medicines");
-        System.out.println("2. Deleted Medicines");
-        System.out.print("Choose: ");
-        
-        try {
-            int choice = Integer.parseInt(sc.nextLine().trim());
-            HashMapInterface<String, Medicine> filtered;
-            if (choice == 1) {
-                filtered = pharmacyController.filterNotDeleted(pharmacyController.getMedicineMap());
-                System.out.println("\n--- Active Medicines ---");
-            } else if (choice == 2) {
-                filtered = pharmacyController.filterShowDeleted(pharmacyController.getMedicineMap());
-                System.out.println("\n--- Deleted Medicines ---");
-            } else {
-                System.out.println("Invalid choice.");
-                return;
-            }
-            displayMedicinesFromMap(filtered);
-        } catch (NumberFormatException e) {
-            System.out.println("Please enter a valid number.");
-        }
-        utility.SystemUtil.pauseForUser();
-    }
-
-    // ==================== DISPLAY METHODS ====================
-
+    
     private void displayMedicinesFromMap(HashMapInterface<String, Medicine> medicineMap) {
         if (medicineMap.isEmpty()) {
             System.out.println("No medicines found.");
@@ -335,4 +298,131 @@ public class PharmacyUI {
         }
         System.out.println(borderLine);
     }
+
+
+
+    // ==================== STOCK MANAGEMENT ====================
+
+    private void stockManagement() {
+        while (true) {
+            utility.SystemUtil.showMenuHeader("Stock Management");
+            
+            System.out.println("1. Add Stock Batch");
+            System.out.println("2. View All Stock Batches");
+            System.out.println("3. View Medicine Stock Summary");
+            System.out.println("0. Back to Pharmacy Menu");
+            System.out.print("\n\nEnter choice: ");
+
+            String choice = sc.nextLine();
+
+            switch (choice) {
+                case "1": 
+                    utility.SystemUtil.showSectionHeader("Add Stock Batch");
+                    pharmacyController.addStockBatch(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "2": 
+                    utility.SystemUtil.showSectionHeader("View All Stock Batches");
+                    pharmacyController.viewAllStockBatches(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "3": 
+                    utility.SystemUtil.showSectionHeader("View Medicine Stock Summary");
+                    pharmacyController.viewMedicineStockSummary(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "0": 
+                    return;
+                default: 
+                    System.out.println("Invalid choice, try again.");
+            }
+        }
+    }
+
+    // ==================== MEDICINE DISPENSING ====================
+
+    private void medicineDispensing() {
+        while (true) {
+            utility.SystemUtil.showMenuHeader("Medicine Dispensing");
+            
+            System.out.println("1. Dispense Medicine for Treatment");
+            System.out.println("2. View Dispensing History");
+            System.out.println("0. Back to Pharmacy Menu");
+            System.out.print("\n\nEnter choice: ");
+
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1": 
+                    utility.SystemUtil.showSectionHeader("Dispense Medicine for Treatment");
+                    dispenseMedicineForTreatment(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "2": 
+                    utility.SystemUtil.showSectionHeader("Dispensing History");
+                    viewDispensingHistory(); 
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "0": 
+                    return;
+                default: 
+                    System.out.println("Invalid choice, try again.");
+            }
+        }
+    }
+
+    private void dispenseMedicineForTreatment() {
+        System.out.println("\n--- Dispense Medicine for Treatment ---");
+        
+        // Show available treatments with medicine prescriptions
+        System.out.println("Available treatments with medicine prescriptions:");
+        pharmacyController.displayTreatmentsWithPrescriptions();
+        
+        System.out.print("Enter Treatment ID: ");
+        String treatmentId = sc.nextLine().trim();
+        
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+        
+        // Show the medicines that will be dispensed for this treatment
+        boolean medicinesShown = pharmacyController.displayMedicinesForTreatment(treatmentId);
+        if (!medicinesShown) {
+            System.out.println("No medicines found for treatment: " + treatmentId);
+            return;
+        }
+        
+        // Ask for confirmation to dispense
+        System.out.print("\nDispense these medicines? (y/n): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        
+        if (!confirm.equals("y") && !confirm.equals("yes")) {
+            System.out.println("Medicine dispensing cancelled.");
+            return;
+        }
+        
+        // Dispense medicines for the treatment
+        boolean success = pharmacyController.dispenseMedicinesForTreatment(treatmentId);
+        if (success) {
+            System.out.println("Medicines dispensed successfully for treatment: " + treatmentId);
+            System.out.println("Stock quantities have been updated and invoice generated.");
+        } else {
+            System.out.println("Failed to dispense medicines for treatment: " + treatmentId);
+        }
+    }
+
+    private void viewDispensingHistory() {
+        System.out.println("\n--- Dispensing History ---");
+        // This would need to be implemented in PharmacyController
+        pharmacyController.displayDispensingHistory();
+    }
+
+
+
+
+
+
+
+
 }
