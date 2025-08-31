@@ -1,4 +1,1 @@
 # DoctorID|Name|Gender|Birthdate|Phone|Specialty|ConsultationFee|isDeleted
-D1000|Dr. Smith Johnson|M|1980-05-15|0123456789|GENERAL_MEDICINE|50.0|false
-D1001|Dr. Emily Davis|F|1985-03-20|0134567890|PEDIATRICS|60.0|false
-D1002|Dr. Michael Chen|M|1978-11-10|0145678901|CARDIOLOGY|120.0|false

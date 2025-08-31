@@ -1,2 +1,1 @@
 # PaymentID|InvoiceID|ConsultationID|PatientID|PaymentMethod|PaymentStatus|PaymentDate|Remarks|isDeleted
-PAY1001|I1001|C1001|P1000|CASH|PAID|2025-09-01 02:27:57||false

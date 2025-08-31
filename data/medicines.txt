@@ -1,4 +1,1 @@
 # MedicineID|Name|Dosage|Unit|Price|isDeleted
-MED001|Paracetamol|500.0|TABLET|1.50|false
-MED002|Ibuprofen|400.0|TABLET|2.00|false
-MED003|Amoxicillin|250.0|CAPSULE|3.50|false

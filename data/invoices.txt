@@ -1,2 +1,1 @@
 # InvoiceID|ConsultationID|ConsultationFee|TreatmentFee|MedicineFee|TotalAmount|InvoiceDate|IsPaid
-I1001|C1001|50.0|20.0|23.5|93.5|2025-09-01 02:27|true

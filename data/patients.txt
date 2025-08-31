@@ -1,4 +1,1 @@
 # Type|PatientID|Name|Gender|Birthdate|Phone|isDeleted|RoleID|Faculty|Department
-Student|P1000|John Doe|M|1995-06-15|0156789012|false|STU001|FOCS
-Staff|P1001|Jane Smith|F|1988-09-22|0167890123|false|STF001|Administration
-Tutor|P1002|Prof. Lee|M|1970-01-30|0178901234|false|TUT001|FOCS
