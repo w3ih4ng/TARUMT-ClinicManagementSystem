@@ -13,7 +13,7 @@ This guide provides step-by-step instructions to test the complete Clinic Manage
 Main Menu -> 2. Doctor Management Module
 ├── 1. Add Doctor
 │   ├── Doctor ID: D1000
-│   ├── Name: Dr. Smith Johnson
+│   ├── Name: Smith Johnson
 │   ├── Gender: M
 │   ├── Birthdate: 1980-05-15
 │   ├── Phone: 0123456789
@@ -21,7 +21,7 @@ Main Menu -> 2. Doctor Management Module
 │   └── Consultation Fee: 50.0
 ├── 2. Add Doctor
 │   ├── Doctor ID: D1001
-│   ├── Name: Dr. Emily Davis
+│   ├── Name: Emily Davis
 │   ├── Gender: F
 │   ├── Birthdate: 1985-03-20
 │   ├── Phone: 0134567890
@@ -29,7 +29,7 @@ Main Menu -> 2. Doctor Management Module
 │   └── Consultation Fee: 60.0
 └── 3. Add Doctor
     ├── Doctor ID: D1002
-    ├── Name: Dr. Michael Chen
+    ├── Name: Michael Chen
     ├── Gender: M
     ├── Birthdate: 1978-11-10
     ├── Phone: 0145678901
@@ -47,8 +47,6 @@ Main Menu -> 1. Patient Management Module -> 2. Add Patient
 │   ├── Birthdate: 1995-06-15
 │   ├── Phone: 0156789012
 │   ├── Role ID: STU001
-│   ├── Faculty: FOCS
-│   └── Department: (leave empty for students)
 ├── 2. Add Staff Patient
 │   ├── Patient ID: P1001
 │   ├── Name: Jane Smith

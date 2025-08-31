@@ -37,10 +37,7 @@ public class SystemUtil {
         for (int i = 0; i < 3; i++) {
             System.out.println();
         }
-        System.out.println("=".repeat(80));
-        for (int i = 0; i < 2; i++) {
-            System.out.println();
-        }
+        System.out.println("=".repeat(100));
     }
     
     /**
@@ -98,8 +95,8 @@ public class SystemUtil {
      * Display navigation header with breadcrumb
      */
     public static void showNavigationHeader() {
-        System.out.println("Navigation: " + getNavigationBreadcrumb());
-        System.out.println("=".repeat(80));
+        System.out.println("    Navigation: " + getNavigationBreadcrumb());
+        System.out.println("=".repeat(100));
     }
     
     /**
@@ -117,9 +114,9 @@ public class SystemUtil {
         printSeparator();
         showNavigationHeader();
         System.out.println();
-        System.out.println("=".repeat(80));
+        System.out.println("=".repeat(100));
         System.out.println("    " + menuTitle.toUpperCase());
-        System.out.println("=".repeat(80));
+        System.out.println("=".repeat(100));
         System.out.println();
     }
     
@@ -128,9 +125,9 @@ public class SystemUtil {
      */
     public static void showSectionHeader(String sectionTitle) {
         System.out.println();
-        System.out.println("-".repeat(40));
+        System.out.println("-".repeat(80));
         System.out.println("  " + sectionTitle);
-        System.out.println("-".repeat(40));
+        System.out.println("-".repeat(80));
     }
     
     /**
