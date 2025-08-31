@@ -51,14 +51,6 @@ public class PatientQueueEntry {
         this.queueStatus = QueueStatus.IN_CONSULTATION;
     }
     
-    public void markTreatmentCreated() {
-        this.queueStatus = QueueStatus.TREATMENT_CREATED;
-    }
-    
-    public void markMedicinesDispensed() {
-        this.queueStatus = QueueStatus.MEDICINES_DISPENSED;
-    }
-
     public void complete() {
         this.queueStatus = QueueStatus.COMPLETED;
     }
@@ -69,6 +61,10 @@ public class PatientQueueEntry {
 
     public boolean isAssigned() {
         return this.queueStatus == QueueStatus.ASSIGNED;
+    }
+
+    public boolean isInConsultation() {
+        return this.queueStatus == QueueStatus.IN_CONSULTATION;
     }
 
     public boolean isCompleted() {

@@ -33,7 +33,7 @@ public class InvoiceDAO {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
             // Write header comment
-            pw.println("# InvoiceID|ConsultationID|PatientID|TotalAmount|InvoiceDate|IsPaid");
+            pw.println("# InvoiceID|ConsultationID|ConsultationFee|TreatmentFee|MedicineFee|TotalAmount|InvoiceDate|IsPaid");
             
             for (int i = 0; i < invoiceMap.keySet().size(); i++) {
                 String key = invoiceMap.keySet().get(i);
@@ -74,7 +74,10 @@ public class InvoiceDAO {
         return String.join("|",
                 invoice.getInvoiceId(),
                 invoice.getConsultationId(),
-                String.valueOf(invoice.getAmount()),
+                String.valueOf(invoice.getConsultationFee()),
+                String.valueOf(invoice.getTreatmentFee()),
+                String.valueOf(invoice.getMedicineFee()),
+                String.valueOf(invoice.getTotalAmount()),
                 invoice.getCreatedTime().format(formatter),
                 String.valueOf(invoice.isPaid())
         );
@@ -83,22 +86,44 @@ public class InvoiceDAO {
     private static Invoice fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length != 5) {
-                throw new IllegalArgumentException("Expected 5 columns, got " + parts.length);
-            }
-            
-            String invoiceId = parts[0];
-            String consultationId = parts[1];
-            double amount = Double.parseDouble(parts[2]);
-            LocalDateTime createdTime = LocalDateTime.parse(parts[3], formatter);
-            boolean isPaid = Boolean.parseBoolean(parts[4]);
 
-            Invoice invoice = new Invoice(invoiceId, consultationId, amount);
-            if (isPaid) {
-                invoice.markPaid();
+            // Handle both old format (5 columns) and new format (8 columns)
+            if (parts.length == 5) {
+                // Old format: InvoiceID|ConsultationID|TotalAmount|InvoiceDate|IsPaid
+                String invoiceId = parts[0];
+                String consultationId = parts[1];
+                double totalAmount = Double.parseDouble(parts[2]);
+                LocalDateTime createdTime = LocalDateTime.parse(parts[3], formatter);
+                boolean isPaid = Boolean.parseBoolean(parts[4]);
+
+                // Create invoice with old constructor (backward compatibility)
+                Invoice invoice = new Invoice(invoiceId, consultationId, totalAmount);
+                if (isPaid) {
+                    invoice.markPaid();
+                }
+
+                return invoice;
+            } else if (parts.length == 8) {
+                // New format: InvoiceID|ConsultationID|ConsultationFee|TreatmentFee|MedicineFee|TotalAmount|InvoiceDate|IsPaid
+                String invoiceId = parts[0];
+                String consultationId = parts[1];
+                double consultationFee = Double.parseDouble(parts[2]);
+                double treatmentFee = Double.parseDouble(parts[3]);
+                double medicineFee = Double.parseDouble(parts[4]);
+                double totalAmount = Double.parseDouble(parts[5]);
+                LocalDateTime createdTime = LocalDateTime.parse(parts[6], formatter);
+                boolean isPaid = Boolean.parseBoolean(parts[7]);
+
+                // Create invoice with new constructor
+                Invoice invoice = new Invoice(invoiceId, consultationId, consultationFee, treatmentFee, medicineFee);
+                if (isPaid) {
+                    invoice.markPaid();
+                }
+
+                return invoice;
+            } else {
+                throw new IllegalArgumentException("Expected 5 or 8 columns, got " + parts.length);
             }
-            
-            return invoice;
         } catch (Exception e) {
             System.out.println("Error parsing invoice line: " + line + " -> " + e.getMessage());
         }

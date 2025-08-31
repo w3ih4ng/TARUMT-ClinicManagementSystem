@@ -11,6 +11,7 @@ public class Doctor extends Human {
     private String doctorId;
     private Specialty specialty; // changed to enum
     private double consultationFee;
+    private DoctorStatus status; // active, vacation, inactive
 
     public Doctor(String doctorId, String name, String gender, LocalDate birthdate, String phoneNumber,
             Specialty specialty, double consultationFee) {
@@ -18,6 +19,7 @@ public class Doctor extends Human {
         this.doctorId = doctorId;
         this.specialty = specialty;
         this.consultationFee = consultationFee;
+        this.status = DoctorStatus.ACTIVE; // default status
     }
 
     public Specialty getSpecialty() {
@@ -42,6 +44,14 @@ public class Doctor extends Human {
 
     public void setConsultationFee(double consultationFee) {
         this.consultationFee = consultationFee;
+    }
+
+    public DoctorStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(DoctorStatus status) {
+        this.status = status;
     }
 
     @Override

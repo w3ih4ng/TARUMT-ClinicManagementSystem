@@ -35,7 +35,7 @@ public class DoctorScheduleDAO {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
             // Write header comment
-            pw.println("# ScheduleID|DoctorID|Specialty|AppointmentDate|StartTime|EndTime|isBooked|ConsultationID|PatientID");
+            pw.println("# ScheduleID|DoctorID|Specialty|AppointmentDate|StartTime|EndTime|isBooked|PatientID");
             
             for (int i = 0; i < scheduleMap.keySet().size(); i++) {
                 String key = scheduleMap.keySet().get(i);
@@ -73,9 +73,8 @@ public class DoctorScheduleDAO {
     }
 
     private static String toFileString(DoctorSchedule schedule) {
-        String consultationId = schedule.getConsultationId() != null ? schedule.getConsultationId() : "NONE";
         String patientId = schedule.getPatientId() != null ? schedule.getPatientId() : "NONE";
-        
+
         return String.join("|",
                 schedule.getScheduleId(),
                 schedule.getDoctorId(),
@@ -84,7 +83,6 @@ public class DoctorScheduleDAO {
                 schedule.getStartTime().format(timeFormatter),
                 schedule.getEndTime().format(timeFormatter),
                 String.valueOf(schedule.isBooked()),
-                consultationId,
                 patientId
         );
     }
@@ -92,10 +90,10 @@ public class DoctorScheduleDAO {
     private static DoctorSchedule fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length != 9) {
-                throw new IllegalArgumentException("Expected 9 columns, got " + parts.length);
+            if (parts.length != 8) {
+                throw new IllegalArgumentException("Expected 8 columns, got " + parts.length);
             }
-            
+
             String scheduleId = parts[0];
             String doctorId = parts[1];
             String specialty = parts[2];
@@ -103,15 +101,14 @@ public class DoctorScheduleDAO {
             LocalTime startTime = LocalTime.parse(parts[4], timeFormatter);
             LocalTime endTime = LocalTime.parse(parts[5], timeFormatter);
             boolean isBooked = Boolean.parseBoolean(parts[6]);
-            String consultationId = parts[7].equals("NONE") ? null : parts[7];
-            String patientId = parts[8].equals("NONE") ? null : parts[8];
+            String patientId = parts[7].equals("NONE") ? null : parts[7];
 
             DoctorSchedule schedule = new DoctorSchedule(scheduleId, doctorId, specialty, appointmentDate, startTime, endTime);
-            
-            if (isBooked && consultationId != null) {
-                schedule.bookSlot(consultationId, patientId);
+
+            if (isBooked && patientId != null) {
+                schedule.bookSlot(patientId);
             }
-            
+
             return schedule;
         } catch (Exception e) {
             System.out.println("Error parsing doctor schedule line: " + line + " -> " + e.getMessage());

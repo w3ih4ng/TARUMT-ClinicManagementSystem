@@ -135,6 +135,10 @@ public class ConsultationDAO {
             }
             if (treatmentId != null) c.completeConsultation(treatmentId);
             if (paymentId != null) c.setPayment(paymentId);
+
+            // Set the status from the file (this will override any default status set above)
+            c.setStatus(status);
+
             return c;
         } catch (Exception e) {
             System.out.println("Error parsing consultation line: " + line + " -> " + e.getMessage());

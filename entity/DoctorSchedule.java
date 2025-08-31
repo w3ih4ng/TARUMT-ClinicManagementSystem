@@ -15,10 +15,9 @@ public class DoctorSchedule {
     private LocalTime startTime;
     private LocalTime endTime;
     private boolean isBooked;
-    private String consultationId; // link if booked
     private String patientId; // patient for this appointment
 
-    public DoctorSchedule(String scheduleId, String doctorId, String specialty, LocalDate appointmentDate, 
+    public DoctorSchedule(String scheduleId, String doctorId, String specialty, LocalDate appointmentDate,
                          LocalTime startTime, LocalTime endTime) {
         this.scheduleId = scheduleId;
         this.doctorId = doctorId;
@@ -27,7 +26,6 @@ public class DoctorSchedule {
         this.startTime = startTime;
         this.endTime = endTime;
         this.isBooked = false;
-        this.consultationId = null;
         this.patientId = null;
     }
 
@@ -59,23 +57,17 @@ public class DoctorSchedule {
         return isBooked;
     }
 
-    public String getConsultationId() {
-        return consultationId;
-    }
-
     public String getPatientId() {
         return patientId;
     }
 
-    public void bookSlot(String consultationId, String patientId) {
+    public void bookSlot(String patientId) {
         this.isBooked = true;
-        this.consultationId = consultationId;
         this.patientId = patientId;
     }
 
     public void freeSlot() {
         this.isBooked = false;
-        this.consultationId = null;
         this.patientId = null;
     }
 

@@ -626,7 +626,7 @@ public class PharmacyController {
                 totalValue += stock.getCostPerUnit() * stock.getQuantity();
             }
             
-            String lowStockAlert = totalStock < 100 ? "⚠️ LOW STOCK" : "✓ OK";
+            String lowStockAlert = totalStock < 100 ? "LOW STOCK" : "OK";
             
             System.out.printf("| %-10s | %-25s | %-10s | %-25s | %-25s |%n",
                     medicineId,
@@ -1064,17 +1064,24 @@ public class PharmacyController {
         try {
             // Get TreatmentController to update consultation status
             control.TreatmentController treatmentController = new control.TreatmentController();
-            
+
             // Mark medicines as dispensed in the treatment
             treatmentController.markMedicinesDispensed(treatmentId);
-            
+
             // Complete the consultation after dispensing
             treatmentController.completeConsultationAfterDispensing(treatmentId);
+
+            // Update consultation status to COMPLETED (ready for payment)
+            control.ConsultationController consultationController = new control.ConsultationController();
+            entity.Treatment currentTreatment = treatmentController.getTreatmentById(treatmentId);
+            if (currentTreatment != null) {
+                consultationController.updateConsultationStatus(currentTreatment.getConsultationId(), "COMPLETED");
+            }
             
             System.out.println("\nConsultation workflow updated:");
-            System.out.println("  • Treatment status: Medicines dispensed");
-            System.out.println("  • Consultation status: Ready for payment");
-            System.out.println("  • Queue status: Updated to MEDICINES_DISPENSED");
+            System.out.println("  - Treatment status: Medicines dispensed");
+            System.out.println("  - Consultation status: COMPLETED (Ready for payment)");
+            System.out.println("  - Queue status: Updated");
             
         } catch (Exception e) {
             System.out.println("\nWarning: Could not update consultation workflow: " + e.getMessage());
@@ -1082,6 +1089,55 @@ public class PharmacyController {
         }
         
         return true;
+    }
+
+    /**
+     * Display treatment summary with cost calculation
+     */
+    public void displayTreatmentSummary(String treatmentId) {
+        // Load treatment data
+        HashMapInterface<String, entity.Treatment> treatmentMap = dao.TreatmentDAO.loadTreatments();
+        entity.Treatment treatment = treatmentMap.get(treatmentId);
+
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return;
+        }
+
+        System.out.println("Treatment ID: " + treatmentId);
+        System.out.println("Patient ID: " + treatment.getPatientId());
+        System.out.println("Consultation ID: " + treatment.getConsultationId());
+        System.out.println("Diagnosis: " + treatment.getDiagnosis());
+        System.out.println("Treatment Fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
+
+        if (treatment.getPrescribedMedicines().isEmpty()) {
+            System.out.println("No medicines prescribed.");
+            return;
+        }
+
+        System.out.println("\nMedicine Prescriptions:");
+        double totalMedicineCost = 0.0;
+
+        for (int i = 0; i < treatment.getPrescribedMedicines().size(); i++) {
+            entity.MedicinePrescribed prescribed = treatment.getPrescribedMedicines().get(i);
+            String medicineId = prescribed.getMedicineId();
+            int quantity = prescribed.getQuantity();
+
+            Medicine medicine = medicineMap.get(medicineId);
+            if (medicine != null) {
+                double cost = medicine.getPrice() * quantity;
+                totalMedicineCost += cost;
+
+                System.out.println("  " + medicine.getName() + " (ID: " + medicineId + ")");
+                System.out.println("    Quantity: " + quantity + " x RM " + String.format("%.2f", medicine.getPrice()) +
+                                 " = RM " + String.format("%.2f", cost));
+            }
+        }
+
+        System.out.println("\nCost Summary:");
+        System.out.println("  Medicine Cost: RM " + String.format("%.2f", totalMedicineCost));
+        System.out.println("  Treatment Fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
+        System.out.println("  Total Amount: RM " + String.format("%.2f", totalMedicineCost + treatment.getTreatmentFee()));
     }
 
     /**
@@ -1109,15 +1165,15 @@ public class PharmacyController {
             System.out.println("\nTreatments Ready for Medicine Dispensing:");
             System.out.println("(These treatments have been created and are waiting for medicine dispensing)");
             
-            String borderLine = "+------------+------------+------------+------------+---------------------------+------------+";
+            String borderLine = "+--------------+------------+------------+-----------------+---------------------------+------------+";
             System.out.println(borderLine);
-            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+            System.out.printf("| %-12s | %-10s | %-10s | %-15s | %-25s | %-10s |%n",
                     "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee");
             System.out.println(borderLine);
             
             for (int i = 0; i < readyTreatments.size(); i++) {
                 entity.Treatment treatment = readyTreatments.get(i);
-                System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+                System.out.printf("| %-12s | %-10s | %-10s | %-15s | %-25s | %-10s |%n",
                         treatment.getTreatmentId(),
                         treatment.getDoctorId(),
                         treatment.getPatientId(),
@@ -1197,27 +1253,248 @@ public class PharmacyController {
         try {
             // Load existing invoices
             HashMapInterface<String, entity.Invoice> invoiceMap = dao.InvoiceDAO.loadInvoices();
-            
+
             // Generate invoice ID
             String invoiceId = dao.InvoiceDAO.generateInvoiceId();
-            
-            // Calculate total amount including treatment fee
-            double totalAmount = medicineCost + treatment.getTreatmentFee();
-            
-            // Create invoice for total amount (medicines + treatment fee)
-            entity.Invoice totalInvoice = new entity.Invoice(invoiceId, treatment.getConsultationId(), totalAmount);
-            
+
+            // Get consultation and doctor information to calculate consultation fee
+            control.ConsultationController consultationController = new control.ConsultationController();
+            entity.Consultation consultation = consultationController.getConsultation(treatment.getConsultationId());
+
+            double consultationFee = 0.0;
+            if (consultation != null) {
+                // Load doctor information to get consultation fee
+                control.DoctorController doctorController = new control.DoctorController();
+                entity.Doctor doctor = doctorController.getDoctorById(consultation.getDoctorId());
+                if (doctor != null) {
+                    consultationFee = doctor.getConsultationFee();
+                }
+            }
+
+            // Get treatment fee from treatment
+            double treatmentFee = treatment.getTreatmentFee();
+
+            // Create invoice with detailed breakdown
+            entity.Invoice totalInvoice = new entity.Invoice(
+                invoiceId,
+                treatment.getConsultationId(),
+                consultationFee,
+                treatmentFee,
+                medicineCost
+            );
+
             // Save invoice
             invoiceMap.put(invoiceId, totalInvoice);
             dao.InvoiceDAO.saveInvoices(invoiceMap);
-            
+
             System.out.println("Invoice generated: " + invoiceId);
+            System.out.println("Consultation fee: RM " + String.format("%.2f", consultationFee));
+            System.out.println("Treatment fee: RM " + String.format("%.2f", treatmentFee));
             System.out.println("Medicine cost: RM " + String.format("%.2f", medicineCost));
-            System.out.println("Treatment fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
-            System.out.println("Total amount: RM " + String.format("%.2f", totalAmount));
-            
+            System.out.println("Total amount: RM " + String.format("%.2f", totalInvoice.getTotalAmount()));
+
         } catch (Exception e) {
             System.out.println("Error generating invoice: " + e.getMessage());
         }
+    }
+    
+    // ==================== REPORTING METHODS ====================
+    
+    /**
+     * Generate Medicine Usage Report
+     */
+    public void generateMedicineUsageReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("MEDICINE USAGE REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Count prescriptions per medicine
+        HashMapInterface<String, Integer> medicinePrescriptionCount = new adt.HashMapADT<>();
+        
+        // Load treatments to count medicine prescriptions
+        dao.TreatmentDAO treatmentDAO = new dao.TreatmentDAO();
+        HashMapInterface<String, entity.Treatment> treatmentMap = treatmentDAO.loadTreatments();
+        
+        for (String key : treatmentMap.keySet()) {
+            entity.Treatment treatment = treatmentMap.get(key);
+            ListInterface<entity.MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
+            
+            for (int i = 0; i < medicines.size(); i++) {
+                entity.MedicinePrescribed mp = medicines.get(i);
+                String medicineId = mp.getMedicineId();
+                Integer currentCount = medicinePrescriptionCount.get(medicineId);
+                medicinePrescriptionCount.put(medicineId, currentCount != null ? currentCount + 1 : 1);
+            }
+        }
+        
+        // Display top 10 most prescribed medicines
+        System.out.println("Top 10 Most Prescribed Medicines:");
+        System.out.println("-".repeat(80));
+        System.out.printf("| %-12s | %-25s | %-15s | %-15s |%n", "Medicine ID", "Medicine Name", "Prescription Count", "Category");
+        System.out.println("-".repeat(80));
+        
+        // Find top 10 medicines
+        String[] topMedicineIds = new String[10];
+        int[] topCounts = new int[10];
+        
+        for (String key : medicinePrescriptionCount.keySet()) {
+            int count = medicinePrescriptionCount.get(key);
+            
+            // Check if this medicine is in top 10
+            for (int i = 0; i < 10; i++) {
+                if (count > topCounts[i]) {
+                    // Shift down
+                    for (int j = 9; j > i; j--) {
+                        topMedicineIds[j] = topMedicineIds[j-1];
+                        topCounts[j] = topCounts[j-1];
+                    }
+                    topMedicineIds[i] = key;
+                    topCounts[i] = count;
+                    break;
+                }
+            }
+        }
+        
+        // Display top 10 medicines
+        for (int i = 0; i < 10; i++) {
+            if (topMedicineIds[i] != null) {
+                Medicine medicine = medicineMap.get(topMedicineIds[i]);
+                String medicineName = medicine != null ? medicine.getName() : "Unknown";
+                String category = medicine != null ? medicine.getUnit().toString() : "N/A";
+                
+                System.out.printf("| %-12s | %-25s | %-15d | %-15s |%n", 
+                    topMedicineIds[i], 
+                    medicineName,
+                    topCounts[i],
+                    category);
+            }
+        }
+        System.out.println("-".repeat(80));
+        System.out.println();
+        
+        // Summary
+        System.out.println("Medicine Usage Summary:");
+        System.out.println("-".repeat(50));
+        if (topMedicineIds[0] != null) {
+            Medicine topMedicine = medicineMap.get(topMedicineIds[0]);
+            String topMedicineName = topMedicine != null ? topMedicine.getName() : "Unknown";
+            System.out.println("Most Prescribed Medicine: " + topMedicineName + " (" + topCounts[0] + " prescriptions)");
+        }
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
+    }
+    
+    /**
+     * Generate Stock Alert Report
+     */
+    public void generateStockAlertReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("STOCK ALERT REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Load stock data
+        dao.StockDAO stockDAO = new dao.StockDAO();
+        HashMapInterface<String, entity.Stock> stockMap = stockDAO.loadStocks();
+        
+        // Categorize medicines by stock level
+        ListInterface<entity.Stock> lowStock = new adt.ArrayList<>();
+        ListInterface<entity.Stock> criticalStock = new adt.ArrayList<>();
+        ListInterface<entity.Stock> normalStock = new adt.ArrayList<>();
+        
+        for (String key : stockMap.keySet()) {
+            entity.Stock stock = stockMap.get(key);
+            int quantity = stock.getQuantity();
+            
+            if (quantity < 10) {
+                criticalStock.add(stock);
+            } else if (quantity < 50) { // Fixed low stock threshold
+                lowStock.add(stock);
+            } else {
+                normalStock.add(stock);
+            }
+        }
+        
+        // Display stock alerts
+        System.out.println("Stock Level Analysis:");
+        System.out.println("-".repeat(80));
+        System.out.printf("| %-12s | %-25s | %-15s | %-15s | %-15s |%n", "Medicine ID", "Medicine Name", "Current Stock", "Low Stock Threshold", "Status");
+        System.out.println("-".repeat(80));
+        
+        // Show critical stock first
+        for (int i = 0; i < criticalStock.size(); i++) {
+            entity.Stock stock = criticalStock.get(i);
+            Medicine medicine = medicineMap.get(stock.getMedicineId());
+            String medicineName = medicine != null ? medicine.getName() : "Unknown";
+            
+            System.out.printf("| %-12s | %-25s | %-15d | %-15d | %-15s |%n", 
+                stock.getMedicineId(), 
+                medicineName,
+                stock.getQuantity(),
+                50, // Fixed low stock threshold
+                "CRITICAL");
+        }
+        
+        // Show low stock
+        for (int i = 0; i < lowStock.size(); i++) {
+            entity.Stock stock = lowStock.get(i);
+            Medicine medicine = medicineMap.get(stock.getMedicineId());
+            String medicineName = medicine != null ? medicine.getName() : "Unknown";
+            
+            System.out.printf("| %-12s | %-25s | %-15d | %-15d | %-15s |%n", 
+                stock.getMedicineId(), 
+                medicineName,
+                stock.getQuantity(),
+                50, // Fixed low stock threshold
+                "LOW STOCK");
+        }
+        
+        System.out.println("-".repeat(80));
+        System.out.println();
+        
+        // Summary
+        System.out.println("Stock Alert Summary:");
+        System.out.println("-".repeat(50));
+        System.out.println("Critical Stock (< 10 units): " + criticalStock.size() + " medicines");
+        System.out.println("Low Stock (below reorder level): " + lowStock.size() + " medicines");
+        System.out.println("Normal Stock: " + normalStock.size() + " medicines");
+        System.out.println();
+        
+        if (criticalStock.size() > 0) {
+            System.out.println("WARNING: IMMEDIATE ACTION REQUIRED:");
+            System.out.println("The following medicines are critically low and need immediate restocking:");
+            for (int i = 0; i < criticalStock.size(); i++) {
+                entity.Stock stock = criticalStock.get(i);
+                Medicine medicine = medicineMap.get(stock.getMedicineId());
+                String medicineName = medicine != null ? medicine.getName() : "Unknown";
+                medicineName = medicine != null ? medicine.getName() : "Unknown";
+                System.out.println("  - " + medicineName + " (ID: " + stock.getMedicineId() + ") - Only " + stock.getQuantity() + " units left");
+            }
+            System.out.println();
+        }
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
     }
 }

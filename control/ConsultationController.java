@@ -6,8 +6,7 @@ import dao.ConsultationDAO;
 import dao.PatientQueueDAO;
 import dao.DoctorDAO;
 import dao.PatientDAO;
-import dao.PaymentDAO;
-import dao.MedicineDAO;
+import dao.DoctorScheduleDAO;
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
@@ -23,6 +22,9 @@ public class ConsultationController {
     private HashMapInterface<String, PatientQueueEntry> queueMap;
     private HashMapInterface<String, Doctor> doctorMap;
     private HashMapInterface<String, Patient> patientMap;
+    private HashMapInterface<String, Medicine> medicineMap;
+    private HashMapInterface<String, DoctorSchedule> scheduleMap;
+    private static int scheduleCounter = 1000; // Start from SCH1000
     private Scanner sc;
 
     public ConsultationController() {
@@ -30,14 +32,44 @@ public class ConsultationController {
         this.queueMap = PatientQueueDAO.loadPatientQueue();
         this.doctorMap = DoctorDAO.loadDoctors();
         this.patientMap = PatientDAO.loadPatients();
+        this.medicineMap = dao.MedicineDAO.loadMedicines();
+        this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
         this.sc = new Scanner(System.in);
-        
-        // Create consultations for existing assigned patients
-        createConsultationsForExistingAssignments();
     }
 
-    // --- Create consultation when doctor is assigned ---
-    public void createConsultationForQueue(String queueId) {
+    // ==================== CONSULTATION CRUD METHODS ====================
+
+    public boolean updateConsultationStatus(String consultationId, String newStatus) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null) {
+            consultation.setStatus(newStatus);
+            ConsultationDAO.saveConsultations(consultationMap);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean deleteConsultation(String consultationId) {
+        Consultation consultation = consultationMap.remove(consultationId);
+        if (consultation != null) {
+            ConsultationDAO.saveConsultations(consultationMap);
+            return true;
+        }
+        return false;
+    }
+
+    // ==================== GETTER METHODS ====================
+
+    public boolean consultationExists(String consultationId) {
+        return consultationMap.containsKey(consultationId);
+    }
+
+    public Consultation getConsultation(String consultationId) {
+        return consultationMap.get(consultationId);
+    }
+
+    // --- Create consultation manually from queue entry ---
+    public String createConsultationFromQueue(String queueId) {
         // First try to get from local map
         PatientQueueEntry entry = queueMap.get(queueId);
         
@@ -57,9 +89,53 @@ public class ConsultationController {
             consultationMap.put(consultationId, consultation);
             ConsultationDAO.saveConsultations(consultationMap);
             
-            // Update queue status to match consultation status
-            updateQueueStatusForConsultation(consultationId, "SCHEDULED");
+            // Update queue status to in consultation
+            entry.startConsultation();
+            queueMap.put(queueId, entry);
+            PatientQueueDAO.savePatientQueue(queueMap);
+            
+            return consultationId;
         }
+        return null;
+    }
+
+    // --- Get queue entries ready for consultation creation ---
+    public ListInterface<PatientQueueEntry> getQueueEntriesReadyForConsultation() {
+        // Refresh queue data from file to get latest changes
+        this.queueMap = PatientQueueDAO.loadPatientQueue();
+
+        ListInterface<PatientQueueEntry> readyEntries = new ArrayList<PatientQueueEntry>();
+        for (int i = 0; i < queueMap.keySet().size(); i++) {
+            String key = queueMap.keySet().get(i);
+            PatientQueueEntry entry = queueMap.get(key);
+            if (entry != null && entry.isAssigned() && entry.getAssignedDoctorId() != null) {
+                readyEntries.add(entry);
+            }
+        }
+        return readyEntries;
+    }
+
+    // --- Get a specific queue entry ---
+    public PatientQueueEntry getQueueEntry(String queueId) {
+        // Refresh queue data from file to get latest changes
+        this.queueMap = PatientQueueDAO.loadPatientQueue();
+        return queueMap.get(queueId);
+    }
+
+    // --- Get consultations ready for treatment ---
+    public ListInterface<Consultation> getConsultationsReadyForTreatment() {
+        // Refresh consultation data from file to get latest status updates
+        this.consultationMap = ConsultationDAO.loadConsultations();
+
+        ListInterface<Consultation> readyConsultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation consultation = consultationMap.get(key);
+            if (consultation != null && consultation.getStatus().equals("IN_PROGRESS")) {
+                readyConsultations.add(consultation);
+            }
+        }
+        return readyConsultations;
     }
 
     // --- Complete consultation with treatment ---
@@ -83,56 +159,38 @@ public class ConsultationController {
         );
 
         if (treatmentId != null) {
-            // Mark consultation as treatment created (not ready for payment yet)
-            consultation.markTreatmentCreated(treatmentId);
+            // Mark consultation as completed
+            consultation.completeConsultation(treatmentId);
             consultationMap.put(consultationId, consultation);
             ConsultationDAO.saveConsultations(consultationMap);
             
-            // Update queue status to match
-            updateQueueStatusForConsultation(consultationId, "TREATMENT_CREATED");
+            // Update queue status to completed
+            if (consultation.getQueueId() != null) {
+                // Refresh queue data to get latest changes
+                this.queueMap = PatientQueueDAO.loadPatientQueue();
+
+                PatientQueueEntry entry = queueMap.get(consultation.getQueueId());
+                if (entry != null) {
+                    entry.complete();
+                    queueMap.put(consultation.getQueueId(), entry);
+                    PatientQueueDAO.savePatientQueue(queueMap);
+                }
+            }
 
             System.out.println("Treatment created: " + treatmentId);
-            System.out.println("Consultation marked as treatment created. Medicines need to be dispensed.");
-            System.out.println("Use Treatment Module to complete the consultation.");
+            System.out.println("Consultation completed successfully.");
         } else {
             System.out.println("Failed to create treatment record.");
         }
     }
 
-    // --- Auto-assign appointment patients to their booked doctors ---
-    public void autoAssignAppointmentPatients() {
-        for (String key : queueMap.keySet()) {
-            PatientQueueEntry entry = queueMap.get(key);
-            
-            // Check if this is an appointment patient without a doctor assignment
-            if (entry.getQueueType() == QueueType.APPOINTMENT && !entry.isAssigned()) {
-                // Find the booked appointment for this patient
-                String doctorId = findBookedAppointmentForPatient(entry.getPatientId());
-                if (doctorId != null) {
-                    entry.assignToDoctor(doctorId);
-                    queueMap.put(key, entry);
-                    System.out.println("Auto-assigned appointment patient " + entry.getPatientId() + " to Dr. " + doctorId);
-                }
-            }
-        }
-        
-        // Save the updated queue
-        PatientQueueDAO.savePatientQueue(queueMap);
-    }
-
-    // --- Find booked appointment for a patient ---
-    private String findBookedAppointmentForPatient(String patientId) {
-        // This would need to be implemented based on how appointments are linked to patients
-        // For now, we'll return null and handle this in the appointment booking system
-        return null;
-    }
-
     // --- Get consultations by doctor ---
     public ListInterface<Consultation> getConsultationsByDoctor(String doctorId) {
-        ListInterface<Consultation> doctorConsultations = new ArrayList<>();
-        for (String key : consultationMap.keySet()) {
+        ListInterface<Consultation> doctorConsultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
+            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
                 doctorConsultations.add(c);
             }
         }
@@ -141,11 +199,12 @@ public class ConsultationController {
 
     // --- Get pending consultations for a specific doctor ---
     public ListInterface<Consultation> getPendingConsultationsForDoctor(String doctorId) {
-        ListInterface<Consultation> pendingConsultations = new ArrayList<>();
-        for (String key : consultationMap.keySet()) {
+        ListInterface<Consultation> pendingConsultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
             
-            if (c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
+            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
                 c.getStatus().equals("SCHEDULED")) {
                 pendingConsultations.add(c);
             }
@@ -156,10 +215,11 @@ public class ConsultationController {
 
     // --- Get all consultations for a specific doctor ---
     public ListInterface<Consultation> getAllConsultationsForDoctor(String doctorId) {
-        ListInterface<Consultation> allConsultations = new ArrayList<>();
-        for (String key : consultationMap.keySet()) {
+        ListInterface<Consultation> allConsultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
+            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
                 allConsultations.add(c);
             }
         }
@@ -177,12 +237,6 @@ public class ConsultationController {
             consultation.setStatus("COMPLETED");
             ConsultationDAO.saveConsultations(consultationMap);
             
-            // Store completed consultation in history
-            storeCompletedConsultationInHistory(consultationId);
-            
-            // Automatically generate invoice for payment
-            generateInvoiceForConsultation(consultationId);
-            
             return true;
         }
         return false;
@@ -198,8 +252,8 @@ public class ConsultationController {
             consultation.getDoctorId().equals(doctorId)) {
             
             // Create treatment record first
-            control.TreatmentController treatmentControl = new control.TreatmentController();
-            String treatmentId = treatmentControl.createTreatment(
+            control.TreatmentController treatmentController = new control.TreatmentController();
+            String treatmentId = treatmentController.createTreatment(
                 doctorId, 
                 consultation.getPatientId(), 
                 consultationId,
@@ -209,177 +263,133 @@ public class ConsultationController {
             );
             
             if (treatmentId != null) {
-                // Mark consultation as completed with treatment
+                // Mark consultation as completed
                 consultation.completeConsultation(treatmentId);
+                consultationMap.put(consultationId, consultation);
                 ConsultationDAO.saveConsultations(consultationMap);
                 
-                // Update the consultation map to ensure latest data
-                consultationMap.put(consultationId, consultation);
-                
-                // Store completed consultation in history
-                storeCompletedConsultationInHistory(consultationId);
-                
-                // Delete existing incorrect invoice if it exists
-                deleteExistingInvoice(consultationId);
-                
-                // Generate new invoice with all fees included
-                generateInvoiceForConsultation(consultationId);
-                
-                System.out.println("Treatment created: " + treatmentId);
-                System.out.println("Consultation completed with proper treatment details!");
+                // Update queue status to completed
+                if (consultation.getQueueId() != null) {
+                    // Refresh queue data to get latest changes
+                    this.queueMap = PatientQueueDAO.loadPatientQueue();
+
+                    PatientQueueEntry entry = queueMap.get(consultation.getQueueId());
+                    if (entry != null) {
+                        entry.complete();
+                        queueMap.put(consultation.getQueueId(), entry);
+                        PatientQueueDAO.savePatientQueue(queueMap);
+                    }
+                }
                 
                 return true;
-            } else {
-                System.out.println("Failed to create treatment record.");
             }
         }
-        
         return false;
     }
     
-    // --- Delete existing invoice for re-generation ---
-    private void deleteExistingInvoice(String consultationId) {
-        try {
-            PaymentController paymentController = new PaymentController();
-            paymentController.deleteInvoiceByConsultation(consultationId);
-        } catch (Exception e) {
-            // Ignore if invoice doesn't exist or deletion fails
+
+
+    // --- View consultations ready for treatment ---
+    public void viewConsultationsReadyForTreatment() {
+        ListInterface<Consultation> readyConsultations = getConsultationsReadyForTreatment();
+        
+        if (readyConsultations.isEmpty()) {
+            System.out.println("No consultations ready for treatment.");
+            return;
+        }
+        
+        System.out.println("\n=== CONSULTATIONS READY FOR TREATMENT ===");
+        System.out.printf("%-15s %-10s %-10s %-20s %-15s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Status");
+        System.out.println("-".repeat(80));
+
+        for (Consultation consultation : readyConsultations) {
+            System.out.printf("%-15s %-10s %-10s %-20s %-15s%n",
+                consultation.getConsultationId(),
+                consultation.getPatientId(),
+                consultation.getDoctorId(),
+                consultation.getSpecialty(),
+                consultation.getStatus());
         }
     }
 
-    // --- Generate invoice for completed consultation ---
-    private void generateInvoiceForConsultation(String consultationId) {
-        try {
-            PaymentController paymentController = new PaymentController();
-            // For now, generate zero-amount invoice; Payment module will adjust upon processing
-            paymentController.generateInvoice(consultationId, 0.0);
-        } catch (Exception e) {
-            System.out.println("Error generating invoice: " + e.getMessage());
-        }
-    }
 
-    // --- Mark medicines as dispensed ---
-    public void markMedicinesDispensed(String consultationId) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation == null) {
-            System.out.println("Consultation not found: " + consultationId);
-            return;
+
+    // --- Create consultation from queue entry with details ---
+    public boolean createConsultationFromQueueEntry(String queueEntryId, String doctorId, String dateStr, String timeStr, String specialty) {
+        // First try to get from local map
+        PatientQueueEntry entry = queueMap.get(queueEntryId);
+        
+        // If not found locally, refresh from file and try again
+        if (entry == null) {
+            this.queueMap = PatientQueueDAO.loadPatientQueue();
+            entry = queueMap.get(queueEntryId);
         }
         
-        if (!consultation.getStatus().equals("TREATMENT_CREATED")) {
-            System.out.println("Consultation must be in TREATMENT_CREATED status to dispense medicines.");
-            return;
+        if (entry == null) {
+            System.out.println("Queue entry not found: " + queueEntryId);
+            return false;
         }
-        
-        // Mark medicines as dispensed
-        consultation.markMedicinesDispensed();
-        consultationMap.put(consultationId, consultation);
-        ConsultationDAO.saveConsultations(consultationMap);
-        
-        // Update queue status to match
-        updateQueueStatusForConsultation(consultationId, "MEDICINES_DISPENSED");
-        
-        System.out.println("Medicines dispensed for consultation: " + consultationId);
-        System.out.println("Consultation ready for final completion and invoice generation.");
-    }
-    
-    // --- Complete consultation after medicines dispensed ---
-    public void completeConsultationAfterDispensing(String consultationId) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation == null) {
-            System.out.println("Consultation not found: " + consultationId);
-            return;
+
+        if (!entry.isAssigned()) {
+            System.out.println("Queue entry is not assigned to a doctor: " + queueEntryId);
+            return false;
         }
-        
-        if (!consultation.getStatus().equals("MEDICINES_DISPENSED")) {
-            System.out.println("Consultation must be in MEDICINES_DISPENSED status to complete.");
-            return;
+
+        if (!entry.getAssignedDoctorId().equals(doctorId)) {
+            System.out.println("Queue entry is assigned to different doctor: " + entry.getAssignedDoctorId());
+            return false;
         }
-        
-        // Mark consultation as ready for payment
-        consultation.markFullyCompleted();
-        consultationMap.put(consultationId, consultation);
-        ConsultationDAO.saveConsultations(consultationMap);
-        
-        // Update queue status to completed (but don't remove yet - keep for payment tracking)
-        updateQueueStatusForConsultation(consultationId, "COMPLETED");
-        
-        // Generate invoice with all costs
-        generateFinalInvoice(consultationId);
-        
-        System.out.println("Consultation ready for payment: " + consultationId);
-        System.out.println("Invoice generated. Patient can proceed to payment.");
-    }
-    
-    // --- Generate final invoice with all costs ---
-    private void generateFinalInvoice(String consultationId) {
+
         try {
-            PaymentController paymentController = new PaymentController();
+            // Parse date and time
+            java.time.LocalDateTime consultationTime = java.time.LocalDateTime.parse(
+                dateStr + " " + timeStr, 
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+            );
+
+            String consultationId = ConsultationDAO.generateConsultationId();
+            Consultation consultation = new Consultation(consultationId, entry.getPatientId(), specialty, queueEntryId);
             
-            // Calculate total amount
-            double totalAmount = calculateConsultationTotal(consultationId);
+            // Assign doctor and set consultation time
+            consultation.assignDoctor(doctorId, null, consultationTime);
             
-            // Generate invoice with correct amount
-            paymentController.generateInvoice(consultationId, totalAmount);
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
             
-        } catch (Exception e) {
-            System.out.println("Error generating final invoice: " + e.getMessage());
-        }
-    }
-    
-    // --- Store completed consultation in history and remove from queue ---
-    private void storeCompletedConsultationInHistory(String consultationId) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation != null && consultation.getQueueId() != null) {
-            PatientQueueEntry queueEntry = queueMap.get(consultation.getQueueId());
-            if (queueEntry != null) {
-                // Store in history
-                // QueueHistoryController historyControl = new QueueHistoryController(); // Removed
-                // historyControl.storeCompletedQueueEntry(queueEntry, "CONSULTATION_COMPLETED"); // Removed
-                
-                // Remove from active queue
-                queueMap.remove(consultation.getQueueId());
+            // Update queue status to in consultation
+            entry.startConsultation();
+            queueMap.put(queueEntryId, entry);
                 PatientQueueDAO.savePatientQueue(queueMap);
-                System.out.println("Patient " + consultation.getPatientId() + " moved to history after completion");
-            }
+            
+            System.out.println("Consultation created successfully: " + consultationId);
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error creating consultation: " + e.getMessage());
+            return false;
         }
     }
 
     // --- Get consultations by patient ---
     public ListInterface<Consultation> getConsultationsByPatient(String patientId) {
-        ListInterface<Consultation> patientConsultations = new ArrayList<>();
-        for (String key : consultationMap.keySet()) {
+        ListInterface<Consultation> patientConsultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c.getPatientId().equals(patientId)) {
+            if (c != null && c.getPatientId().equals(patientId)) {
                 patientConsultations.add(c);
             }
         }
         return patientConsultations;
     }
 
-    // --- Get consultation by ID ---
-    public Consultation getConsultationById(String consultationId) {
-        return consultationMap.get(consultationId);
-    }
-
-    // --- Update consultation status ---
-    public void updateConsultationStatus(String consultationId, String status) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation != null) {
-            // Update status based on the new status
-            if (status.equals("COMPLETED") && consultation.getTreatmentId() != null) {
-                consultation.completeConsultation(consultation.getTreatmentId());
-            }
-            ConsultationDAO.saveConsultations(consultationMap);
-        }
-    }
-
     // --- Get pending consultations ---
     public ListInterface<Consultation> getPendingConsultations() {
-        ListInterface<Consultation> pending = new ArrayList<>();
-        for (String key : consultationMap.keySet()) {
+        ListInterface<Consultation> pending = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c.getStatus().equals("SCHEDULED")) {
+            if (c != null && c.getStatus().equals("SCHEDULED")) {
                 pending.add(c);
             }
         }
@@ -388,121 +398,638 @@ public class ConsultationController {
 
     // --- Get completed consultations ---
     public ListInterface<Consultation> getCompletedConsultations() {
-        ListInterface<Consultation> completed = new ArrayList<>();
-        for (String key : consultationMap.keySet()) {
+        ListInterface<Consultation> completed = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c.getStatus().equals("COMPLETED")) {
+            if (c != null && c.getStatus().equals("COMPLETED")) {
                 completed.add(c);
             }
         }
         return completed;
     }
     
-    /**
-     * Get consultations by status
-     */
+    // --- Get consultations by status ---
     public ListInterface<Consultation> getConsultationsByStatus(String status) {
-        ListInterface<Consultation> consultations = new ArrayList<>();
-        for (String key : consultationMap.keySet()) {
+        ListInterface<Consultation> consultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c.getStatus().equals(status)) {
+            if (c != null && c.getStatus().equals(status)) {
                 consultations.add(c);
             }
         }
         return consultations;
     }
     
-    /**
-     * Get consultations ready for medicine dispensing
-     */
-    public ListInterface<Consultation> getConsultationsReadyForMedicineDispensing() {
-        return getConsultationsByStatus("TREATMENT_CREATED");
-    }
-    
-    /**
-     * Get consultations ready for final completion
-     */
-    public ListInterface<Consultation> getConsultationsReadyForCompletion() {
-        return getConsultationsByStatus("MEDICINES_DISPENSED");
-    }
-
-    // --- Display consultation details ---
-    public void displayConsultationDetails(String consultationId) {
-        Consultation c = consultationMap.get(consultationId);
-        if (c != null) {
-            Patient patient = patientMap.get(c.getPatientId());
-            Doctor doctor = c.getDoctorId() != null ? doctorMap.get(c.getDoctorId()) : null;
-            
-            System.out.println("\n--- Consultation Details ---");
-            System.out.println("Consultation ID: " + c.getConsultationId());
-            System.out.println("Patient: " + (patient != null ? patient.getName() : c.getPatientId()));
-            System.out.println("Doctor: " + (doctor != null ? doctor.getName() : "Not assigned"));
-            System.out.println("Specialty: " + c.getSpecialty());
-            System.out.println("Status: " + c.getStatus());
-            System.out.println("Time: " + (c.getConsultationTime() != null ? c.getConsultationTime() : "Not scheduled"));
-            System.out.println("Treatment ID: " + (c.getTreatmentId() != null ? c.getTreatmentId() : "Not created"));
-            System.out.println("Payment ID: " + (c.getPaymentId() != null ? c.getPaymentId() : "Not paid"));
-        } else {
-            System.out.println("Consultation not found.");
-        }
-    }
-
-    // --- Display consultations table ---
-    public void displayConsultationsTable(ListInterface<Consultation> consultations, String title) {
-        if (consultations.isEmpty()) {
-            System.out.println("\nNo consultations found for: " + title);
+    // --- View all consultations ---
+    public void viewAllConsultations() {
+        System.out.println("\n=== ALL CONSULTATIONS ===\n");
+        if (consultationMap.isEmpty()) {
+            System.out.println("No consultations found.");
             return;
         }
 
-        System.out.println("\n--- " + title + " ---");
-        String borderLine = "+----------------+------------+---------------------------+---------------------------+----------------------+----------------+";
-        System.out.println(borderLine);
-        System.out.printf("| %-14s | %-10s | %-25s | %-25s | %-20s | %-14s |%n",
-                "ConsultationID", "PatientID", "Patient Name", "Doctor Name", "Specialty", "Status");
-        System.out.println(borderLine);
+        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status");
+        System.out.println("-".repeat(100));
 
-        for (int i = 0; i < consultations.size(); i++) {
-            Consultation c = consultations.get(i);
-            Patient patient = patientMap.get(c.getPatientId());
-            Doctor doctor = c.getDoctorId() != null ? doctorMap.get(c.getDoctorId()) : null;
-            
-            String patientName = patient != null ? patient.getName() : "Unknown";
-            String doctorName = doctor != null ? doctor.getName() : "Not Assigned";
-            
-            System.out.printf("| %-14s | %-10s | %-25s | %-25s | %-20s | %-14s |%n",
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation c = consultationMap.get(key);
+        if (c != null) {
+                String consultationTime = c.getConsultationTime() != null ? 
+                    c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "N/A";
+                String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
+                
+                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s%n",
                     c.getConsultationId(),
                     c.getPatientId(),
-                    patientName,
-                    doctorName,
+                    doctorId,
                     c.getSpecialty(),
+                    consultationTime,
                     c.getStatus());
-            System.out.println(borderLine);
+            }
         }
     }
 
-    /**
-     * Generate daily consultation summary (no arguments)
-     */
-    public void generateDailyConsultationSummary() {
-        generateDailyConsultationSummary(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+    // --- View consultations by doctor ---
+    public void viewConsultationsByDoctor() {
+        System.out.println("\n=== CONSULTATIONS BY DOCTOR ===");
+        System.out.print("Enter Doctor ID: ");
+        String doctorId = sc.nextLine().trim();
+        
+        ListInterface<Consultation> doctorConsultations = getConsultationsByDoctor(doctorId);
+        
+        if (doctorConsultations.isEmpty()) {
+            System.out.println("No consultations found for doctor: " + doctorId);
+            return;
+        }
+
+        System.out.println("\nConsultations for Doctor " + doctorId + ":");
+        System.out.printf("%-15s %-10s %-20s %-20s %-15s%n", 
+            "Consultation ID", "Patient ID", "Specialty", "Consultation Time", "Status");
+        System.out.println("-".repeat(90));
+
+        for (int i = 0; i < doctorConsultations.size(); i++) {
+            Consultation c = doctorConsultations.get(i);
+            String consultationTime = c.getConsultationTime() != null ? 
+                c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "N/A";
+            
+            System.out.printf("%-15s %-10s %-20s %-20s %-15s%n",
+                    c.getConsultationId(),
+                    c.getPatientId(),
+                    c.getSpecialty(),
+                consultationTime,
+                    c.getStatus());
+        }
     }
 
-    /**
-     * Generate daily consultation summary for specific date
-     */
+    // --- View consultations by patient ---
+    public void viewConsultationsByPatient() {
+        System.out.println("\n=== CONSULTATIONS BY PATIENT ===");
+        System.out.print("Enter Patient ID: ");
+        String patientId = sc.nextLine().trim();
+        
+        ListInterface<Consultation> patientConsultations = getConsultationsByPatient(patientId);
+        
+        if (patientConsultations.isEmpty()) {
+            System.out.println("No consultations found for patient: " + patientId);
+            return;
+        }
+
+        System.out.println("\nConsultations for Patient " + patientId + ":");
+        System.out.printf("%-15s %-10s %-20s %-20s %-15s%n", 
+            "Consultation ID", "Doctor ID", "Specialty", "Consultation Time", "Status");
+        System.out.println("-".repeat(90));
+
+        for (int i = 0; i < patientConsultations.size(); i++) {
+            Consultation c = patientConsultations.get(i);
+            String consultationTime = c.getConsultationTime() != null ? 
+                c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "N/A";
+            String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
+            
+            System.out.printf("%-15s %-10s %-20s %-20s %-15s%n",
+                c.getConsultationId(),
+                doctorId,
+                c.getSpecialty(),
+                consultationTime,
+                c.getStatus());
+        }
+    }
+
+    // --- Generate daily consultation summary ---
+    public void generateDailyConsultationSummary() {
+        System.out.println("\n=== DAILY CONSULTATION SUMMARY ===");
+        
+        LocalDate today = LocalDate.now();
+            int totalConsultations = 0;
+            int scheduledConsultations = 0;
+            int completedConsultations = 0;
+            int pendingConsultations = 0;
+            
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+                Consultation c = consultationMap.get(key);
+            if (c != null && c.getConsultationTime() != null && 
+                c.getConsultationTime().toLocalDate().equals(today)) {
+                    totalConsultations++;
+                    
+                    switch (c.getStatus()) {
+                        case "SCHEDULED":
+                            scheduledConsultations++;
+                            break;
+                        case "COMPLETED":
+                            completedConsultations++;
+                            break;
+                        case "PENDING":
+                            pendingConsultations++;
+                            break;
+                    }
+                }
+            }
+            
+        System.out.println("Date: " + today);
+            System.out.println("Total Consultations: " + totalConsultations);
+            System.out.println("Scheduled: " + scheduledConsultations);
+            System.out.println("Completed: " + completedConsultations);
+            System.out.println("Pending: " + pendingConsultations);
+    }
+
+    // --- Process payment for consultation ---
+    public void processPayment() {
+        System.out.println("\n=== PROCESS PAYMENT ===");
+        System.out.print("Enter Consultation ID: ");
+        String consultationId = sc.nextLine().trim();
+        
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation == null) {
+            System.out.println("Consultation not found: " + consultationId);
+            return;
+        }
+
+        if (consultation.getPaymentId() != null) {
+            System.out.println("Payment already processed for this consultation.");
+            return;
+        }
+
+        System.out.print("Enter Payment Amount: ");
+        double amount;
+        try {
+            amount = Double.parseDouble(sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid amount format.");
+            return;
+        }
+
+        // Generate invoice for payment
+        PaymentController paymentController = new PaymentController();
+        String invoiceId = paymentController.generateInvoice(consultationId, amount);
+        
+        if (invoiceId != null) {
+            // For now, we'll use the invoice ID as payment ID
+            // In a real system, you'd create a separate payment record
+            consultation.setPayment(invoiceId);
+        consultationMap.put(consultationId, consultation);
+        ConsultationDAO.saveConsultations(consultationMap);
+            System.out.println("Invoice generated successfully. Invoice ID: " + invoiceId);
+            System.out.println("Payment amount: RM " + String.format("%.2f", amount));
+        } else {
+            System.out.println("Failed to generate invoice.");
+        }
+    }
+
+    // --- View doctor schedules ---
+    public void viewDoctorSchedules() {
+        System.out.println("\n=== DOCTOR SCHEDULES ===");
+        System.out.print("Enter Doctor ID: ");
+        String doctorId = sc.nextLine().trim();
+
+        // Validate doctor exists
+        if (!doctorExists(doctorId)) {
+            System.out.println("Doctor ID '" + doctorId + "' does not exist in the system.");
+            return;
+        }
+
+        // Load doctor schedules
+        HashMapInterface<String, DoctorSchedule> scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+
+        // Filter schedules for this doctor
+        ListInterface<DoctorSchedule> doctorSchedules = new ArrayList<>();
+        for (int i = 0; i < scheduleMap.keySet().size(); i++) {
+            String scheduleId = scheduleMap.keySet().get(i);
+            DoctorSchedule schedule = scheduleMap.get(scheduleId);
+
+            if (schedule != null && schedule.getDoctorId().equals(doctorId)) {
+                doctorSchedules.add(schedule);
+            }
+        }
+
+        if (doctorSchedules.isEmpty()) {
+            String doctorName = getDoctorName(doctorId);
+            System.out.println("No schedules found for " + doctorName);
+            return;
+        }
+
+        String doctorName = getDoctorName(doctorId);
+        System.out.println("\nSchedules for " + doctorName + ":");
+        System.out.printf("%-15s %-12s %-15s %-15s %-20s%n",
+            "Schedule ID", "Date", "Time Slot", "Status", "Patient ID");
+        System.out.println("-".repeat(80));
+
+        for (int i = 0; i < doctorSchedules.size(); i++) {
+            DoctorSchedule schedule = doctorSchedules.get(i);
+
+            String status = schedule.isBooked() ? "Booked" : "Available";
+            String patientId = schedule.getPatientId() != null ? schedule.getPatientId() : "N/A";
+            String timeSlot = schedule.getTimeSlotString();
+            String date = schedule.getDateString();
+
+            System.out.printf("%-15s %-12s %-15s %-15s %-20s%n",
+                schedule.getScheduleId(),
+                date,
+                timeSlot,
+                status,
+                patientId);
+        }
+    }
+
+    // --- Make appointment ---
+    public void makeAppointment() {
+        System.out.println("\n=== MAKE APPOINTMENT ===");
+        System.out.print("Enter Patient ID: ");
+        String patientId = sc.nextLine().trim();
+        
+        if (!patientMap.containsKey(patientId)) {
+            System.out.println("Patient not found: " + patientId);
+            return;
+        }
+
+        System.out.print("Enter Doctor ID: ");
+        String doctorId = sc.nextLine().trim();
+        
+        if (!doctorMap.containsKey(doctorId)) {
+            System.out.println("Doctor not found: " + doctorId);
+            return;
+        }
+
+        System.out.print("Enter Specialty: ");
+        String specialty = sc.nextLine().trim();
+
+        System.out.print("Enter Date (yyyy-MM-dd): ");
+        String dateStr = sc.nextLine().trim();
+
+        System.out.print("Enter Time (HH:mm): ");
+        String timeStr = sc.nextLine().trim();
+
+        try {
+            LocalDateTime appointmentTime = LocalDateTime.parse(dateStr + " " + timeStr, 
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            
+            if (appointmentTime.isBefore(LocalDateTime.now())) {
+                System.out.println("Cannot schedule appointments in the past.");
+                return;
+            }
+            
+            // Check for scheduling conflicts
+            if (hasSchedulingConflict(doctorId, appointmentTime)) {
+                System.out.println("Time slot is not available. Please choose another time.");
+                return;
+            }
+
+            String consultationId = ConsultationDAO.generateConsultationId();
+            Consultation consultation = new Consultation(consultationId, patientId, specialty);
+            consultation.assignDoctor(doctorId, null, appointmentTime);
+            
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
+            
+            System.out.println("Appointment scheduled successfully. Consultation ID: " + consultationId);
+        } catch (Exception e) {
+            System.out.println("Error scheduling appointment: " + e.getMessage());
+        }
+    }
+
+    // --- View available time slots ---
+    public void viewAvailableTimeSlots() {
+        System.out.println("\n=== AVAILABLE TIME SLOTS ===");
+        System.out.print("Enter Doctor ID: ");
+        String doctorId = sc.nextLine().trim();
+        
+        System.out.print("Enter Date (yyyy-MM-dd): ");
+        String dateStr = sc.nextLine().trim();
+
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            System.out.println("\nAvailable time slots for " + date + ":");
+            
+            // Show available slots (assuming 1-hour slots from 9 AM to 5 PM)
+            String[] timeSlots = {"09:00", "10:00", "11:00", "14:00", "15:00", "16:00"};
+            
+            for (String slot : timeSlots) {
+                LocalDateTime slotTime = LocalDateTime.parse(dateStr + " " + slot, 
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                
+                if (!hasSchedulingConflict(doctorId, slotTime)) {
+                    System.out.println(slot + " - Available");
+            } else {
+                    System.out.println(slot + " - Booked");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error parsing date: " + e.getMessage());
+        }
+    }
+
+    // --- Check for scheduling conflicts ---
+    private boolean hasSchedulingConflict(String doctorId, LocalDateTime appointmentTime) {
+        // Check if doctor already has an appointment at this time
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation c = consultationMap.get(key);
+            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
+                c.getConsultationTime() != null && 
+                c.getConsultationTime().toLocalDate().equals(appointmentTime.toLocalDate()) &&
+                Math.abs(c.getConsultationTime().getHour() - appointmentTime.getHour()) < 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // --- Get consultation statistics ---
+    public void getConsultationStatistics() {
+        System.out.println("\n=== CONSULTATION STATISTICS ===");
+        
+        int totalConsultations = 0;
+        int scheduledConsultations = 0;
+        int completedConsultations = 0;
+        int pendingConsultations = 0;
+        
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation c = consultationMap.get(key);
+            if (c != null) {
+                totalConsultations++;
+                
+                switch (c.getStatus()) {
+                    case "SCHEDULED":
+                        scheduledConsultations++;
+                        break;
+                    case "COMPLETED":
+                        completedConsultations++;
+                        break;
+                    case "PENDING":
+                        pendingConsultations++;
+                        break;
+                }
+            }
+        }
+        
+        System.out.println("Total Consultations: " + totalConsultations);
+        System.out.println("Scheduled: " + scheduledConsultations);
+        System.out.println("Completed: " + completedConsultations);
+        System.out.println("Pending: " + pendingConsultations);
+    }
+
+    // --- Get available consultation count ---
+    public int getAvailableConsultationCount() {
+        int count = 0;
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation c = consultationMap.get(key);
+            if (c != null && c.getStatus().equals("SCHEDULED") && c.getDoctorId() != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    // --- View consultation details ---
+    public void viewConsultationDetails() {
+        System.out.print("Enter Consultation ID: ");
+        String id = sc.nextLine().trim();
+        viewConsultationDetails(id);
+    }
+
+    // --- View consultation details with provided ID ---
+    public void viewConsultationDetails(String consultationId) {
+        Consultation c = consultationMap.get(consultationId);
+        if (c == null) {
+            System.out.println("Consultation not found.");
+            return;
+        }
+
+        System.out.println("\n--- Consultation Details ---");
+        System.out.println("Consultation ID: " + c.getConsultationId());
+        System.out.println("Patient ID: " + c.getPatientId());
+        System.out.println("Doctor ID: " + (c.getDoctorId() != null ? c.getDoctorId() : "Not assigned"));
+        System.out.println("Specialty: " + c.getSpecialty());
+        System.out.println("Status: " + c.getStatus());
+        System.out.println("Queue ID: " + (c.getQueueId() != null ? c.getQueueId() : "N/A"));
+
+        if (c.getConsultationTime() != null) {
+            System.out.println("Consultation Time: " + c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        }
+
+        if (c.getTreatmentId() != null) {
+            System.out.println("Treatment ID: " + c.getTreatmentId());
+        }
+
+        if (c.getPaymentId() != null) {
+            System.out.println("Payment ID: " + c.getPaymentId());
+        }
+    }
+
+    // --- View pending consultations ---
+    public void viewPendingConsultations() {
+        ListInterface<Consultation> pending = getPendingConsultations();
+        if (pending.isEmpty()) {
+            System.out.println("No pending consultations found.");
+            return;
+        }
+        
+        System.out.println("\n--- Pending Consultations ---");
+        System.out.printf("%-15s %-10s %-10s %-20s %-15s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Status");
+        System.out.println("-".repeat(80));
+        
+        for (int i = 0; i < pending.size(); i++) {
+            Consultation c = pending.get(i);
+            String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
+            System.out.printf("%-15s %-10s %-10s %-20s %-15s%n",
+                c.getConsultationId(),
+                c.getPatientId(),
+                doctorId,
+                c.getSpecialty(),
+                c.getStatus());
+        }
+    }
+
+    // --- View completed consultations ---
+    public void viewCompletedConsultations() {
+        ListInterface<Consultation> completed = getCompletedConsultations();
+        if (completed.isEmpty()) {
+            System.out.println("No completed consultations found.");
+            return;
+        }
+        
+        System.out.println("\n--- Completed Consultations ---");
+        System.out.printf("%-15s %-10s %-10s %-20s %-15s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Status");
+        System.out.println("-".repeat(80));
+        
+        for (int i = 0; i < completed.size(); i++) {
+            Consultation c = completed.get(i);
+            String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
+            System.out.printf("%-15s %-10s %-10s %-20s %-15s%n",
+                c.getConsultationId(),
+                c.getPatientId(),
+                doctorId,
+                c.getSpecialty(),
+                c.getStatus());
+        }
+    }
+
+    // --- View all consultations including completed ---
+    public void viewAllConsultationsIncludingCompleted() {
+        viewAllConsultations();
+    }
+
+    // --- Sort consultations by date (newest first) ---
+    public void sortConsultationsByDateNewestFirst() {
+        System.out.println("Sorting consultations by date (newest first) is not implemented in this version.");
+        System.out.println("Please use the view options to see consultations.");
+    }
+
+    // --- Sort consultations by date (oldest first) ---
+    public void sortConsultationsByDateOldestFirst() {
+        System.out.println("Sorting consultations by date (oldest first) is not implemented in this version.");
+        System.out.println("Please use the view options to see consultations.");
+    }
+
+    // --- Sort consultations by doctor ID ---
+    public void sortConsultationsByDoctorId() {
+        System.out.println("Sorting consultations by doctor ID is not implemented in this version.");
+        System.out.println("Please use the view options to see consultations.");
+    }
+
+    // --- Create appointment ---
+    public boolean createAppointment(String patientId, String doctorId, String dateStr, String timeStr, String specialty) {
+        try {
+            LocalDateTime appointmentTime = LocalDateTime.parse(dateStr + " " + timeStr,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+            if (appointmentTime.isBefore(LocalDateTime.now())) {
+                System.out.println("Cannot schedule appointments in the past.");
+                return false;
+            }
+
+            // Check for scheduling conflicts
+            if (hasSchedulingConflict(doctorId, appointmentTime)) {
+                System.out.println("Time slot is not available. Please choose another time.");
+                return false;
+            }
+
+            // Create doctor schedule entry (appointments are just scheduled slots)
+            createDoctorSchedule(doctorId, patientId, specialty, appointmentTime);
+
+            System.out.println("Appointment created and booked successfully for " + dateStr + " at " + timeStr);
+            return true;
+            } catch (Exception e) {
+            System.out.println("Error scheduling appointment: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // --- Create doctor schedule entry ---
+    private void createDoctorSchedule(String doctorId, String patientId, String specialty, LocalDateTime appointmentTime) {
+        try {
+            // Generate schedule ID
+            String scheduleId = "SCH" + (scheduleCounter++);
+
+            // Create schedule entry
+            DoctorSchedule schedule = new DoctorSchedule(
+                scheduleId,
+                doctorId,
+                specialty,
+                appointmentTime.toLocalDate(),
+                appointmentTime.toLocalTime(),
+                appointmentTime.toLocalTime().plusHours(1) // 1-hour appointment
+            );
+
+            // Mark schedule as booked with patient info
+            schedule.bookSlot(patientId);
+
+            // Save to schedule map and file
+            scheduleMap.put(scheduleId, schedule);
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+
+            System.out.println("Schedule created for " + getDoctorName(doctorId) + " on " +
+                              appointmentTime.toLocalDate() + " at " + appointmentTime.toLocalTime());
+
+        } catch (Exception e) {
+            System.out.println("Error creating doctor schedule: " + e.getMessage());
+        }
+    }
+
+
+
+    // --- Get doctor name by ID ---
+    private String getDoctorName(String doctorId) {
+        Doctor doctor = doctorMap.get(doctorId);
+        return doctor != null ? doctor.getName() : doctorId;
+    }
+
+    // --- Validation methods ---
+    public boolean patientExists(String patientId) {
+        return patientMap.containsKey(patientId);
+    }
+
+    public boolean doctorExists(String doctorId) {
+        return doctorMap.containsKey(doctorId);
+    }
+
+    // --- View available time slots with parameters ---
+    public void viewAvailableTimeSlots(String doctorId, String dateStr) {
+        try {
+            LocalDate date = LocalDate.parse(dateStr);
+            String doctorName = getDoctorName(doctorId);
+            System.out.println("\n--- Available Time Slots for " + doctorName + " on " + date + " ---");
+            
+            // Show available slots (assuming 1-hour slots from 9 AM to 5 PM)
+            String[] timeSlots = {"09:00", "10:00", "11:00", "14:00", "15:00", "16:00"};
+            
+            for (String slot : timeSlots) {
+                LocalDateTime slotTime = LocalDateTime.parse(dateStr + " " + slot, 
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+                
+                if (!hasSchedulingConflict(doctorId, slotTime)) {
+                    System.out.println(slot + " - Available");
+                } else {
+                    System.out.println(slot + " - Booked");
+                    }
+                }
+            } catch (Exception e) {
+            System.out.println("Error parsing date: " + e.getMessage());
+        }
+    }
+
+    // --- Generate daily consultation summary with date parameter ---
     public void generateDailyConsultationSummary(String dateStr) {
         try {
             LocalDate date = LocalDate.parse(dateStr);
-            System.out.println("\n--- Daily Consultation Summary for " + date + " ---");
+            System.out.println("\n=== DAILY CONSULTATION SUMMARY FOR " + date + " ===");
             
             int totalConsultations = 0;
             int scheduledConsultations = 0;
             int completedConsultations = 0;
             int pendingConsultations = 0;
             
-            for (String key : consultationMap.keySet()) {
+            for (int i = 0; i < consultationMap.keySet().size(); i++) {
+                String key = consultationMap.keySet().get(i);
                 Consultation c = consultationMap.get(key);
-                if (c.getConsultationTime() != null && 
+                if (c != null && c.getConsultationTime() != null && 
                     c.getConsultationTime().toLocalDate().equals(date)) {
                     totalConsultations++;
                     
@@ -520,358 +1047,280 @@ public class ConsultationController {
                 }
             }
             
+            System.out.println("Date: " + date);
             System.out.println("Total Consultations: " + totalConsultations);
             System.out.println("Scheduled: " + scheduledConsultations);
             System.out.println("Completed: " + completedConsultations);
             System.out.println("Pending: " + pendingConsultations);
-            
-            if (totalConsultations > 0) {
-                double completionRate = (double) completedConsultations / totalConsultations * 100;
-                System.out.printf("Completion Rate: %.1f%%%n", completionRate);
-            }
-            
         } catch (Exception e) {
-            System.out.println("Error generating daily summary: " + e.getMessage());
+            System.out.println("Error parsing date: " + e.getMessage());
         }
     }
 
-    // ==================== MISSING METHODS FOR UI ====================
+    // --- View consultations for payment ---
+    public void viewConsultationsForPayment() {
+        // Refresh consultation data to get latest status updates
+        this.consultationMap = ConsultationDAO.loadConsultations();
 
-    /**
-     * Get count of available consultations for completion
-     */
-    public int getAvailableConsultationCount() {
-        int count = 0;
-        for (String key : consultationMap.keySet()) {
-            Consultation c = consultationMap.get(key);
-            if (c.getStatus().equals("SCHEDULED") && c.getDoctorId() != null) {
-                count++;
+        System.out.println("\n=== CONSULTATIONS FOR PAYMENT ===");
+        ListInterface<Consultation> consultationsForPayment = new ArrayList<>();
+
+        // Collect consultations that need payment
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation consultation = consultationMap.get(key);
+            if (consultation != null && consultation.getStatus().equals("COMPLETED") &&
+                consultation.getPaymentId() == null) {
+                consultationsForPayment.add(consultation);
             }
         }
-        return count;
-    }
 
-    /**
-     * View patient queue (all statuses)
-     */
-    public void viewPatientQueue() {
-        System.out.println("\n--- Patient Queue (All Statuses) ---");
-        if (queueMap.isEmpty()) {
-            System.out.println("No patients in queue.");
+        if (consultationsForPayment.isEmpty()) {
+            System.out.println("No consultations require payment.");
             return;
         }
 
-        String borderLine = "+------------+------------+---------------------------+---------------------------+---------------------------+------------+";
-        System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-25s | %-25s | %-25s | %-10s |%n", 
-                         "Queue ID", "Patient ID", "Specialty", "Queue Type", "Arrival Time", "Status");
-        System.out.println(borderLine);
+        System.out.printf("%-15s %-10s %-10s %-20s %-15s%n",
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Status");
+        System.out.println("-".repeat(80));
 
-        for (String key : queueMap.keySet()) {
-            PatientQueueEntry entry = queueMap.get(key);
-            // Show all queue entries with their current status
-            System.out.printf("| %-10s | %-10s | %-25s | %-25s | %-25s | %-10s |%n",
-                entry.getQueueId(),
-                entry.getPatientId(),
-                entry.getSpecialty(),
-                entry.getQueueType(),
-                entry.getArrivalTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
-                entry.getQueueStatus());
+        // Display consultations for payment
+        for (int i = 0; i < consultationsForPayment.size(); i++) {
+            Consultation consultation = consultationsForPayment.get(i);
+            String doctorId = (consultation.getDoctorId() != null) ? consultation.getDoctorId() : "N/A";
+            System.out.printf("%-15s %-10s %-10s %-20s %-15s%n",
+                consultation.getConsultationId(),
+                consultation.getPatientId(),
+                doctorId,
+                consultation.getSpecialty(),
+                consultation.getStatus());
         }
-        System.out.println(borderLine);
     }
 
-    /**
-     * Get count of waiting patients
-     */
-    public int getWaitingPatientCount() {
+    // --- Get count of consultations for payment ---
+    public int getConsultationsForPaymentCount() {
+        // Refresh consultation data to get latest status updates
+        this.consultationMap = ConsultationDAO.loadConsultations();
+
         int count = 0;
-        for (String key : queueMap.keySet()) {
-            PatientQueueEntry entry = queueMap.get(key);
-            if (entry.getQueueStatus() == entity.QueueStatus.WAITING) {
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation c = consultationMap.get(key);
+            if (c != null && c.getStatus().equals("COMPLETED") && c.getPaymentId() == null) {
                 count++;
             }
         }
         return count;
     }
     
-    /**
-     * Show queue status summary
-     */
-    public void showQueueStatusSummary() {
-        System.out.println("\n--- Queue Status Summary ---");
-        
-        int waiting = 0, assigned = 0, inConsultation = 0, treatmentCreated = 0, 
-            medicinesDispensed = 0, completed = 0;
-            
-        for (String key : queueMap.keySet()) {
-            PatientQueueEntry entry = queueMap.get(key);
-            switch (entry.getQueueStatus()) {
-                case WAITING:
-                    waiting++;
-                    break;
-                case ASSIGNED:
-                    assigned++;
-                    break;
-                case IN_CONSULTATION:
-                    inConsultation++;
-                    break;
-                case TREATMENT_CREATED:
-                    treatmentCreated++;
-                    break;
-                case MEDICINES_DISPENSED:
-                    medicinesDispensed++;
-                    break;
-                case COMPLETED:
-                    completed++;
-                    break;
-            }
-        }
-        
-        System.out.println("Waiting for doctor: " + waiting);
-        System.out.println("Doctor assigned: " + assigned);
-        System.out.println("In consultation: " + inConsultation);
-        System.out.println("Treatment created: " + treatmentCreated);
-        System.out.println("Medicines dispensed: " + medicinesDispensed);
-        System.out.println("Completed (awaiting payment): " + completed);
-        System.out.println("Total in queue: " + queueMap.size());
-    }
+    // --- Check if consultation is eligible for payment ---
+    public boolean isConsultationEligibleForPayment(String consultationId) {
+        // Refresh consultation data to get latest status updates
+        this.consultationMap = ConsultationDAO.loadConsultations();
 
-    /**
-     * View available doctors for assignment
-     */
-    public void viewAvailableDoctors() {
-        System.out.println("\n--- Available Doctors ---");
-        if (doctorMap.isEmpty()) {
-            System.out.println("No doctors available.");
-            return;
-        }
-
-        String borderLine = "+------------+---------------------------+---------------------------+---------------------------+";
-        System.out.println(borderLine);
-        System.out.printf("| %-10s | %-25s | %-25s | %-25s |%n", 
-                         "Doctor ID", "Name", "Specialty", "Phone");
-        System.out.println(borderLine);
-
-        for (String key : doctorMap.keySet()) {
-            Doctor doctor = doctorMap.get(key);
-            if (!doctor.isDeleted()) {
-                System.out.printf("| %-10s | %-25s | %-25s | %-25s |%n",
-                    doctor.getDoctorId(),
-                    doctor.getName(),
-                    doctor.getSpecialty(),
-                    doctor.getPhoneNumber());
-            }
-        }
-        System.out.println(borderLine);
-    }
-
-    /**
-     * Assign patient to doctor and create consultation
-     */
-    public boolean assignPatientToDoctor(String queueId, String doctorId) {
-        PatientQueueEntry entry = queueMap.get(queueId);
-        if (entry == null) {
-            System.out.println("Queue entry not found: " + queueId);
-            return false;
-        }
-
-        if (entry.getQueueStatus() != entity.QueueStatus.WAITING) {
-            System.out.println("Patient is not waiting: " + entry.getQueueStatus());
-            return false;
-        }
-
-        Doctor doctor = doctorMap.get(doctorId);
-        if (doctor == null) {
-            System.out.println("Doctor not found: " + doctorId);
-            return false;
-        }
-
-        // Update queue entry
-        entry.assignToDoctor(doctorId);
-        queueMap.put(queueId, entry);
-        PatientQueueDAO.savePatientQueue(queueMap);
-
-        // Create consultation
-        String consultationId = ConsultationDAO.generateConsultationId();
-        Consultation consultation = new Consultation(consultationId, entry.getPatientId(), entry.getSpecialty(), queueId);
-        
-        // Assign doctor and set consultation time
-        consultation.assignDoctor(doctorId, null, LocalDateTime.now());
-        
-        consultationMap.put(consultationId, consultation);
-        ConsultationDAO.saveConsultations(consultationMap);
-        
-        // Update queue status to match consultation status
-        updateQueueStatusForConsultation(consultationId, "SCHEDULED");
-        
-        System.out.println("Patient assigned to Dr. " + doctorId + " - Consultation created: " + consultationId);
-        return true;
-    }
-
-    /**
-     * View consultations by specific doctor (with doctorId parameter)
-     */
-    public void viewConsultationsByDoctor(String doctorId) {
-        System.out.println("\n--- Consultations for Doctor: " + doctorId + " ---");
-        
-        ListInterface<Consultation> doctorConsultations = getConsultationsByDoctor(doctorId);
-        if (doctorConsultations.isEmpty()) {
-            System.out.println("No consultations found for this doctor.");
-            return;
-        }
-
-        String borderLine = "+------------------+------------+---------------------------+---------------------------+---------------------------+";
-        System.out.println(borderLine);
-        System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n", 
-                         "Consultation ID", "Patient ID", "Specialty", "Status", "Consultation Time");
-        System.out.println(borderLine);
-
-        for (int i = 0; i < doctorConsultations.size(); i++) {
-            Consultation c = doctorConsultations.get(i);
-            String consultationTime = c.getConsultationTime() != null ? 
-                c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "Not set";
-            
-            System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n",
-                c.getConsultationId(),
-                c.getPatientId(),
-                c.getSpecialty(),
-                c.getStatus(),
-                consultationTime);
-        }
-        System.out.println(borderLine);
-    }
-
-    /**
-     * View consultation details by ID (with consultationId parameter)
-     */
-    public void viewConsultationDetails(String consultationId) {
         Consultation consultation = consultationMap.get(consultationId);
         if (consultation == null) {
-            System.out.println("Consultation not found: " + consultationId);
-            return;
+            return false;
         }
-
-        System.out.println("\n--- Consultation Details ---");
-        System.out.println("Consultation ID: " + consultation.getConsultationId());
-        System.out.println("Patient ID: " + consultation.getPatientId());
-        System.out.println("Doctor ID: " + (consultation.getDoctorId() != null ? consultation.getDoctorId() : "Not assigned"));
-        System.out.println("Specialty: " + consultation.getSpecialty());
-        System.out.println("Status: " + consultation.getStatus());
-        System.out.println("Queue ID: " + (consultation.getQueueId() != null ? consultation.getQueueId() : "N/A"));
-        
-        if (consultation.getConsultationTime() != null) {
-            System.out.println("Consultation Time: " + consultation.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        }
-        
-        if (consultation.getTreatmentId() != null) {
-            System.out.println("Treatment ID: " + consultation.getTreatmentId());
-        }
-        
-        if (consultation.getPaymentId() != null) {
-            System.out.println("Payment ID: " + consultation.getPaymentId());
-        }
+        return consultation.getStatus().equals("COMPLETED") && consultation.getPaymentId() == null;
+    }
+    
+    // --- Calculate consultation total ---
+    public double calculateConsultationTotal(String consultationId) {
+        double[] breakdown = calculateConsultationTotalWithBreakdown(consultationId);
+        return breakdown[0] + breakdown[1] + breakdown[2]; // Total = consultation + treatment + medicines
     }
 
-    /**
-     * Create appointment (add to queue with appointment type)
-     */
-    public boolean createAppointment(String patientId, String doctorId, String dateStr, String timeStr, String specialty) {
+    public double[] calculateConsultationTotalWithBreakdown(String consultationId) {
+        double[] breakdown = new double[3]; // [consultationFee, treatmentFee, medicineCost]
+
         try {
-            LocalDate date = LocalDate.parse(dateStr);
-            java.time.LocalTime time = java.time.LocalTime.parse(timeStr);
-            LocalDateTime appointmentTime = LocalDateTime.of(date, time);
-            
-            // Create queue entry for appointment
-            String queueId = PatientQueueDAO.generateQueueId();
-            PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, 
-                                                         entity.QueueType.APPOINTMENT, LocalDateTime.now());
-            entry.setScheduledStartTime(appointmentTime);
-            entry.assignToDoctor(doctorId);
-            
-            queueMap.put(queueId, entry);
-            PatientQueueDAO.savePatientQueue(queueMap);
-            
-            // Create consultation
-            String consultationId = ConsultationDAO.generateConsultationId();
-            Consultation consultation = new Consultation(consultationId, patientId, specialty, queueId);
-            consultation.assignDoctor(doctorId, null, appointmentTime);
-            
-            consultationMap.put(consultationId, consultation);
-            ConsultationDAO.saveConsultations(consultationMap);
-            
-            // Update queue status to match consultation status
-            updateQueueStatusForConsultation(consultationId, "SCHEDULED");
-            
-            System.out.println("Appointment created successfully!");
-            System.out.println("Queue ID: " + queueId);
-            System.out.println("Consultation ID: " + consultationId);
-            System.out.println("Scheduled for: " + appointmentTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-            
-            return true;
+            // First, try to get the breakdown from existing invoice
+            HashMapInterface<String, entity.Invoice> invoiceMap = dao.InvoiceDAO.loadInvoices();
+
+            // Find invoice for this consultation
+            for (int i = 0; i < invoiceMap.keySet().size(); i++) {
+                String invoiceId = invoiceMap.keySet().get(i);
+                entity.Invoice invoice = invoiceMap.get(invoiceId);
+
+                if (invoice != null && invoice.getConsultationId().equals(consultationId)) {
+                    // Use the breakdown from the invoice
+                    breakdown[0] = invoice.getConsultationFee(); // Consultation fee
+                    breakdown[1] = invoice.getTreatmentFee();   // Treatment fee
+                    breakdown[2] = invoice.getMedicineFee();    // Medicine cost
+
+                    System.out.println("Using invoice breakdown for consultation: " + consultationId);
+                    return breakdown;
+                }
+            }
+
+            // If no invoice found, fall back to calculating from data
+            System.out.println("No invoice found, calculating breakdown from data for consultation: " + consultationId);
+
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation == null) {
+                return new double[]{-1.0, -1.0, -1.0};
+            }
+
+            // Get doctor's consultation fee
+            Doctor doctor = doctorMap.get(consultation.getDoctorId());
+            if (doctor != null) {
+                breakdown[0] = doctor.getConsultationFee(); // Consultation fee
+            }
+
+            // Add treatment fee and medicine costs if treatment exists
+            if (consultation.getTreatmentId() != null) {
+                control.TreatmentController treatmentController = new control.TreatmentController();
+                entity.Treatment treatment = treatmentController.getTreatmentById(consultation.getTreatmentId());
+                if (treatment != null) {
+                    breakdown[1] = treatment.getTreatmentFee(); // Treatment fee
+
+                    // Calculate medicine costs
+                    for (int i = 0; i < treatment.getPrescribedMedicines().size(); i++) {
+                        entity.MedicinePrescribed prescribed = treatment.getPrescribedMedicines().get(i);
+                        String medicineId = prescribed.getMedicineId();
+                        int quantity = prescribed.getQuantity();
+
+                        // Get medicine price from medicine map
+                        Medicine medicine = medicineMap.get(medicineId);
+                        if (medicine != null) {
+                            breakdown[2] += medicine.getPrice() * quantity; // Medicine cost
+                        }
+                    }
+                }
+            }
+
+            return breakdown;
+
         } catch (Exception e) {
-            System.out.println("Error creating appointment: " + e.getMessage());
+            System.out.println("Error calculating consultation total: " + e.getMessage());
+            return new double[]{-1.0, -1.0, -1.0};
+        }
+    }
+    
+    // --- Process consultation payment ---
+    public boolean processConsultationPayment(String consultationId,
+                                           entity.Payment.PaymentMethod paymentMethod,
+                                           String remarks) {
+        try {
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation == null) {
+                System.out.println("Consultation not found: " + consultationId);
+                return false;
+            }
+
+            if (!isConsultationEligibleForPayment(consultationId)) {
+                System.out.println("Consultation is not eligible for payment: " + consultationId);
+                return false;
+            }
+
+            // Get the existing invoice for this consultation
+            HashMapInterface<String, entity.Invoice> invoiceMap = dao.InvoiceDAO.loadInvoices();
+            entity.Invoice existingInvoice = null;
+            String invoiceId = null;
+
+            // Find the invoice for this consultation
+            for (int i = 0; i < invoiceMap.keySet().size(); i++) {
+                String key = invoiceMap.keySet().get(i);
+                entity.Invoice invoice = invoiceMap.get(key);
+                if (invoice != null && invoice.getConsultationId().equals(consultationId)) {
+                    existingInvoice = invoice;
+                    invoiceId = key;
+                    break;
+                }
+            }
+
+            // If no existing invoice, create one
+            if (existingInvoice == null) {
+                PaymentController paymentController = new PaymentController();
+                double[] costBreakdown = calculateConsultationTotalWithBreakdown(consultationId);
+                double totalAmount = costBreakdown[0] + costBreakdown[1] + costBreakdown[2];
+                invoiceId = paymentController.generateInvoice(consultationId, totalAmount);
+
+                // Reload invoice map to get the newly created invoice
+                invoiceMap = dao.InvoiceDAO.loadInvoices();
+                existingInvoice = invoiceMap.get(invoiceId);
+            }
+
+            if (invoiceId != null && existingInvoice != null) {
+                // Mark invoice as paid
+                existingInvoice.markPaid();
+                invoiceMap.put(invoiceId, existingInvoice);
+                dao.InvoiceDAO.saveInvoices(invoiceMap);
+
+                // Create payment record
+                String paymentId = dao.PaymentDAO.generatePaymentId();
+                entity.Payment payment = new entity.Payment(
+                    paymentId,
+                    invoiceId,
+                    consultationId,
+                    consultation.getPatientId(),
+                    paymentMethod
+                );
+                payment.setRemarks(remarks);
+                payment.markPaid(); // Mark as PAID since we're processing payment
+
+                // Save payment
+                HashMapInterface<String, entity.Payment> paymentMap = dao.PaymentDAO.loadPayments();
+                paymentMap.put(paymentId, payment);
+                dao.PaymentDAO.savePayments(paymentMap);
+
+                // Update consultation with payment ID
+                consultation.setPayment(paymentId);
+                consultationMap.put(consultationId, consultation);
+                ConsultationDAO.saveConsultations(consultationMap);
+
+                // Update queue status to COMPLETED if consultation has a queue entry
+                if (consultation.getQueueId() != null) {
+                    HashMapInterface<String, entity.PatientQueueEntry> queueMap = PatientQueueDAO.loadPatientQueue();
+                    entity.PatientQueueEntry queueEntry = queueMap.get(consultation.getQueueId());
+                    if (queueEntry != null) {
+                        queueEntry.complete(); // Mark queue entry as completed
+                        queueMap.put(consultation.getQueueId(), queueEntry);
+                        PatientQueueDAO.savePatientQueue(queueMap);
+                        System.out.println("Queue entry " + consultation.getQueueId() + " status updated to COMPLETED");
+                    }
+                }
+
+                System.out.println("Payment processed successfully for consultation: " + consultationId);
+                System.out.println("Invoice " + invoiceId + " marked as PAID");
+                return true;
+            } else {
+                System.out.println("Failed to process payment for consultation: " + consultationId);
+                return false;
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error processing payment: " + e.getMessage());
             return false;
         }
     }
 
-    /**
-     * View available time slots for a doctor on a specific date
-     */
-    public void viewAvailableTimeSlots(String doctorId, String dateStr) {
-        try {
-            LocalDate date = LocalDate.parse(dateStr);
-            System.out.println("\n--- Available Time Slots for Dr. " + doctorId + " on " + date + " ---");
-            
-            // This would need to be implemented based on doctor schedule
-            // For now, show a simple time slot structure
-            System.out.println("Available time slots:");
-            System.out.println("09:00 - 09:30");
-            System.out.println("09:30 - 10:00");
-            System.out.println("10:00 - 10:30");
-            System.out.println("10:30 - 11:00");
-            System.out.println("14:00 - 14:30");
-            System.out.println("14:30 - 15:00");
-            System.out.println("15:00 - 15:30");
-            System.out.println("15:30 - 16:00");
-            
-            System.out.println("\nNote: Time slot availability should be integrated with doctor schedule system.");
-        } catch (Exception e) {
-            System.out.println("Error parsing date: " + e.getMessage());
-        }
-    }
-
-    /**
-     * View available consultations for completion
-     */
+    // --- View available consultations ---
     public void viewAvailableConsultations() {
         System.out.println("\n--- Available Consultations for Completion ---");
         if (consultationMap.isEmpty()) {
             System.out.println("No consultations available.");
             return;
         }
-
-        String borderLine = "+------------------+------------+---------------------------+---------------------------+---------------------------+";
-        System.out.println(borderLine);
-        System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n", 
-                         "Consultation ID", "Patient ID", "Specialty", "Status", "Doctor ID");
-        System.out.println(borderLine);
+        
+        System.out.printf("%-15s %-10s %-20s %-15s%n", 
+            "Consultation ID", "Patient ID", "Specialty", "Status");
+        System.out.println("-".repeat(70));
 
         int availableCount = 0;
-        for (String key : consultationMap.keySet()) {
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            // Only show consultations that are SCHEDULED and have a doctor assigned
-            if (c.getStatus().equals("SCHEDULED") && c.getDoctorId() != null) {
-                System.out.printf("| %-16s | %-10s | %-25s | %-25s | %-25s |%n",
+            if (c != null && c.getStatus().equals("SCHEDULED") && c.getDoctorId() != null) {
+                System.out.printf("%-15s %-10s %-20s %-15s%n",
                     c.getConsultationId(),
                     c.getPatientId(),
                     c.getSpecialty(),
-                    c.getStatus(),
-                    c.getDoctorId());
+                    c.getStatus());
                 availableCount++;
             }
         }
-        System.out.println(borderLine);
         
         if (availableCount == 0) {
             System.out.println("No consultations available for completion.");
@@ -880,382 +1329,152 @@ public class ConsultationController {
         }
     }
 
-
-
-    // --- Get consultation map for other controls ---
-    public HashMapInterface<String, Consultation> getConsultationMap() {
-        return consultationMap;
-    }
-
-    // --- Create consultations for existing assigned patients ---
-    private void createConsultationsForExistingAssignments() {
-        for (String key : queueMap.keySet()) {
-            PatientQueueEntry entry = queueMap.get(key);
-            
-            if (entry.isAssigned() && entry.getAssignedDoctorId() != null) {
-                // Check if consultation already exists for this queue entry
-                boolean consultationExists = false;
-                for (String cKey : consultationMap.keySet()) {
-                    Consultation c = consultationMap.get(cKey);
-                    if (c.getQueueId() != null && c.getQueueId().equals(key)) {
-                        consultationExists = true;
-                        break;
-                    }
-                }
-                
-                if (!consultationExists) {
-                    createConsultationForQueue(key);
-                }
-            }
+    // --- Create consultation for queue (for backward compatibility) ---
+    public void createConsultationForQueue(String queueId) {
+        String consultationId = createConsultationFromQueue(queueId);
+        if (consultationId != null) {
+            System.out.println("Consultation created successfully: " + consultationId);
+        } else {
+            System.out.println("Failed to create consultation from queue.");
         }
     }
 
-    // --- Save consultations ---
-    public void saveConsultations() {
-        ConsultationDAO.saveConsultations(consultationMap);
-    }
-    
-    // --- Refresh queue data from file ---
-    public void refreshQueueData() {
-        this.queueMap = PatientQueueDAO.loadPatientQueue();
-    }
-
-    // ==================== UI WRAPPERS FOR ConsultationUI ====================
-
-    public void viewAllConsultations() {
-        printConsultationsTable(consultationMap.toList(), "All Consultations");
-    }
-
-    public void viewPendingConsultations() {
-        printConsultationsTable(getPendingConsultations(), "Pending Consultations");
-    }
-
-    public void viewCompletedConsultations() {
-        printConsultationsTable(getCompletedConsultations(), "Completed Consultations");
-    }
-
-    public void viewConsultationDetails() {
-        System.out.print("Enter Consultation ID: ");
-        String id = sc.nextLine().trim();
-        Consultation c = consultationMap.get(id);
-        if (c == null) {
-            System.out.println("Consultation not found.");
-            return;
-        }
-        ListInterface<Consultation> one = new ArrayList<>();
-        one.add(c);
-        printConsultationsTable(one, "Consultation Details");
-    }
-
-    public void viewConsultationsByDoctor() {
-        System.out.print("Enter Doctor ID: ");
-        String id = sc.nextLine().trim();
-        printConsultationsTable(getConsultationsByDoctor(id), "Consultations for Doctor " + id);
-    }
-
-    public void viewConsultationsByPatient() {
-        System.out.print("Enter Patient ID: ");
-        String id = sc.nextLine().trim();
-        printConsultationsTable(getConsultationsByPatient(id), "Consultations for Patient " + id);
-    }
-
-    public void completeConsultationWithTreatment() {
-        System.out.print("Enter Consultation ID to complete: ");
-        String consultationId = sc.nextLine().trim();
-        Consultation c = consultationMap.get(consultationId);
-        if (c == null) {
-            System.out.println("Consultation not found.");
-            return;
-        }
-        System.out.print("Enter diagnosis: ");
-        String diagnosis = sc.nextLine().trim();
-        System.out.print("Enter treatment fee (e.g., 100.0): ");
-        double fee = 0.0;
-        try { fee = Double.parseDouble(sc.nextLine().trim()); } catch (Exception ignored) {}
-        ListInterface<entity.MedicinePrescribed> meds = new ArrayList<>();
-        completeConsultation(consultationId, diagnosis, fee, meds);
-    }
-
-    private void printConsultationsTable(ListInterface<Consultation> list, String title) {
-        System.out.println("\n--- " + title + " ---");
-        if (list.isEmpty()) {
-            System.out.println("No records.");
-            return;
-        }
-        String border = "+--------------+------------+------------+-----------+";
-        System.out.println(border);
-        System.out.printf("| %-12s | %-10s | %-10s | %-9s |%n", "ConsultID", "PatientID", "DoctorID", "Status");
-        System.out.println(border);
-        for (int i = 0; i < list.size(); i++) {
-            Consultation c = list.get(i);
-            System.out.printf("| %-12s | %-10s | %-10s | %-9s |%n", c.getConsultationId(), c.getPatientId(),
-                    c.getDoctorId() == null ? "N/A" : c.getDoctorId(), c.getStatus());
-        }
-        System.out.println(border);
-    }
-
-    // ==================== APPOINTMENT BOOKING SUPPORT METHODS ====================
-
-    /**
-     * Create consultation for appointment booking
-     */
-    public String createConsultation(String patientId, String specialty) {
-        String consultationId = ConsultationDAO.generateConsultationId();
-        Consultation consultation = new Consultation(consultationId, patientId, specialty);
-        consultationMap.put(consultationId, consultation);
-        ConsultationDAO.saveConsultations(consultationMap);
-        return consultationId;
-    }
-
-    /**
-     * Assign doctor to consultation for appointment booking
-     */
-    public void assignDoctor(String consultationId, String doctorId, String scheduleId, LocalDateTime consultationTime) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation != null) {
-            consultation.assignDoctor(doctorId, scheduleId, consultationTime);
-            consultationMap.put(consultationId, consultation);
-            ConsultationDAO.saveConsultations(consultationMap);
-        }
-    }
-    
-    // ==================== PAYMENT PROCESSING METHODS ====================
-    
-    /**
-     * View consultations that require payment
-     */
-    public void viewConsultationsForPayment() {
-        ListInterface<Consultation> consultationsForPayment = new ArrayList<>();
+    // --- Generate consultation frequency report ---
+    public void generateConsultationFrequencyReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("CONSULTATION FREQUENCY REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
         
-        for (String key : consultationMap.keySet()) {
-            Consultation c = consultationMap.get(key);
-            // Show consultations that are ready for payment (after medicines dispensed) but don't have a payment ID
-            if (c.getStatus().equals("COMPLETED") && c.getPaymentId() == null) {
-                consultationsForPayment.add(c);
+        // Get current timestamp
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Count consultations per specialty
+        HashMapInterface<String, Integer> specialtyCount = new adt.HashMapADT<>();
+        int totalConsultations = 0;
+        
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation consultation = consultationMap.get(key);
+            if (consultation != null) {
+            totalConsultations++;
+            String specialty = consultation.getSpecialty();
+            Integer currentCount = specialtyCount.get(specialty);
+            specialtyCount.put(specialty, currentCount != null ? currentCount + 1 : 1);
             }
         }
         
-        if (consultationsForPayment.isEmpty()) {
-            System.out.println("No consultations require payment.");
-            System.out.println("Note: Consultations must be ready for payment (including medicine dispensing) to be eligible for payment.");
-            return;
+        // Display specialty frequency
+        System.out.println("Consultation Frequency by Specialty:");
+        System.out.println("-".repeat(70));
+        System.out.printf("| %-25s | %-20s | %-20s |%n", "Specialty", "Consultation Count", "Percentage");
+        System.out.println("-".repeat(70));
+        
+        String mostDemandedSpecialty = "";
+        int maxConsultations = 0;
+        
+        for (int i = 0; i < specialtyCount.keySet().size(); i++) {
+            String key = specialtyCount.keySet().get(i);
+            int count = specialtyCount.get(key);
+            double percentage = (double)count/totalConsultations*100;
+            
+            if (count > maxConsultations) {
+                maxConsultations = count;
+                mostDemandedSpecialty = key;
+            }
+            
+            System.out.printf("| %-25s | %-20d | %-19.1f%% |%n", 
+                key, 
+                count,
+                percentage);
+        }
+        System.out.println("-".repeat(70));
+        System.out.printf("Total Consultations: %d%n", totalConsultations);
+        System.out.println();
+        
+        // Summary
+        System.out.println("Frequency Summary:");
+        System.out.println("-".repeat(50));
+        System.out.println("Most In-Demand Specialty: " + mostDemandedSpecialty + " (" + maxConsultations + " consultations)");
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
+    }
+    
+    // --- Generate follow-up appointment report ---
+    public void generateFollowUpAppointmentReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("FOLLOW-UP APPOINTMENT REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Count consultations by patient to identify follow-ups
+        HashMapInterface<String, Integer> patientConsultationCount = new adt.HashMapADT<>();
+        
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation consultation = consultationMap.get(key);
+            if (consultation != null) {
+            String patientId = consultation.getPatientId();
+            Integer currentCount = patientConsultationCount.get(patientId);
+            patientConsultationCount.put(patientId, currentCount != null ? currentCount + 1 : 1);
+            }
         }
         
-        printConsultationsTable(consultationsForPayment, "Consultations Requiring Payment");
-    }
-    
-    /**
-     * Get count of consultations requiring payment
-     */
-    public int getConsultationsForPaymentCount() {
-        int count = 0;
-        for (String key : consultationMap.keySet()) {
-            Consultation c = consultationMap.get(key);
-            if (c.getStatus().equals("COMPLETED") && c.getPaymentId() == null) {
-                count++;
-            }
-        }
-        return count;
-    }
-    
-    /**
-     * Check if consultation is eligible for payment
-     */
-    public boolean isConsultationEligibleForPayment(String consultationId) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation == null) {
-            return false;
-        }
-        // Consultation must be ready for payment (after medicines dispensed) and not already paid
-        return consultation.getStatus().equals("COMPLETED") && consultation.getPaymentId() == null;
-    }
-    
-    /**
-     * Process payment for a consultation
-     */
-    public boolean processConsultationPayment(String consultationId, double amount, 
-                                           entity.Payment.PaymentMethod paymentMethod, 
-                                           String referenceNumber, String notes) {
-        try {
-            Consultation consultation = consultationMap.get(consultationId);
-            if (consultation == null) {
-                System.out.println("Consultation not found: " + consultationId);
-                return false;
-            }
-            
-            if (!isConsultationEligibleForPayment(consultationId)) {
-                System.out.println("Consultation is not eligible for payment: " + consultationId);
-                return false;
-            }
-            
-            // Create payment controller and process payment
-            PaymentController paymentController = new PaymentController();
-            
-            // Get the invoice for this consultation
-            Invoice invoice = paymentController.getInvoiceByConsultation(consultationId);
-            if (invoice == null) {
-                System.out.println("No invoice found for consultation: " + consultationId);
-                return false;
-            }
-            
-            // Create a new invoice with the correct amount if needed
-            if (invoice.getAmount() != amount) {
-                // Delete old invoice and create new one with correct amount
-                paymentController.deleteInvoiceByConsultation(consultationId);
-                paymentController.generateInvoice(consultationId, amount);
-                invoice = paymentController.getInvoiceByConsultation(consultationId);
-            }
-            
-            // Process the payment
-            boolean paymentSuccess = paymentController.processPayment(invoice.getInvoiceId(), paymentMethod, 
-                                                                   referenceNumber, notes);
-            
-            if (paymentSuccess) {
-                // Update consultation with payment ID (get it from the payment map)
-                String paymentId = getPaymentIdFromInvoice(invoice.getInvoiceId());
-                consultation.setPayment(paymentId);
-                consultationMap.put(consultationId, consultation);
-                ConsultationDAO.saveConsultations(consultationMap);
-                
-                // Now remove from queue since payment is complete
-                removeQueueEntryAfterPayment(consultationId);
-                
-                System.out.println("Payment processed successfully for consultation: " + consultationId);
-                System.out.println("Queue entry removed. Patient flow completed.");
-                return true;
+        // Analyze follow-up patterns
+        int oneTimeVisits = 0;
+        int followUpVisits = 0;
+        int totalPatients = patientConsultationCount.size();
+        
+        for (int i = 0; i < patientConsultationCount.keySet().size(); i++) {
+            String key = patientConsultationCount.keySet().get(i);
+            int count = patientConsultationCount.get(key);
+            if (count == 1) {
+                oneTimeVisits++;
             } else {
-                System.out.println("Failed to process payment for consultation: " + consultationId);
-                return false;
-            }
-            
-        } catch (Exception e) {
-            System.out.println("Error processing payment: " + e.getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Helper method to get payment ID from invoice ID
-     */
-    private String getPaymentIdFromInvoice(String invoiceId) {
-        PaymentController paymentController = new PaymentController();
-        HashMapInterface<String, Payment> payments = paymentController.getPaymentMap();
-        
-        for (String key : payments.keySet()) {
-            Payment payment = payments.get(key);
-            if (payment != null && payment.getInvoiceId().equals(invoiceId)) {
-                return payment.getPaymentId();
+                followUpVisits++;
             }
         }
-        return null;
-    }
-    
-    /**
-     * Calculate total amount for a consultation (consultation fee + treatment fee + medicine costs)
-     */
-    public double calculateConsultationTotal(String consultationId) {
-        try {
-            Consultation consultation = consultationMap.get(consultationId);
-            if (consultation == null) {
-                return -1.0;
-            }
-            
-            // Get doctor's consultation fee
-            Doctor doctor = doctorMap.get(consultation.getDoctorId());
-            if (doctor == null) {
-                return -1.0;
-            }
-            
-            double totalAmount = doctor.getConsultationFee();
-            
-            // Add treatment fee if treatment exists
-            if (consultation.getTreatmentId() != null) {
-                control.TreatmentController treatmentController = new control.TreatmentController();
-                entity.Treatment treatment = treatmentController.getTreatmentById(consultation.getTreatmentId());
-                if (treatment != null) {
-                    totalAmount += treatment.getTreatmentFee();
-                    
-                    // Add medicine costs
-                    ListInterface<entity.MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
-                    for (int i = 0; i < medicines.size(); i++) {
-                        entity.MedicinePrescribed prescribed = medicines.get(i);
-                        entity.Medicine medicine = getMedicineById(prescribed.getMedicineId());
-                        if (medicine != null) {
-                            totalAmount += prescribed.calculateCost(medicine);
-                        }
-                    }
-                }
-            }
-            
-            return totalAmount;
-            
-        } catch (Exception e) {
-            System.out.println("Error calculating consultation total: " + e.getMessage());
-            return -1.0;
-        }
-    }
-    
-    /**
-     * Helper method to get medicine by ID
-     */
-    private entity.Medicine getMedicineById(String medicineId) {
-        try {
-            dao.MedicineDAO medicineDAO = new dao.MedicineDAO();
-            HashMapInterface<String, entity.Medicine> medicineMap = medicineDAO.loadMedicines();
-            return medicineMap.get(medicineId);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-    
-    /**
-     * Update queue status to match consultation status
-     */
-    private void updateQueueStatusForConsultation(String consultationId, String consultationStatus) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation == null || consultation.getQueueId() == null) {
-            return;
-        }
         
-        PatientQueueEntry queueEntry = queueMap.get(consultation.getQueueId());
-        if (queueEntry == null) {
-            return;
-        }
+        // Display follow-up analysis
+        System.out.println("Follow-up Appointment Analysis:");
+        System.out.println("-".repeat(60));
+        System.out.printf("| %-25s | %-15s | %-15s |%n", "Visit Type", "Patient Count", "Percentage");
+        System.out.println("-".repeat(60));
         
-        // Map consultation status to queue status
-        switch (consultationStatus) {
-            case "SCHEDULED":
-                queueEntry.startConsultation();
-                break;
-            case "TREATMENT_CREATED":
-                queueEntry.markTreatmentCreated();
-                break;
-            case "MEDICINES_DISPENSED":
-                queueEntry.markMedicinesDispensed();
-                break;
-            case "COMPLETED":
-                queueEntry.complete();
-                break;
-        }
+        double oneTimePercentage = totalPatients > 0 ? (double)oneTimeVisits/totalPatients*100 : 0.0;
+        double followUpPercentage = totalPatients > 0 ? (double)followUpVisits/totalPatients*100 : 0.0;
         
-        // Save updated queue
-        queueMap.put(consultation.getQueueId(), queueEntry);
-        PatientQueueDAO.savePatientQueue(queueMap);
-    }
-    
-    /**
-     * Remove queue entry after payment is completed
-     */
-    private void removeQueueEntryAfterPayment(String consultationId) {
-        Consultation consultation = consultationMap.get(consultationId);
-        if (consultation == null || consultation.getQueueId() == null) {
-            return;
-        }
+        System.out.printf("| %-25s | %-15d | %-14.1f%% |%n", "One-time Visits", oneTimeVisits, oneTimePercentage);
+        System.out.printf("| %-25s | %-15d | %-14.1f%% |%n", "Follow-up Visits", followUpVisits, followUpPercentage);
+        System.out.println("-".repeat(60));
+        System.out.printf("Total Unique Patients: %d%n", totalPatients);
+        System.out.println();
         
-        // Remove from active queue
-        queueMap.remove(consultation.getQueueId());
-        PatientQueueDAO.savePatientQueue(queueMap);
+        // Summary
+        System.out.println("Follow-up Summary:");
+        System.out.println("-".repeat(50));
+        System.out.printf("Follow-up Rate: %.1f%%%n", followUpPercentage);
+        System.out.printf("One-time Visit Rate: %.1f%%%n", oneTimePercentage);
+        System.out.println();
         
-        System.out.println("Queue entry removed for consultation: " + consultationId);
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
     }
 }

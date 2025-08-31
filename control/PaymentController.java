@@ -53,13 +53,12 @@ public class PaymentController {
 
         // Create payment record
         String paymentId = PaymentDAO.generatePaymentId();
-        Payment payment = new Payment(paymentId, invoiceId, invoice.getConsultationId(), 
+        Payment payment = new Payment(paymentId, invoiceId, invoice.getConsultationId(),
                                     getPatientIdFromConsultation(invoice.getConsultationId()),
-                                    invoice.getAmount(), paymentMethod);
-        
-        payment.setReferenceNumber(referenceNumber);
-        payment.setNotes(notes);
-        payment.markCompleted();
+                                    paymentMethod);
+
+        payment.setRemarks(notes);
+        payment.markPaid();
 
         // Save payment
         paymentMap.put(paymentId, payment);

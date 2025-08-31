@@ -63,6 +63,14 @@ public class Treatment {
         this.treatmentFee = treatmentFee;
     }
 
+    public String getDiagnosis() {
+        return description;
+    }
+
+    public void setDiagnosis(String diagnosis) {
+        this.description = diagnosis;
+    }
+
     public void addPrescribedMedicine(MedicinePrescribed medicine) {
         prescribedMedicines.add(medicine);
     }

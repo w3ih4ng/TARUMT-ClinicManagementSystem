@@ -217,7 +217,12 @@ public class PatientController {
 
         patientMap.put(patientId, patient);
         PatientDAO.savePatients(patientMap); // save immediately
-        System.out.println("\nPatient registered successfully! Patient ID: " + patientId);
+        System.out.println("\nPatient registered successfully!");
+        
+        // Display the newly registered patient in table format
+        ListInterface<Patient> newPatientList = new ArrayList<>();
+        newPatientList.add(patient);
+        printPatientsTable(newPatientList, "Newly Registered Patient");
     }
 
     // patientmap
@@ -241,17 +246,17 @@ public class PatientController {
         System.out.println();
 
         // Define table format widths
-        String leftAlignFormat = "| %-12s | %-15s | %-6s | %-10s | %-12s | %-8s | %-12s | %-12s | %-15s |%n";
+        String leftAlignFormat = "| %-12s | %-15s | %-6s | %-10s | %-12s | %-8s | %-12s | %-12s | %-15s | %-8s |%n";
 
         // Define border line
-        String borderLine = "+--------------+-----------------+--------+------------+--------------+----------+--------------+--------------+-----------------+";
+        String borderLine = "+--------------+-----------------+--------+------------+--------------+----------+--------------+--------------+-----------------+----------+";
 
         // Print top border
         System.out.println(borderLine);
 
         // Print header
         System.out.printf(leftAlignFormat,
-                "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Role", "Role ID", "Faculty", "Department");
+                "Patient ID", "Name", "Gender", "Birthdate", "Phone", "Role", "Role ID", "Faculty", "Department", "Status");
 
         // Print header separator
         System.out.println(borderLine);
@@ -275,6 +280,9 @@ public class PatientController {
                 department = ((Staff) p).getDepartment();
             }
 
+            // Get status
+            String status = p.isDeleted() ? "Deleted" : "Active";
+            
             // Print row
             System.out.printf(leftAlignFormat,
                     p.getPatientId(),
@@ -285,7 +293,8 @@ public class PatientController {
                     role,
                     roleId,
                     faculty,
-                    department);
+                    department,
+                    status);
 
             // Print row separator after each row
             System.out.println(borderLine);
@@ -585,11 +594,6 @@ public class PatientController {
         entry.assignToDoctor(doctorId);
         queueMap.put(queueId, entry);
         PatientQueueDAO.savePatientQueue(queueMap);
-
-        // Create consultation
-        if (consultationControl != null) {
-            consultationControl.createConsultationForQueue(queueId);
-        }
         
         System.out.println("Patient assigned to Dr. " + doctorId + " - Consultation created");
     }
@@ -664,6 +668,13 @@ public class PatientController {
      */
     public Patient getPatientById(String patientId) {
         return patientMap.get(patientId);
+    }
+
+    /**
+     * Check if patient exists
+     */
+    public boolean patientExists(String patientId) {
+        return patientMap.containsKey(patientId);
     }
 
     /**
@@ -886,9 +897,6 @@ public class PatientController {
         // --- Assign doctor ---
         entry.assignToDoctor(doctorId);
         PatientQueueDAO.savePatientQueue(queueMap);
-
-        // --- Create consultation automatically ---
-        consultationControl.createConsultationForQueue(queueId);
 
         System.out.println("\nWalk-in patient assigned to doctor successfully!");
         System.out.println("Patient: " + entry.getPatientId());
@@ -1326,5 +1334,123 @@ public class PatientController {
 
     public void printPatientsFromList(ListInterface<Patient> list) {
         printPatientsTable(list, getCriteriaSummary());
+    }
+    
+    // ==================== REPORTING METHODS ====================
+    
+    /**
+     * Generate Patient Registration Summary Report
+     */
+    public void generatePatientRegistrationSummaryReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("PATIENT REGISTRATION SUMMARY REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Count patients by role
+        int studentCount = 0, tutorCount = 0, staffCount = 0;
+        int totalPatients = 0;
+        
+                    for (String key : patientMap.keySet()) {
+                Patient patient = patientMap.get(key);
+                if (!patient.isDeleted()) {
+                    totalPatients++;
+                    if (patient instanceof entity.Student) {
+                        studentCount++;
+                    } else if (patient instanceof entity.Tutor) {
+                        tutorCount++;
+                    } else if (patient instanceof entity.Staff) {
+                        staffCount++;
+                    }
+                }
+            }
+        
+        // Display role distribution
+        System.out.println("Role Distribution:");
+        System.out.println("-".repeat(50));
+        System.out.printf("Students: %d (%.1f%%)%n", studentCount, 
+            totalPatients > 0 ? (double)studentCount/totalPatients*100 : 0.0);
+        System.out.printf("Tutors:   %d (%.1f%%)%n", tutorCount, 
+            totalPatients > 0 ? (double)tutorCount/totalPatients*100 : 0.0);
+        System.out.printf("Staff:    %d (%.1f%%)%n", staffCount, 
+            totalPatients > 0 ? (double)staffCount/totalPatients*100 : 0.0);
+        System.out.println("-".repeat(50));
+        System.out.printf("Total Active Patients: %d%n", totalPatients);
+        System.out.println();
+        
+        // Role distribution chart
+        System.out.println("Role Distribution Chart:");
+        System.out.println("Students: " + "*".repeat(Math.max(1, studentCount)));
+        System.out.println("Tutors:   " + "*".repeat(Math.max(1, tutorCount)));
+        System.out.println("Staff:    " + "*".repeat(Math.max(1, staffCount)));
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
+    }
+    
+    /**
+     * Generate Queue Analysis Report
+     */
+    public void generateQueueAnalysisReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("QUEUE ANALYSIS REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Load queue data
+        HashMapInterface<String, PatientQueueEntry> queueMap = PatientQueueDAO.loadPatientQueue();
+        
+        int walkInCount = 0, appointmentCount = 0;
+        int totalQueueEntries = 0;
+        
+        for (String key : queueMap.keySet()) {
+            PatientQueueEntry entry = queueMap.get(key);
+            totalQueueEntries++;
+            
+            if (entry.getQueueType() == entity.QueueType.WALK_IN) {
+                walkInCount++;
+            } else if (entry.getQueueType() == entity.QueueType.APPOINTMENT) {
+                appointmentCount++;
+            }
+        }
+        
+        // Display queue analysis
+        System.out.println("Queue Type Analysis:");
+        System.out.println("-".repeat(50));
+        System.out.printf("Walk-in Patients: %d (%.1f%%)%n", walkInCount, 
+            totalQueueEntries > 0 ? (double)walkInCount/totalQueueEntries*100 : 0.0);
+        System.out.printf("Appointments:     %d (%.1f%%)%n", appointmentCount, 
+            totalQueueEntries > 0 ? (double)appointmentCount/totalQueueEntries*100 : 0.0);
+        System.out.println("-".repeat(50));
+        System.out.printf("Total Queue Entries: %d%n", totalQueueEntries);
+        System.out.println();
+        
+        // Queue type chart
+        System.out.println("Queue Type Distribution:");
+        System.out.println("Walk-in:    " + "*".repeat(Math.max(1, walkInCount)));
+        System.out.println("Appointment: " + "*".repeat(Math.max(1, appointmentCount)));
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
     }
 }

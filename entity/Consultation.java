@@ -15,8 +15,8 @@ public class Consultation {
     private LocalDateTime consultationTime;
     private String treatmentId; // null until doctor creates treatment
     private String paymentId; // null until payment made
-    private String status; // PENDING, SCHEDULED, TREATMENT_CREATED, MEDICINES_DISPENSED, COMPLETED
-    private String queueId; // new: back-reference to PatientQueueEntry
+    private String status; // PENDING, SCHEDULED, IN_PROGRESS, TREATMENT_CREATED, COMPLETED
+    private String queueId; // optional: back-reference to PatientQueueEntry if created from queue
 
     public Consultation(String consultationId, String patientId, String specialty) {
         this.consultationId = consultationId;
@@ -24,7 +24,8 @@ public class Consultation {
         this.specialty = specialty;
         this.status = "PENDING";
     }
-    // new overloaded constructor when queueId known
+    
+    // Constructor when queueId is known
     public Consultation(String consultationId, String patientId, String specialty, String queueId) {
         this(consultationId, patientId, specialty);
         this.queueId = queueId;
@@ -76,29 +77,21 @@ public class Consultation {
         this.status = "SCHEDULED";
     }
 
+    public void startConsultation() {
+        this.status = "IN_PROGRESS";
+    }
+    
     public void completeConsultation(String treatmentId) {
         this.treatmentId = treatmentId;
         this.status = "COMPLETED";
     }
-    
-    public void markTreatmentCreated(String treatmentId) {
-        this.treatmentId = treatmentId;
-        this.status = "TREATMENT_CREATED";
-    }
-    
-    public void markMedicinesDispensed() {
-        this.status = "MEDICINES_DISPENSED";
-    }
-    
-    public void markFullyCompleted() {
-        this.status = "COMPLETED";
+
+    // Method to set status directly (used when loading from file)
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public void setPayment(String paymentId) {
         this.paymentId = paymentId;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 }

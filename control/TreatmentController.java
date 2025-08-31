@@ -86,8 +86,8 @@ public class TreatmentController {
             );
             
             if (treatmentId != null) {
-                System.out.println("✅ Treatment created successfully: " + treatmentId);
-                System.out.println("✅ Medicines prescribed: " + medicines.size() + " medicine(s)");
+                        System.out.println("Treatment created successfully: " + treatmentId);
+        System.out.println("Medicines prescribed: " + medicines.size() + " medicine(s)");
                 return true;
             } else {
                 return false;
@@ -152,16 +152,23 @@ public class TreatmentController {
      * Get treatments ready for medicine dispensing
      */
     public ListInterface<Treatment> getTreatmentsReadyForMedicineDispensing() {
+        // Refresh consultation data to get latest status updates
+        this.consultationMap = ConsultationDAO.loadConsultations();
+        // Refresh treatment data as well
+        this.treatmentMap = TreatmentDAO.loadTreatments();
+
         ListInterface<Treatment> treatments = new ArrayList<>();
+
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
             String consultationId = treatment.getConsultationId();
             Consultation consultation = consultationMap.get(consultationId);
-            
+
             if (consultation != null && consultation.getStatus().equals("TREATMENT_CREATED")) {
                 treatments.add(treatment);
             }
         }
+
         return treatments;
     }
     
@@ -169,6 +176,9 @@ public class TreatmentController {
      * Display treatments ready for medicine dispensing
      */
     public void displayTreatmentsReadyForMedicineDispensing() {
+        // Refresh treatment data as well
+        this.treatmentMap = TreatmentDAO.loadTreatments();
+
         ListInterface<Treatment> treatments = getTreatmentsReadyForMedicineDispensing();
         if (treatments.isEmpty()) {
             System.out.println("No treatments ready for medicine dispensing.");
@@ -204,11 +214,11 @@ public class TreatmentController {
             // Get consultation and update its status
             Consultation consultation = consultationMap.get(consultationId);
             if (consultation != null) {
-                consultation.markTreatmentCreated(treatmentId);
+                consultation.completeConsultation(treatmentId);
                 consultationMap.put(consultationId, consultation);
                 ConsultationDAO.saveConsultations(consultationMap);
                 
-                System.out.println("Consultation " + consultationId + " status updated to TREATMENT_CREATED");
+                System.out.println("Consultation " + consultationId + " status updated to COMPLETED");
             }
         } catch (Exception e) {
             System.out.println("Error updating consultation status: " + e.getMessage());
@@ -389,18 +399,16 @@ public class TreatmentController {
             return;
         }
         
-        // Update consultation status to MEDICINES_DISPENSED
+        // Update consultation status to COMPLETED
         String consultationId = treatment.getConsultationId();
         Consultation consultation = consultationMap.get(consultationId);
         
         if (consultation != null) {
-            consultation.markMedicinesDispensed();
-            consultationMap.put(consultationId, consultation);
-            ConsultationDAO.saveConsultations(consultationMap);
-            
+            // Consultation is already completed when treatment is created
+            // No need to change status further
             System.out.println("Medicines dispensed for treatment: " + treatmentId);
-            System.out.println("Consultation " + consultationId + " status updated to MEDICINES_DISPENSED");
-            System.out.println("Consultation ready for final completion.");
+            System.out.println("Consultation " + consultationId + " is already completed");
+            System.out.println("Treatment ready for medicine dispensing.");
         } else {
             System.out.println("Consultation not found for treatment: " + consultationId);
         }
@@ -415,20 +423,28 @@ public class TreatmentController {
             System.out.println("Treatment not found: " + treatmentId);
             return;
         }
-        
+
         String consultationId = treatment.getConsultationId();
         Consultation consultation = consultationMap.get(consultationId);
-        
-        if (consultation != null && consultation.getStatus().equals("MEDICINES_DISPENSED")) {
-            // Mark consultation as ready for payment
-            consultation.markFullyCompleted();
-            consultationMap.put(consultationId, consultation);
-            ConsultationDAO.saveConsultations(consultationMap);
-            
-            System.out.println("Consultation " + consultationId + " ready for payment!");
-            System.out.println("Invoice will be generated. Patient can proceed to payment.");
+
+        if (consultation != null && consultation.getStatus().equals("COMPLETED")) {
+            // Update queue status to COMPLETED as well
+            if (consultation.getQueueId() != null) {
+                // Refresh queue data and update queue status
+                control.PatientQueueController queueController = new control.PatientQueueController();
+                entity.PatientQueueEntry queueEntry = queueController.getQueueEntry(consultation.getQueueId());
+                if (queueEntry != null) {
+                    queueEntry.complete();
+                    // Save the updated queue entry
+                    queueController.saveQueueData();
+                    System.out.println("Queue entry " + consultation.getQueueId() + " status updated to COMPLETED");
+                }
+            }
+
+            System.out.println("Consultation " + consultationId + " is already completed!");
+            System.out.println("Treatment and medicines are ready for processing.");
         } else {
-            System.out.println("Consultation must be in MEDICINES_DISPENSED status to complete.");
+            System.out.println("Consultation must be completed before dispensing medicines.");
         }
     }
 
@@ -437,6 +453,35 @@ public class TreatmentController {
     /**
      * Display treatment details
      */
+    public void displayTreatmentMedicines(String treatmentId) {
+        Treatment treatment = getTreatmentById(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return;
+        }
+
+        if (treatment.getPrescribedMedicines().isEmpty()) {
+            System.out.println("No medicines prescribed for this treatment.");
+            return;
+        }
+
+        System.out.println("Medicine Prescriptions for Treatment " + treatmentId + ":");
+        System.out.println("=".repeat(60));
+
+        for (int i = 0; i < treatment.getPrescribedMedicines().size(); i++) {
+            MedicinePrescribed prescribed = treatment.getPrescribedMedicines().get(i);
+            String medicineId = prescribed.getMedicineId();
+            int quantity = prescribed.getQuantity();
+
+            // Get medicine details
+            Medicine medicine = medicineMap.get(medicineId);
+            String medicineName = medicine != null ? medicine.getName() : "Unknown Medicine";
+
+            System.out.println((i + 1) + ". " + medicineName + " (ID: " + medicineId + ") - Quantity: " + quantity);
+        }
+        System.out.println("=".repeat(60));
+    }
+
     public void displayTreatmentDetails(String treatmentId) {
         Treatment treatment = treatmentMap.get(treatmentId);
         if (treatment == null) {
@@ -1049,5 +1094,168 @@ public class TreatmentController {
         } else {
             System.out.println("\nNo medicines prescribed.");
         }
+    }
+    
+    // ==================== REPORTING METHODS ====================
+    
+    /**
+     * Generate Diagnosis Statistics Report
+     */
+    public void generateDiagnosisStatisticsReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("DIAGNOSIS STATISTICS REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Count diagnoses
+        HashMapInterface<String, Integer> diagnosisCount = new adt.HashMapADT<>();
+        int totalTreatments = 0;
+        
+        for (String key : treatmentMap.keySet()) {
+            Treatment treatment = treatmentMap.get(key);
+            totalTreatments++;
+            String diagnosis = treatment.getDescription();
+            Integer currentCount = diagnosisCount.get(diagnosis);
+            diagnosisCount.put(diagnosis, currentCount != null ? currentCount + 1 : 1);
+        }
+        
+        // Display diagnosis statistics
+        System.out.println("Diagnosis Statistics:");
+        System.out.println("-".repeat(70));
+        System.out.printf("| %-30s | %-20s | %-15s |%n", "Diagnosis", "Occurrence Count", "Percentage");
+        System.out.println("-".repeat(70));
+        
+        // Find top 5 diagnoses
+        String[] topDiagnoses = new String[5];
+        int[] topCounts = new int[5];
+        
+        for (String key : diagnosisCount.keySet()) {
+            int count = diagnosisCount.get(key);
+            
+            // Check if this diagnosis is in top 5
+            for (int i = 0; i < 5; i++) {
+                if (count > topCounts[i]) {
+                    // Shift down
+                    for (int j = 4; j > i; j--) {
+                        topDiagnoses[j] = topDiagnoses[j-1];
+                        topCounts[j] = topCounts[j-1];
+                    }
+                    topDiagnoses[i] = key;
+                    topCounts[i] = count;
+                    break;
+                }
+            }
+        }
+        
+        // Display top 5 diagnoses
+        for (int i = 0; i < 5; i++) {
+            if (topDiagnoses[i] != null) {
+                double percentage = (double)topCounts[i]/totalTreatments*100;
+                System.out.printf("| %-30s | %-20d | %-14.1f%% |%n", 
+                    topDiagnoses[i], 
+                    topCounts[i],
+                    percentage);
+            }
+        }
+        System.out.println("-".repeat(70));
+        System.out.printf("Total Treatments: %d%n", totalTreatments);
+        System.out.println();
+        
+        // Summary
+        System.out.println("Diagnosis Summary:");
+        System.out.println("-".repeat(50));
+        if (topDiagnoses[0] != null) {
+            System.out.println("Most Common Diagnosis: " + topDiagnoses[0] + " (" + topCounts[0] + " occurrences)");
+        }
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
+    }
+    
+    /**
+     * Generate Treatment History Report
+     */
+    public void generateTreatmentHistoryReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("TREATMENT HISTORY REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Count treatments per patient
+        HashMapInterface<String, Integer> patientTreatmentCount = new adt.HashMapADT<>();
+        
+        for (String key : treatmentMap.keySet()) {
+            Treatment treatment = treatmentMap.get(key);
+            String patientId = treatment.getPatientId();
+            Integer currentCount = patientTreatmentCount.get(patientId);
+            patientTreatmentCount.put(patientId, currentCount != null ? currentCount + 1 : 1);
+        }
+        
+        // Analyze treatment patterns
+        int singleTreatmentPatients = 0;
+        int multipleTreatmentPatients = 0;
+        int chronicPatients = 0; // 3+ treatments
+        int totalPatients = patientTreatmentCount.size();
+        int totalTreatments = treatmentMap.size();
+        
+        for (String key : patientTreatmentCount.keySet()) {
+            int count = patientTreatmentCount.get(key);
+            if (count == 1) {
+                singleTreatmentPatients++;
+            } else if (count == 2) {
+                multipleTreatmentPatients++;
+            } else {
+                chronicPatients++;
+            }
+        }
+        
+        // Display treatment history analysis
+        System.out.println("Treatment History Analysis:");
+        System.out.println("-".repeat(70));
+        System.out.printf("| %-25s | %-15s | %-15s | %-15s |%n", "Treatment Pattern", "Patient Count", "Percentage", "Distribution");
+        System.out.println("-".repeat(70));
+        
+        double singlePercentage = totalPatients > 0 ? (double)singleTreatmentPatients/totalPatients*100 : 0.0;
+        double multiplePercentage = totalPatients > 0 ? (double)multipleTreatmentPatients/totalPatients*100 : 0.0;
+        double chronicPercentage = totalPatients > 0 ? (double)chronicPatients/totalPatients*100 : 0.0;
+        
+        System.out.printf("| %-25s | %-15d | %-14.1f%% | %-15s |%n", "Single Treatment", singleTreatmentPatients, singlePercentage, "*".repeat(singleTreatmentPatients));
+        System.out.printf("| %-25s | %-15d | %-14.1f%% | %-15s |%n", "Multiple Treatments", multipleTreatmentPatients, multiplePercentage, "*".repeat(multipleTreatmentPatients));
+        System.out.printf("| %-25s | %-15d | %-14.1f%% | %-15s |%n", "Chronic/Repeated", chronicPatients, chronicPercentage, "*".repeat(chronicPatients));
+        System.out.println("-".repeat(70));
+        System.out.printf("Total Unique Patients: %d%n", totalPatients);
+        System.out.printf("Total Treatments: %d%n", totalTreatments);
+        System.out.printf("Average Treatments per Patient: %.2f%n", totalPatients > 0 ? (double)totalTreatments/totalPatients : 0.0);
+        System.out.println();
+        
+        // Summary
+        System.out.println("Treatment History Summary:");
+        System.out.println("-".repeat(50));
+        System.out.printf("Chronic Patient Rate: %.1f%%%n", chronicPercentage);
+        System.out.printf("Multiple Treatment Rate: %.1f%%%n", multiplePercentage);
+        System.out.printf("Single Treatment Rate: %.1f%%%n", singlePercentage);
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
     }
 }

@@ -6,7 +6,7 @@ package entity;
  */
 public class Medicine {
     public enum Unit {
-        MG, ML, TABLET, CAPSULE
+        MG, ML, TABLET, CAPSULE, UNIT
     }
 
     private String medicineId;

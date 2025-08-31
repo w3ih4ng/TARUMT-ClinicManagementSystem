@@ -21,15 +21,16 @@ public class StaffMenuBoundary {
             utility.SystemUtil.setNavigationPath("Home", "Clinic Management", "Module Selection");
             utility.SystemUtil.showMenuHeader("TARUMT Clinic Management Modules");
             System.out.println();
-            System.out.println("═══════════════════════════════════════════════════");
+            System.out.println("=================================================");
             System.out.println("1. Patient Management Module");
             System.out.println("2. Doctor Management Module");
             System.out.println("3. Consultation Management Module");
             System.out.println("4. Medical Treatment Management Module");
             System.out.println("5. Pharmacy Management Module");
+            System.out.println("6. Comprehensive Reports Module");
             System.out.println("0. Exit System");
-            System.out.println("═══════════════════════════════════════════════════");
-            System.out.print("Select Module (1-5, 0): ");
+            System.out.println("=================================================");
+            System.out.print("Select Module (1-6, 0): ");
 
             String choice = sc.nextLine().trim();
 
@@ -54,11 +55,15 @@ public class StaffMenuBoundary {
                     utility.SystemUtil.pushNavigation("Pharmacy Management");
                     staffControl.openPharmacyModule(); 
                     break;
+                case "6": 
+                    utility.SystemUtil.pushNavigation("Comprehensive Reports");
+                    staffControl.openReportsModule(); 
+                    break;
                 case "0": 
                     utility.SystemUtil.setNavigationPath("Home");
                     return;
                 default: 
-                    System.out.println("Invalid choice. Please select 1-5 or 0.");
+                    System.out.println("Invalid choice. Please select 1-6 or 0.");
                     utility.SystemUtil.pauseForUser();
             }
         }

@@ -373,48 +373,54 @@ public class PharmacyUI {
 
     private void dispenseMedicineForTreatment() {
         System.out.println("\n--- Dispense Medicine for Treatment ---");
-        
-        // Show available treatments with medicine prescriptions
-        System.out.println("Available treatments with medicine prescriptions:");
-        pharmacyController.displayTreatmentsWithPrescriptions();
-        
-        System.out.print("Enter Treatment ID: ");
+
+        // Show treatments that are ready for dispensing (have medicine prescriptions)
+        System.out.println("Treatments ready for medicine dispensing:");
+        pharmacyController.displayTreatmentsReadyForDispensing();
+
+        System.out.print("\nEnter Treatment ID to dispense medicines for: ");
         String treatmentId = sc.nextLine().trim();
-        
+
         if (treatmentId.isEmpty()) {
             System.out.println("Treatment ID cannot be empty.");
             return;
         }
-        
+
         // Show the medicines that will be dispensed for this treatment
         boolean medicinesShown = pharmacyController.displayMedicinesForTreatment(treatmentId);
         if (!medicinesShown) {
             System.out.println("No medicines found for treatment: " + treatmentId);
             return;
         }
-        
+
+        // Show treatment details and cost summary
+        System.out.println("\n=== Treatment Summary ===");
+        pharmacyController.displayTreatmentSummary(treatmentId);
+
         // Ask for confirmation to dispense
         System.out.print("\nDispense these medicines? (y/n): ");
         String confirm = sc.nextLine().trim().toLowerCase();
-        
+
         if (!confirm.equals("y") && !confirm.equals("yes")) {
             System.out.println("Medicine dispensing cancelled.");
             return;
         }
-        
+
         // Dispense medicines for the treatment
         boolean success = pharmacyController.dispenseMedicinesForTreatment(treatmentId);
         if (success) {
-            System.out.println("\nMedicines dispensed successfully for treatment: " + treatmentId);
+            System.out.println("\n" + "=".repeat(60));
+            System.out.println("MEDICINES DISPENSED SUCCESSFULLY!");
+            System.out.println("=".repeat(60));
+            System.out.println("Treatment ID: " + treatmentId);
             System.out.println("Stock quantities have been updated");
             System.out.println("Invoice has been generated");
             System.out.println("Consultation workflow has been updated");
-            System.out.println("\nNext steps:");
-            System.out.println("  • Patient can now proceed to payment");
-            System.out.println("  • Consultation is marked as ready for payment");
-            System.out.println("  • Queue status has been updated");
+            System.out.println();
+            System.out.println("=".repeat(60));
         } else {
             System.out.println("Failed to dispense medicines for treatment: " + treatmentId);
+            System.out.println("Please check stock levels and try again.");
         }
     }
 

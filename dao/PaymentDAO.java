@@ -34,7 +34,7 @@ public class PaymentDAO {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
             // Write header comment
-            pw.println("# PaymentID|ConsultationID|TotalAmount|PaymentMethod|PaymentStatus|PaymentDate");
+            pw.println("# PaymentID|InvoiceID|ConsultationID|PatientID|PaymentMethod|PaymentStatus|PaymentDate|Remarks|isDeleted");
             
             for (int i = 0; i < paymentMap.keySet().size(); i++) {
                 String key = paymentMap.keySet().get(i);
@@ -77,12 +77,10 @@ public class PaymentDAO {
                 payment.getInvoiceId(),
                 payment.getConsultationId(),
                 payment.getPatientId(),
-                String.valueOf(payment.getAmount()),
                 payment.getPaymentMethod().name(),
                 payment.getStatus().name(),
-                payment.getPaymentDate().format(formatter),
-                payment.getReferenceNumber(),
-                payment.getNotes(),
+                payment.getPaymentDate() != null ? payment.getPaymentDate().format(formatter) : "",
+                payment.getRemarks(),
                 Boolean.toString(payment.isDeleted())
         );
     }
@@ -90,27 +88,24 @@ public class PaymentDAO {
     private static Payment fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length != 11) {
-                throw new IllegalArgumentException("Expected 11 columns, got " + parts.length);
+            if (parts.length != 9) {
+                throw new IllegalArgumentException("Expected 9 columns, got " + parts.length);
             }
             String paymentId = parts[0];
             String invoiceId = parts[1];
             String consultationId = parts[2];
             String patientId = parts[3];
-            double amount = Double.parseDouble(parts[4]);
-            Payment.PaymentMethod paymentMethod = Payment.PaymentMethod.valueOf(parts[5]);
-            Payment.PaymentStatus status = Payment.PaymentStatus.valueOf(parts[6]);
-            LocalDateTime paymentDate = LocalDateTime.parse(parts[7], formatter);
-            String referenceNumber = parts[8];
-            String notes = parts[9];
-            boolean deleted = Boolean.parseBoolean(parts[10]);
+            Payment.PaymentMethod paymentMethod = Payment.PaymentMethod.valueOf(parts[4]);
+            Payment.PaymentStatus status = Payment.PaymentStatus.valueOf(parts[5]);
+            LocalDateTime paymentDate = parts[6].isEmpty() ? null : LocalDateTime.parse(parts[6], formatter);
+            String remarks = parts[7];
+            boolean deleted = Boolean.parseBoolean(parts[8]);
 
-            Payment payment = new Payment(paymentId, invoiceId, consultationId, patientId, amount, paymentMethod);
+            Payment payment = new Payment(paymentId, invoiceId, consultationId, patientId, paymentMethod);
             payment.setStatus(status);
             payment.setPaymentDate(paymentDate);
-            payment.setReferenceNumber(referenceNumber);
-            payment.setNotes(notes);
-            
+            payment.setRemarks(remarks);
+
             if (deleted) payment.delete();
 
             return payment;

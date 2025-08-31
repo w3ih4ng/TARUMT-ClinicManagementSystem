@@ -202,9 +202,7 @@ public class DoctorController {
         ListInterface<Doctor> allDoctors = new ArrayList<>();
         for (String key : doctorMap.keySet()) {
             Doctor doctor = doctorMap.get(key);
-            if (!doctor.isDeleted()) {
-                allDoctors.add(doctor);
-            }
+            allDoctors.add(doctor); // Show all doctors (active and deleted)
         }
         printDoctorsTable(allDoctors, "All Registered Doctors");
     }
@@ -290,11 +288,36 @@ public class DoctorController {
             }
         }
 
+        // Update status
+        System.out.println("\nCurrent status: " + doctor.getStatus());
+        System.out.println("Available statuses:");
+        DoctorStatus[] statuses = DoctorStatus.values();
+        for (int i = 0; i < statuses.length; i++) {
+            System.out.println((i + 1) + ". " + statuses[i]);
+        }
+        System.out.print("Enter new status number (1-" + statuses.length + ") or press Enter to keep current: ");
+        String statusChoice = sc.nextLine().trim();
+        if (!statusChoice.isEmpty()) {
+            try {
+                int choice = Integer.parseInt(statusChoice);
+                if (choice >= 1 && choice <= statuses.length) {
+                    doctor.setStatus(statuses[choice - 1]);
+                    System.out.println("Status updated to: " + doctor.getStatus());
+                } else {
+                    System.out.println("Invalid status choice. Keeping current status.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid status format. Keeping current status.");
+            }
+        }
+
         // Save changes
         doctorMap.put(doctorId, doctor);
         DoctorDAO.saveDoctors(doctorMap);
-        System.out.println("\n✓ Doctor updated successfully!");
+        System.out.println("\nDoctor updated successfully!");
     }
+
+
 
     public void deleteDoctor() {
         System.out.println("\n--- Delete Doctor ---");
@@ -328,7 +351,7 @@ public class DoctorController {
             doctor.delete();
             doctorMap.put(doctorId, doctor);
             DoctorDAO.saveDoctors(doctorMap);
-            System.out.println("✓ Doctor deleted successfully!");
+            System.out.println("Doctor deleted successfully!");
         } else {
             System.out.println("Delete operation cancelled.");
         }
@@ -366,7 +389,7 @@ public class DoctorController {
             doctor.restore();
             doctorMap.put(doctorId, doctor);
             DoctorDAO.saveDoctors(doctorMap);
-            System.out.println("✓ Doctor restored successfully!");
+            System.out.println("Doctor restored successfully!");
         } else {
             System.out.println("Restore operation cancelled.");
         }
@@ -466,7 +489,7 @@ public class DoctorController {
             scheduleMap.put(scheduleId, schedule);
             DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
             
-            System.out.println("\n✓ Schedule created successfully!");
+            System.out.println("\nSchedule created successfully!");
             System.out.println("Schedule ID: " + scheduleId);
             System.out.println("Doctor: " + doctor.getName());
             System.out.println("Date: " + appointmentDate);
@@ -658,7 +681,7 @@ public class DoctorController {
 
         // Check if time slot is available
         if (!isTimeSlotAvailable(doctorId, appointmentDate, timeSlot)) {
-            System.out.println("❌ This time slot is not available for the selected doctor.");
+            System.out.println("This time slot is not available for the selected doctor.");
             System.out.println("Please choose a different date or time.");
             return;
         }
@@ -666,80 +689,29 @@ public class DoctorController {
         // Create consultation first
         ConsultationController consultationController = new ConsultationController();
         Doctor doctor = doctorMap.get(doctorId);
-        String consultationId = consultationController.createConsultation(patientId, doctor.getSpecialty().toString());
+        boolean appointmentCreated = consultationController.createAppointment(patientId, doctorId, appointmentDate.toString(), timeSlot.toString(), doctor.getSpecialty().toString());
 
-        // Create doctor schedule entry automatically
-        String scheduleId = generateScheduleId();
-        DoctorSchedule schedule = new DoctorSchedule(scheduleId, doctorId, doctor.getSpecialty().toString(), 
-                                                   appointmentDate, timeSlot, timeSlot.plusMinutes(30));
-        
-        // Book the slot immediately
-        schedule.bookSlot(consultationId, patientId);
-        scheduleMap.put(scheduleId, schedule);
-        DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+        if (appointmentCreated) {
+            // Create doctor schedule entry automatically
+            String scheduleId = generateScheduleId();
+            DoctorSchedule schedule = new DoctorSchedule(scheduleId, doctorId, doctor.getSpecialty().toString(), 
+                                                       appointmentDate, timeSlot, timeSlot.plusMinutes(30));
+            
+            // Book the slot immediately
+            schedule.bookSlot(patientId);
+            scheduleMap.put(scheduleId, schedule);
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
 
-        // Update consultation with appointment details
-        consultationController.assignDoctor(consultationId, doctorId, scheduleId, 
-                                           appointmentDate.atTime(timeSlot));
-
-        System.out.println("\n✅ Appointment booked successfully!");
-        System.out.println("Schedule ID: " + scheduleId);
-        System.out.println("Consultation ID: " + consultationId);
-        System.out.println("Patient ID: " + patientId);
-        System.out.println("Doctor: Dr. " + doctor.getName() + " (" + doctorId + ")");
-        System.out.println("Date: " + appointmentDate);
-        System.out.println("Time: " + timeSlot + "-" + timeSlot.plusMinutes(30));
-        System.out.println("Specialty: " + doctor.getSpecialty());
-    }
-
-    public void markCheckedIn() {
-        System.out.println("\n--- Mark Patient Checked In ---");
-        System.out.print("Enter Schedule ID: ");
-        String scheduleId = sc.nextLine().trim().toUpperCase();
-        
-        if (scheduleId.isEmpty()) {
-            System.out.println("Schedule ID cannot be empty!");
-            return;
+            System.out.println("\nAppointment booked successfully!");
+            System.out.println("Schedule ID: " + scheduleId);
+            System.out.println("Patient ID: " + patientId);
+            System.out.println("Doctor: Dr. " + doctor.getName() + " (" + doctorId + ")");
+            System.out.println("Date: " + appointmentDate);
+            System.out.println("Time: " + timeSlot + "-" + timeSlot.plusMinutes(30));
+            System.out.println("Specialty: " + doctor.getSpecialty());
+        } else {
+            System.out.println("Failed to create appointment.");
         }
-
-        DoctorSchedule schedule = scheduleMap.get(scheduleId);
-        if (schedule == null) {
-            System.out.println("Schedule not found.");
-            return;
-        }
-
-        if (!schedule.isBooked()) {
-            System.out.println("This schedule is not booked.");
-            return;
-        }
-
-        // Note: markCheckedIn functionality not implemented in DoctorSchedule entity
-        System.out.println("✓ Patient marked as checked in for schedule: " + scheduleId);
-    }
-
-    public void markDone() {
-        System.out.println("\n--- Mark Appointment Done ---");
-        System.out.print("Enter Schedule ID: ");
-        String scheduleId = sc.nextLine().trim().toUpperCase();
-        
-        if (scheduleId.isEmpty()) {
-            System.out.println("Schedule ID cannot be empty!");
-            return;
-        }
-
-        DoctorSchedule schedule = scheduleMap.get(scheduleId);
-        if (schedule == null) {
-            System.out.println("Schedule not found.");
-            return;
-        }
-
-        if (!schedule.isBooked()) {
-            System.out.println("This schedule is not booked.");
-            return;
-        }
-
-        // Note: markDone functionality not implemented in DoctorSchedule entity
-        System.out.println("✓ Appointment marked as done for schedule: " + scheduleId);
     }
 
     // ==================== FILTERING AND VIEWING OPERATIONS ====================
@@ -950,17 +922,17 @@ public class DoctorController {
         System.out.println();
 
         // Define table format widths
-        String leftAlignFormat = "| %-12s | %-20s | %-6s | %-12s | %-15s | %-20s | %-8s |%n";
+        String leftAlignFormat = "| %-12s | %-20s | %-6s | %-12s | %-15s | %-20s | %-8s | %-10s |%n";
 
         // Define border line
-        String borderLine = "+--------------+----------------------+--------+--------------+-----------------+----------------------+----------+";
+        String borderLine = "+--------------+----------------------+--------+--------------+-----------------+----------------------+----------+------------+";
 
         // Print top border
         System.out.println(borderLine);
 
         // Print header
         System.out.printf(leftAlignFormat,
-                "Doctor ID", "Name", "Gender", "Birthdate", "Phone", "Specialty", "Fee");
+                "Doctor ID", "Name", "Gender", "Birthdate", "Phone", "Specialty", "Fee", "Status");
 
         // Print header separator
         System.out.println(borderLine);
@@ -968,6 +940,14 @@ public class DoctorController {
         // Print each row + row separator
         for (int i = 0; i < doctors.size(); i++) {
             Doctor d = doctors.get(i);
+            
+            // Get status (combine deleted status with doctor status)
+            String status;
+            if (d.isDeleted()) {
+                status = "Deleted";
+            } else {
+                status = d.getStatus().toString();
+            }
             
             // Print row
             System.out.printf(leftAlignFormat,
@@ -977,7 +957,8 @@ public class DoctorController {
                     d.getBirthdate(),
                     d.getPhoneNumber(),
                     d.getSpecialty(),
-                    String.format("%.2f", d.getConsultationFee()));
+                    String.format("%.2f", d.getConsultationFee()),
+                    status);
 
             // Print row separator after each row
             System.out.println(borderLine);
@@ -1029,5 +1010,259 @@ public class DoctorController {
             // Print row separator after each row
             System.out.println(borderLine);
         }
+    }
+    
+    // ==================== REPORTING METHODS ====================
+    
+    /**
+     * Generate Doctor Workload Report
+     */
+    public void generateDoctorWorkloadReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("DOCTOR WORKLOAD REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Load consultation data to count patients per doctor
+        dao.ConsultationDAO consultationDAO = new dao.ConsultationDAO();
+        HashMapInterface<String, entity.Consultation> consultationMap = consultationDAO.loadConsultations();
+        
+        // Count patients per doctor
+        HashMapInterface<String, Integer> doctorPatientCount = new adt.HashMapADT<>();
+        
+        for (String key : consultationMap.keySet()) {
+            entity.Consultation consultation = consultationMap.get(key);
+            if (consultation.getDoctorId() != null) {
+                String doctorId = consultation.getDoctorId();
+                Integer currentCount = doctorPatientCount.get(doctorId);
+                doctorPatientCount.put(doctorId, currentCount != null ? currentCount + 1 : 1);
+            }
+        }
+        
+        // Display doctor workload
+        System.out.println("Doctor Workload Analysis:");
+        System.out.println("-".repeat(70));
+        System.out.printf("| %-10s | %-25s | %-15s | %-15s |%n", "Doctor ID", "Doctor Name", "Specialty", "Patients Seen");
+        System.out.println("-".repeat(70));
+        
+        int totalPatients = 0;
+        int maxPatients = 0;
+        int minPatients = Integer.MAX_VALUE;
+        String busiestDoctor = "";
+        String leastBusyDoctor = "";
+        
+        for (String key : doctorMap.keySet()) {
+            Doctor doctor = doctorMap.get(key);
+            if (!doctor.isDeleted()) {
+                Integer patientCount = doctorPatientCount.get(doctor.getDoctorId());
+                int count = patientCount != null ? patientCount : 0;
+                totalPatients += count;
+                
+                if (count > maxPatients) {
+                    maxPatients = count;
+                    busiestDoctor = doctor.getName();
+                }
+                if (count < minPatients) {
+                    minPatients = count;
+                    leastBusyDoctor = doctor.getName();
+                }
+                
+                System.out.printf("| %-10s | %-25s | %-15s | %-15d |%n", 
+                    doctor.getDoctorId(), 
+                    doctor.getName(), 
+                    doctor.getSpecialty(),
+                    count);
+            }
+        }
+        System.out.println("-".repeat(70));
+        System.out.printf("Total Patients Seen: %d%n", totalPatients);
+        System.out.println();
+        
+        // Summary
+        System.out.println("Workload Summary:");
+        System.out.println("-".repeat(50));
+        System.out.println("Busiest Doctor: " + busiestDoctor + " (" + maxPatients + " patients)");
+        System.out.println("Least Busy Doctor: " + leastBusyDoctor + " (" + minPatients + " patients)");
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
+    }
+    
+    /**
+     * Generate Doctor Availability Report
+     */
+    public void generateDoctorAvailabilityReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("DOCTOR AVAILABILITY REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Load doctor schedules
+        dao.DoctorScheduleDAO scheduleDAO = new dao.DoctorScheduleDAO();
+        HashMapInterface<String, entity.DoctorSchedule> scheduleMap = scheduleDAO.loadDoctorSchedules();
+        
+        // Count available vs booked slots per doctor
+        HashMapInterface<String, Integer> doctorAvailableSlots = new adt.HashMapADT<>();
+        HashMapInterface<String, Integer> doctorBookedSlots = new adt.HashMapADT<>();
+        
+        for (String key : scheduleMap.keySet()) {
+            entity.DoctorSchedule schedule = scheduleMap.get(key);
+            String doctorId = schedule.getDoctorId();
+            
+            if (schedule.isBooked()) {
+                Integer currentCount = doctorBookedSlots.get(doctorId);
+                doctorBookedSlots.put(doctorId, currentCount != null ? currentCount + 1 : 1);
+            } else {
+                Integer currentCount = doctorAvailableSlots.get(doctorId);
+                doctorAvailableSlots.put(doctorId, currentCount != null ? currentCount + 1 : 1);
+            }
+        }
+        
+        // Display availability analysis
+        System.out.println("Doctor Availability Analysis:");
+        System.out.println("-".repeat(80));
+        System.out.printf("| %-10s | %-25s | %-15s | %-15s | %-15s |%n", "Doctor ID", "Doctor Name", "Available Slots", "Booked Slots", "Availability %");
+        System.out.println("-".repeat(80));
+        
+        double highestAvailability = 0.0;
+        double lowestAvailability = 100.0;
+        String mostAvailableDoctor = "";
+        String leastAvailableDoctor = "";
+        
+        for (String key : doctorMap.keySet()) {
+            Doctor doctor = doctorMap.get(key);
+            if (!doctor.isDeleted()) {
+                Integer availableSlots = doctorAvailableSlots.get(doctor.getDoctorId());
+                Integer bookedSlots = doctorBookedSlots.get(doctor.getDoctorId());
+                
+                int available = availableSlots != null ? availableSlots : 0;
+                int booked = bookedSlots != null ? bookedSlots : 0;
+                int totalSlots = available + booked;
+                
+                double availabilityPercent = totalSlots > 0 ? (double)available/totalSlots*100 : 0.0;
+                
+                if (availabilityPercent > highestAvailability) {
+                    highestAvailability = availabilityPercent;
+                    mostAvailableDoctor = doctor.getName();
+                }
+                if (availabilityPercent < lowestAvailability) {
+                    lowestAvailability = availabilityPercent;
+                    leastAvailableDoctor = doctor.getName();
+                }
+                
+                System.out.printf("| %-10s | %-25s | %-15d | %-15d | %-14.1f%% |%n", 
+                    doctor.getDoctorId(), 
+                    doctor.getName(), 
+                    available,
+                    booked,
+                    availabilityPercent);
+            }
+        }
+        System.out.println("-".repeat(80));
+        System.out.println();
+        
+        // Summary
+        System.out.println("Availability Summary:");
+        System.out.println("-".repeat(50));
+        System.out.printf("Most Available Doctor: %s (%.1f%% available)%n", mostAvailableDoctor, highestAvailability);
+        System.out.printf("Least Available Doctor: %s (%.1f%% available)%n", leastAvailableDoctor, lowestAvailability);
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
+    }
+    
+    /**
+     * Generate Specialty Coverage Report
+     */
+    public void generateSpecialtyCoverageReport() {
+        System.out.println("=".repeat(90));
+        System.out.println("TUNKU ABDUL RAHMAN UNIVERSITY OF MANAGEMENT AND TECHNOLOGY");
+        System.out.println("CLINIC MANAGEMENT SYSTEM");
+        System.out.println("SPECIALTY COVERAGE REPORT");
+        System.out.println("=".repeat(90));
+        System.out.println();
+        
+        // Get current timestamp
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("EEEE, MMMM dd yyyy, hh:mm a");
+        System.out.println("Generated at: " + now.format(formatter));
+        System.out.println();
+        
+        // Count doctors per specialty
+        HashMapInterface<String, Integer> specialtyCount = new adt.HashMapADT<>();
+        
+        for (String key : doctorMap.keySet()) {
+            Doctor doctor = doctorMap.get(key);
+            if (!doctor.isDeleted()) {
+                String specialty = doctor.getSpecialty().toString();
+                Integer currentCount = specialtyCount.get(specialty);
+                specialtyCount.put(specialty, currentCount != null ? currentCount + 1 : 1);
+            }
+        }
+        
+        // Display specialty coverage
+        System.out.println("Specialty Coverage Analysis:");
+        System.out.println("-".repeat(60));
+        System.out.printf("| %-25s | %-15s | %-15s |%n", "Specialty", "Doctor Count", "Distribution");
+        System.out.println("-".repeat(60));
+        
+        int totalDoctors = 0;
+        int maxDoctors = 0;
+        int minDoctors = Integer.MAX_VALUE;
+        String mostCoveredSpecialty = "";
+        String leastCoveredSpecialty = "";
+        
+        for (String key : specialtyCount.keySet()) {
+            int count = specialtyCount.get(key);
+            totalDoctors += count;
+            
+            if (count > maxDoctors) {
+                maxDoctors = count;
+                mostCoveredSpecialty = key;
+            }
+            if (count < minDoctors) {
+                minDoctors = count;
+                leastCoveredSpecialty = key;
+            }
+            
+            System.out.printf("| %-25s | %-15d | %-15s |%n", 
+                key, 
+                count,
+                "*".repeat(count));
+        }
+        System.out.println("-".repeat(60));
+        System.out.printf("Total Active Doctors: %d%n", totalDoctors);
+        System.out.println();
+        
+        // Summary
+        System.out.println("Coverage Summary:");
+        System.out.println("-".repeat(50));
+        System.out.println("Most Covered Specialty: " + mostCoveredSpecialty + " (" + maxDoctors + " doctors)");
+        System.out.println("Least Covered Specialty: " + leastCoveredSpecialty + " (" + minDoctors + " doctors)");
+        System.out.println();
+        
+        System.out.println("=".repeat(90));
+        System.out.println("END OF REPORT");
+        System.out.println("=".repeat(90));
     }
 }

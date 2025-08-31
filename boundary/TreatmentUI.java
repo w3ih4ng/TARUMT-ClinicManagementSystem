@@ -41,55 +41,57 @@ public class TreatmentUI {
         while (true) {
             utility.SystemUtil.showMenuHeader("Medical Treatment Management");
 
-            System.out.println("=== TREATMENT MANAGEMENT ===");
-            System.out.println("  1. Complete Consultation with Treatment & Medicines");
-            System.out.println("  2. View All Treatments");
-            System.out.println("  3. View Treatment Details");
-            System.out.println();
-            
-            System.out.println("=== TREATMENT REPORTS ===");
-            System.out.println("  4. Patient Treatment History Report");
-            System.out.println("  5. Doctor Treatment Performance Report");
-            System.out.println("  6. Medicine Prescription Analysis Report");
-            System.out.println();
-            
-            System.out.println("=== NAVIGATION ===");
+            System.out.println("=== TREATMENT OPERATIONS ===");
+            System.out.println("  1. Create Treatment for Consultation");
+            System.out.println("  2. Edit Treatment Diagnosis");
+            System.out.println("  3. Edit Medicine Prescriptions");
+            System.out.println("  4. View All Treatments");
+            System.out.println("  5. View Treatment Details");
             System.out.println("  0. Back to Staff Menu");
             System.out.println();
-                    System.out.println("Note: Consultations must be completed before creating treatments");
-        System.out.println("      Medicine dispensing is handled in Pharmacy Module");
-        System.out.println("      After completing treatment, use Pharmacy Module to dispense medicines");
+            System.out.println("Note: Create treatment first, then use Pharmacy Module to dispense medicines");
+            System.out.println("      After dispensing, invoice will be generated for payment processing");
             System.out.println();
             System.out.println("=".repeat(80));
-            System.out.print("\n\nEnter your choice (1-6, 0): ");
+            System.out.print("\n\nEnter your choice (1-5, 0): ");
 
             String choice = sc.nextLine().trim();
 
             switch (choice) {
-                case "1": 
-                    utility.SystemUtil.showSectionHeader("Complete Consultation with Treatment & Medicines");
-                    completeConsultationWithTreatmentAndMedicines();
+                case "1":
+                    utility.SystemUtil.showSectionHeader("Create Treatment for Consultation");
+                    createTreatmentForConsultation();
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "2": 
+                case "2":
+                    utility.SystemUtil.showSectionHeader("Edit Treatment Diagnosis");
+                    editTreatmentDiagnosis();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "3":
+                    utility.SystemUtil.showSectionHeader("Edit Medicine Prescriptions");
+                    editMedicinePrescriptions();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "4":
                     utility.SystemUtil.pushNavigation("View All Treatments");
                     viewAllTreatments();
                     utility.SystemUtil.popNavigation();
                     break;
-                case "3": 
+                case "5":
                     utility.SystemUtil.showSectionHeader("View Treatment Details");
                     viewTreatmentDetails();
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "4": 
+                case "6":
                     utility.SystemUtil.showSectionHeader("Patient Treatment History Report");
                     generatePatientTreatmentHistoryReport();
                     break;
-                case "5": 
+                case "7":
                     utility.SystemUtil.showSectionHeader("Doctor Treatment Performance Report");
                     generateDoctorPerformanceReport();
                     break;
-                case "6": 
+                case "8":
                     utility.SystemUtil.showSectionHeader("Medicine Prescription Analysis Report");
                     generateMedicinePrescriptionReport();
                     break;
@@ -412,9 +414,9 @@ public class TreatmentUI {
         if (success) {
             System.out.println("\nConsultation completed successfully with treatment and medicines!");
             System.out.println("\nNext steps:");
-            System.out.println("  • Treatment is now ready for medicine dispensing");
-            System.out.println("  • Use Pharmacy Module to dispense medicines");
-            System.out.println("  • After dispensing, consultation will be marked complete");
+            System.out.println("  - Treatment is now ready for medicine dispensing");
+            System.out.println("  - Use Pharmacy Module to dispense medicines");
+            System.out.println("  - After dispensing, consultation will be marked complete");
         } else {
             System.out.println("Failed to complete consultation with treatment and medicines.");
         }
@@ -548,25 +550,25 @@ public class TreatmentUI {
         if (medicineId.isEmpty()) {
             System.out.println("Medicine ID cannot be empty.");
             return;
-        }
-        
-        // Get quantity
-        int quantity = 0;
-        while (true) {
+            }
+            
+            // Get quantity
+            int quantity = 0;
+            while (true) {
             System.out.print("Enter quantity for " + medicineId + ": ");
             String quantityStr = sc.nextLine().trim();
-            try {
+                try {
                 quantity = Integer.parseInt(quantityStr);
-                if (quantity > 0) {
-                    break;
-                } else {
-                    System.out.println("Quantity must be positive.");
+                    if (quantity > 0) {
+                        break;
+                    } else {
+                        System.out.println("Quantity must be positive.");
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Please enter a valid number.");
                 }
-            } catch (NumberFormatException e) {
-                System.out.println("Please enter a valid number.");
             }
-        }
-        
+            
         // Add medicine to treatment
         boolean success = treatmentController.addMedicineToTreatment(treatmentId, medicineId, quantity);
         if (success) {
@@ -648,10 +650,10 @@ public class TreatmentUI {
         
         // Update medicine quantity
         boolean success = treatmentController.updateMedicineQuantity(treatmentId, medicineId, newQuantity);
-        if (success) {
+            if (success) {
             System.out.println("Medicine " + medicineId + " quantity updated to " + newQuantity);
             System.out.println("Quantity updated successfully.");
-        } else {
+            } else {
             System.out.println("Failed to update medicine " + medicineId + " quantity");
         }
     }
@@ -702,6 +704,8 @@ public class TreatmentUI {
     private void viewAvailableConsultations() {
         consultationController.viewAvailableConsultations();
     }
+
+
 
     // ==================== TREATMENT CRUD OPERATIONS ====================
 
@@ -844,4 +848,257 @@ public class TreatmentUI {
         }
         System.out.println(borderLine);
     }
+
+    // ==================== TREATMENT CREATION AND EDITING ====================
+
+    private void createTreatmentForConsultation() {
+        System.out.println("Available consultations ready for treatment:");
+        consultationController.viewConsultationsReadyForTreatment();
+
+        System.out.print("\nEnter Consultation ID to create treatment for: ");
+        String consultationId = sc.nextLine().trim();
+
+        if (consultationId.isEmpty()) {
+            System.out.println("Consultation ID cannot be empty.");
+            return;
+        }
+
+        // Check if consultation exists and is ready for treatment
+        if (!consultationController.consultationExists(consultationId)) {
+            System.out.println("Consultation not found.");
+            return;
+        }
+
+        Consultation consultation = consultationController.getConsultation(consultationId);
+        if (!consultation.getStatus().equals("IN_PROGRESS")) {
+            System.out.println("Consultation must be in IN_PROGRESS status to create treatment.");
+            return;
+        }
+
+        // Check if treatment already exists for this consultation
+        ListInterface<Treatment> existingTreatments = treatmentController.getTreatmentsByConsultation(consultationId);
+        if (!existingTreatments.isEmpty()) {
+            System.out.println("Treatment already exists for this consultation. Use edit options instead.");
+            return;
+        }
+
+        // Get diagnosis
+        System.out.print("Enter diagnosis: ");
+        String diagnosis = sc.nextLine().trim();
+
+        if (diagnosis.isEmpty()) {
+            System.out.println("Diagnosis cannot be empty.");
+            return;
+        }
+
+        // Get treatment fee
+        double treatmentFee = 0.0;
+        while (true) {
+            System.out.print("Enter treatment fee: ");
+            String feeStr = sc.nextLine().trim();
+            try {
+                treatmentFee = Double.parseDouble(feeStr);
+                if (treatmentFee >= 0) {
+                    break;
+                } else {
+                    System.out.println("Treatment fee must be non-negative.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        // Create treatment without medicines first
+        String doctorId = consultation.getDoctorId() != null ? consultation.getDoctorId() :
+                          "D1000"; // fallback doctor ID
+
+        String treatmentId = treatmentController.createTreatment(
+            doctorId, consultation.getPatientId(), consultationId, diagnosis, treatmentFee, new adt.ArrayList<>());
+
+        if (treatmentId != null) {
+            // Update consultation status to TREATMENT_CREATED
+            boolean statusUpdated = consultationController.updateConsultationStatus(consultationId, "TREATMENT_CREATED");
+            if (statusUpdated) {
+                System.out.println("Consultation status updated to TREATMENT_CREATED.");
+            }
+
+            System.out.println("\nTreatment created successfully! Treatment ID: " + treatmentId);
+
+            // Now add medicine prescriptions
+            addMedicinePrescriptionsToTreatment(treatmentId);
+
+            System.out.println("\nTreatment created with diagnosis and medicine prescriptions.");
+            System.out.println("Next: Use Pharmacy Module to dispense medicines when ready.");
+        } else {
+            System.out.println("Failed to create treatment.");
+        }
+    }
+
+    private void addMedicinePrescriptionsToTreatment(String treatmentId) {
+        System.out.println("\n=== Add Medicine Prescriptions ===");
+        System.out.println("Add medicines to the treatment. Type 'done' when finished.");
+
+        while (true) {
+            System.out.println("\n--- Add Medicine ---");
+
+            // Show available medicines
+            treatmentController.displayAvailableMedicines();
+
+            // Get medicine selection
+            System.out.print("Enter Medicine ID (or 'done' to finish): ");
+            String medicineId = sc.nextLine().trim();
+
+            if (medicineId.equalsIgnoreCase("done")) {
+                break;
+            }
+
+            if (medicineId.isEmpty()) {
+                System.out.println("Medicine ID cannot be empty.");
+                continue;
+            }
+
+            // Get quantity
+            int quantity = 0;
+            while (true) {
+                System.out.print("Enter quantity for " + medicineId + ": ");
+                String quantityStr = sc.nextLine().trim();
+                try {
+                    quantity = Integer.parseInt(quantityStr);
+                    if (quantity > 0) {
+                        break;
+                    } else {
+                        System.out.println("Quantity must be positive.");
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Please enter a valid number.");
+                }
+            }
+
+            // Add medicine to treatment
+            boolean success = treatmentController.addMedicinePrescription(treatmentId, medicineId, quantity);
+            if (success) {
+                System.out.println("Medicine " + medicineId + " added with quantity " + quantity);
+            } else {
+                System.out.println("Failed to add medicine " + medicineId);
+            }
+        }
+    }
+
+    private void editTreatmentDiagnosis() {
+        // Show available treatments
+        System.out.println("\nAvailable Treatments:");
+        treatmentController.displayAllTreatments();
+
+        System.out.print("\nEnter Treatment ID to edit diagnosis: ");
+        String treatmentId = sc.nextLine().trim();
+
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+
+        Treatment treatment = treatmentController.getTreatmentById(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found.");
+            return;
+        }
+
+        System.out.println("Current Diagnosis: " + treatment.getDiagnosis());
+        System.out.print("Enter new diagnosis: ");
+        String newDiagnosis = sc.nextLine().trim();
+
+        if (newDiagnosis.isEmpty()) {
+            System.out.println("Diagnosis cannot be empty.");
+            return;
+        }
+
+        treatmentController.updateTreatmentDiagnosis(treatmentId, newDiagnosis);
+        System.out.println("Diagnosis updated successfully.");
+    }
+
+    private void editMedicinePrescriptions() {
+        // Show available treatments
+        System.out.println("\nAvailable Treatments:");
+        treatmentController.displayAllTreatments();
+
+        System.out.print("\nEnter Treatment ID to edit medicine prescriptions: ");
+        String treatmentId = sc.nextLine().trim();
+
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+
+        Treatment treatment = treatmentController.getTreatmentById(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found.");
+            return;
+        }
+
+        // Show current prescriptions
+        System.out.println("\nCurrent Medicine Prescriptions:");
+        treatmentController.displayTreatmentMedicines(treatmentId);
+
+        System.out.println("\n=== Edit Medicine Prescriptions ===");
+        System.out.println("1. Add new medicine");
+        System.out.println("2. Update medicine quantity");
+        System.out.println("3. Remove medicine");
+        System.out.print("Choose option (1-3): ");
+
+        String choice = sc.nextLine().trim();
+
+        switch (choice) {
+            case "1":
+                addMedicineToExistingTreatment(treatmentId);
+                break;
+            case "2":
+                updateMedicineQuantity(treatmentId);
+                break;
+            case "3":
+                removeMedicineFromTreatment(treatmentId);
+                break;
+            default:
+                System.out.println("Invalid choice.");
+        }
+    }
+
+    private void addMedicineToExistingTreatment(String treatmentId) {
+        System.out.println("\n--- Add Medicine to Treatment ---");
+
+        // Show available medicines
+        treatmentController.displayAvailableMedicines();
+
+        System.out.print("Enter Medicine ID to add: ");
+        String medicineId = sc.nextLine().trim();
+
+        if (medicineId.isEmpty()) {
+            System.out.println("Medicine ID cannot be empty.");
+            return;
+        }
+
+        int quantity = 0;
+        while (true) {
+            System.out.print("Enter quantity: ");
+            String quantityStr = sc.nextLine().trim();
+            try {
+                quantity = Integer.parseInt(quantityStr);
+                if (quantity > 0) {
+                    break;
+                } else {
+                    System.out.println("Quantity must be positive.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+
+        boolean success = treatmentController.addMedicineToTreatment(treatmentId, medicineId, quantity);
+        if (success) {
+            System.out.println("Medicine added successfully.");
+        } else {
+            System.out.println("Failed to add medicine.");
+        }
+    }
+
+
 }

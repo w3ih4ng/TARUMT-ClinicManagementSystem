@@ -13,9 +13,11 @@ public class StaffControl {
     private ConsultationUI consultationManagementBoundary; // Module 3
     private TreatmentUI treatmentManagementBoundary;      // Module 4
     private PharmacyUI pharmacyBoundary;                  // Module 5
+    // Patient Queue Management is now integrated into PatientUI
     
     private ConsultationController sharedConsultationControl; // Shared instance
     public DoctorController sharedDoctorController; // Shared doctor instance
+    private PatientQueueController sharedQueueController; // Shared queue instance
 
     public StaffControl(ConsultationController consultationControl) {
         // Use the shared consultation control from main system
@@ -24,12 +26,17 @@ public class StaffControl {
         // Create shared doctor controller instance
         this.sharedDoctorController = new DoctorController();
         
+        // Create shared queue controller instance
+        this.sharedQueueController = new PatientQueueController();
+        
         // Initialize the 5 core modules with shared instances
         this.patientManagementBoundary = new PatientUI(new PatientController(sharedConsultationControl), sharedDoctorController);
         this.doctorManagementBoundary = new DoctorUI(sharedDoctorController);
         this.consultationManagementBoundary = new ConsultationUI(sharedConsultationControl, sharedDoctorController);
         this.treatmentManagementBoundary = new TreatmentUI(new TreatmentController(), new PatientController(sharedConsultationControl), sharedDoctorController, sharedConsultationControl);
         this.pharmacyBoundary = new PharmacyUI(new PharmacyController());
+        
+        // Patient Queue Management is now integrated into PatientUI
     }
 
     // ==================== MODULE 1: PATIENT MANAGEMENT ====================
@@ -55,5 +62,13 @@ public class StaffControl {
     // ==================== MODULE 5: PHARMACY MANAGEMENT ====================
     public void openPharmacyModule() {
         pharmacyBoundary.mainMenu();
+    }
+    
+    // Patient Queue Management is now integrated into PatientUI
+    
+    // ==================== MODULE 6: COMPREHENSIVE REPORTS ====================
+    public void openReportsModule() {
+        ReportsUI reportsUI = new ReportsUI();
+        reportsUI.mainMenu();
     }
 }
