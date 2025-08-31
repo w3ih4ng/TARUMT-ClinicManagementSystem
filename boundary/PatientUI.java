@@ -243,9 +243,10 @@ public class PatientUI {
         while (true) {
             utility.SystemUtil.showMenuHeader("Patient Queue Management");
             System.out.println("1. Add Walk-in Patient");
-            System.out.println("2. View Current Queue (Sorted)");
+            System.out.println("2. View Current Queue");
             System.out.println("3. Assign Doctor to Patient");
             System.out.println("4. Call Next Patient (Doctor View)");
+            System.out.println("5. Clear Queue (Reset All Data)");
             System.out.println("0. Back to Patient Management");
             System.out.print("\n\nEnter choice: ");
 
@@ -256,13 +257,16 @@ public class PatientUI {
                     addWalkInPatient();
                     break;
                 case "2":
-                    viewSortedQueue();
+                    viewCurrentQueue();
                     break;
                 case "3":
                     assignDoctorToPatient();
                     break;
                 case "4":
                     callNextPatient();
+                    break;
+                case "5":
+                    clearQueue();
                     break;
                 case "0":
                     return; // back to Patient Management
@@ -309,10 +313,10 @@ public class PatientUI {
     }
 
     /**
-     * View queue sorted by scheduled time and arrival time
+     * View current queue with patient names
      */
-    private void viewSortedQueue() {
-        System.out.println("\n--- Current Queue (Sorted) ---");
+    private void viewCurrentQueue() {
+        System.out.println("\n--- Current Queue ---");
         HashMapInterface<String, PatientQueueEntry> queueMap = patientController.getQueueMap();
         
         if (queueMap.isEmpty()) {
@@ -324,17 +328,17 @@ public class PatientUI {
         ListInterface<PatientQueueEntry> sortedQueue = patientController.getSortedQueueEntries();
         
         // Define table format widths
-        String leftAlignFormat = "| %-10s | %-12s | %-20s | %-10s | %-12s | %-10s | %-12s | %-15s |%n";
+        String leftAlignFormat = "| %-10s | %-12s | %-20s | %-20s | %-10s | %-12s | %-10s | %-12s | %-15s |%n";
 
         // Define border line
-        String borderLine = "+------------+--------------+--------------------+----------+--------------+------------+--------------+-----------------+";
+        String borderLine = "+------------+--------------+----------------------+----------------------+------------+--------------+------------+--------------+-----------------+";
 
         // Print top border
         System.out.println(borderLine);
 
         // Print header
         System.out.printf(leftAlignFormat,
-                "Queue ID", "Patient ID", "Specialty", "Type", "Status", "Arrival", "Scheduled", "Doctor");
+                "Queue ID", "Patient ID", "Patient Name", "Specialty", "Type", "Status", "Arrival", "Scheduled", "Doctor");
 
         // Print header separator
         System.out.println(borderLine);
@@ -348,10 +352,22 @@ public class PatientUI {
             String arrivalTime = entry.getArrivalTime().format(timeFormatter);
             String doctorInfo = entry.isAssigned() ? entry.getAssignedDoctorId() : "Not Assigned";
             
+            // Get patient name
+            String patientName = "Unknown";
+            try {
+                Patient patient = patientController.getPatientById(entry.getPatientId());
+                if (patient != null) {
+                    patientName = patient.getName();
+                }
+            } catch (Exception e) {
+                // Keep as "Unknown" if there's an error
+            }
+            
             // Print row
             System.out.printf(leftAlignFormat,
                     entry.getQueueId(),
                     entry.getPatientId(),
+                    patientName,
                     entry.getSpecialty(),
                     entry.getQueueType(),
                     entry.getQueueStatus(),
@@ -369,6 +385,9 @@ public class PatientUI {
      */
     private void assignDoctorToPatient() {
         System.out.println("\n--- Assign Doctor to Patient ---");
+        
+        // Refresh doctor data to ensure we have the latest doctors
+        patientController.refreshDoctorData();
         
         // Show waiting patients
         ListInterface<PatientQueueEntry> waitingPatients = patientController.getWaitingPatientsForAssignment();
@@ -397,30 +416,53 @@ public class PatientUI {
             
             PatientQueueEntry selectedEntry = waitingPatients.get(patientChoice - 1);
             
-            // Show available doctors for specialty
-            ListInterface<Doctor> availableDoctors = patientController.getAvailableDoctorsForSpecialty(selectedEntry.getSpecialty());
+                         // Show available doctors for specialty
+             ListInterface<Doctor> availableDoctors = patientController.getAvailableDoctorsForSpecialty(selectedEntry.getSpecialty());
+             ListInterface<Doctor> differentSpecialtyDoctors = patientController.getAvailableDoctorsFromDifferentSpecialties(selectedEntry.getSpecialty());
+             
+             if (availableDoctors.isEmpty() && differentSpecialtyDoctors.isEmpty()) {
+                 System.out.println("No doctors available");
+                 return;
+             }
+             
+             // Show same specialty doctors first
+             if (!availableDoctors.isEmpty()) {
+                 System.out.println("\n--- Doctors with Same Specialty (" + selectedEntry.getSpecialty() + ") ---");
+                 for (int i = 0; i < availableDoctors.size(); i++) {
+                     Doctor doctor = availableDoctors.get(i);
+                     System.out.println((i + 1) + ". Dr. " + doctor.getName() + 
+                         " (" + doctor.getSpecialty() + ") - " + doctor.getDoctorId());
+                 }
+             }
+             
+             // Show different specialty doctors
+             if (!differentSpecialtyDoctors.isEmpty()) {
+                 System.out.println("\n--- Doctors with Different Specialties ---");
+                 for (int i = 0; i < differentSpecialtyDoctors.size(); i++) {
+                     Doctor doctor = differentSpecialtyDoctors.get(i);
+                     System.out.println((availableDoctors.size() + i + 1) + ". Dr. " + doctor.getName() + 
+                         " (" + doctor.getSpecialty() + ") - " + doctor.getDoctorId());
+                 }
+             }
             
-            if (availableDoctors.isEmpty()) {
-                System.out.println("No doctors available");
-                return;
-            }
-            
-            System.out.println("\nAvailable Doctors:");
-            for (int i = 0; i < availableDoctors.size(); i++) {
-                Doctor doctor = availableDoctors.get(i);
-                System.out.println((i + 1) + ". Dr. " + doctor.getName() + 
-                    " (" + doctor.getSpecialty() + ") - " + doctor.getDoctorId());
-            }
-            
-            // Select doctor
-            System.out.print("Select doctor (1-" + availableDoctors.size() + "): ");
-            int doctorChoice = Integer.parseInt(sc.nextLine().trim());
-            if (doctorChoice < 1 || doctorChoice > availableDoctors.size()) {
-                System.out.println("Invalid doctor selection");
-                return;
-            }
-            
-            Doctor selectedDoctor = availableDoctors.get(doctorChoice - 1);
+             // Select doctor
+             int totalDoctors = availableDoctors.size() + differentSpecialtyDoctors.size();
+             System.out.print("Select doctor (1-" + totalDoctors + "): ");
+             int doctorChoice = Integer.parseInt(sc.nextLine().trim());
+             if (doctorChoice < 1 || doctorChoice > totalDoctors) {
+                 System.out.println("Invalid doctor selection");
+                 return;
+             }
+             
+             Doctor selectedDoctor;
+             if (doctorChoice <= availableDoctors.size()) {
+                 // Selected from same specialty doctors
+                 selectedDoctor = availableDoctors.get(doctorChoice - 1);
+             } else {
+                 // Selected from different specialty doctors
+                 int index = doctorChoice - availableDoctors.size() - 1;
+                 selectedDoctor = differentSpecialtyDoctors.get(index);
+             }
             patientController.assignPatientToDoctor(selectedEntry.getQueueId(), selectedDoctor.getDoctorId());
             
         } catch (NumberFormatException e) {
@@ -428,11 +470,14 @@ public class PatientUI {
         }
     }
 
-    /**
+        /**
      * Show next eligible patient for doctor to call
      */
     private void callNextPatient() {
         System.out.println("\n--- Call Next Patient ---");
+        
+        // Refresh doctor data to ensure we have the latest doctors
+        patientController.refreshDoctorData();
         
         PatientQueueEntry nextPatient = patientController.getNextEligiblePatient();
         if (nextPatient == null) {
@@ -461,24 +506,57 @@ public class PatientUI {
         
         // Auto-assign if only one doctor available for this specialty
         ListInterface<Doctor> availableDoctors = patientController.getAvailableDoctorsForSpecialty(nextPatient.getSpecialty());
+        ListInterface<Doctor> differentSpecialtyDoctors = patientController.getAvailableDoctorsFromDifferentSpecialties(nextPatient.getSpecialty());
         
-        if (availableDoctors.isEmpty()) {
+        if (availableDoctors.isEmpty() && differentSpecialtyDoctors.isEmpty()) {
             System.out.println("No doctors available for " + nextPatient.getSpecialty());
             System.out.println("Please use 'Assign Doctor to Patient' when a doctor becomes available.");
-        } else if (availableDoctors.size() == 1) {
-            // Auto-assign if only one doctor
+        } else if (availableDoctors.size() == 1 && differentSpecialtyDoctors.isEmpty()) {
+            // Auto-assign if only one same-specialty doctor
             Doctor doctor = availableDoctors.get(0);
             patientController.assignPatientToDoctor(nextPatient.getQueueId(), doctor.getDoctorId());
-            System.out.println("Patient automatically assigned to Dr. " + doctor.getName());
+            System.out.println("Patient automatically assigned to Dr. " + doctor.getName() + " (same specialty)");
             System.out.println("Patient can now proceed to consultation.");
         } else {
             // Multiple doctors available - show options
             System.out.println("\nMultiple doctors available:");
-            for (int i = 0; i < availableDoctors.size(); i++) {
-                Doctor doctor = availableDoctors.get(i);
-                System.out.println("  " + (i + 1) + ". Dr. " + doctor.getName() + " (" + doctor.getDoctorId() + ")");
+            
+            if (!availableDoctors.isEmpty()) {
+                System.out.println("\n--- Same Specialty Doctors ---");
+                for (int i = 0; i < availableDoctors.size(); i++) {
+                    Doctor doctor = availableDoctors.get(i);
+                    System.out.println("  " + (i + 1) + ". Dr. " + doctor.getName() + " (" + doctor.getDoctorId() + ")");
+                }
             }
+            
+            if (!differentSpecialtyDoctors.isEmpty()) {
+                System.out.println("\n--- Different Specialty Doctors ---");
+                for (int i = 0; i < differentSpecialtyDoctors.size(); i++) {
+                    Doctor doctor = differentSpecialtyDoctors.get(i);
+                    System.out.println("  " + (availableDoctors.size() + i + 1) + ". Dr. " + doctor.getName() + 
+                        " (" + doctor.getDoctorId() + ") - " + doctor.getSpecialty());
+                }
+            }
+            
             System.out.println("\n💡 Use 'Assign Doctor to Patient' to choose a specific doctor.");
+        }
+    }
+    
+    /**
+     * Clear all queue data and start fresh
+     */
+    private void clearQueue() {
+        System.out.println("\n--- Clear Queue ---");
+        System.out.println("⚠️  WARNING: This will remove ALL patients from the queue!");
+        System.out.println("This action cannot be undone.");
+        System.out.print("Are you sure you want to continue? (yes/no): ");
+        
+        String confirm = sc.nextLine().trim().toLowerCase();
+        if (confirm.equals("yes") || confirm.equals("y")) {
+            patientController.clearQueue();
+            System.out.println("Queue cleared successfully.");
+        } else {
+            System.out.println("Queue clearing cancelled.");
         }
     }
 }

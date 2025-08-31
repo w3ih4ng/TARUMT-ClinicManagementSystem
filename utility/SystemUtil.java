@@ -8,7 +8,7 @@ import adt.ListInterface;
  * @author Your Name
  */
 public class SystemUtil {
-    private static ListInterface<String> navigationStack = new ArrayList<>();
+    private static ListInterface<String> navigationPage = new ArrayList<>();
     
     /**
      * Clear screen for better UI experience
@@ -47,9 +47,9 @@ public class SystemUtil {
      * Set the navigation path (breadcrumb)
      */
     public static void setNavigationPath(String... pages) {
-        navigationStack.clear();
+        navigationPage.clear();
         for (String page : pages) {
-            navigationStack.add(page);
+            navigationPage.add(page);
         }
     }
     
@@ -57,15 +57,15 @@ public class SystemUtil {
      * Add a page to the navigation path
      */
     public static void pushNavigation(String page) {
-        navigationStack.add(page);
+        navigationPage.add(page);
     }
     
     /**
      * Remove the last page from navigation path
      */
     public static void popNavigation() {
-        if (navigationStack.size() > 0) {
-            navigationStack.remove(navigationStack.size() - 1);
+        if (navigationPage.size() > 0) {
+            navigationPage.remove(navigationPage.size() - 1);
         }
     }
     
@@ -73,23 +73,23 @@ public class SystemUtil {
      * Clear the navigation stack
      */
     public static void clearNavigation() {
-        navigationStack.clear();
+        navigationPage.clear();
     }
     
     /**
      * Get the current navigation breadcrumb
      */
     public static String getNavigationBreadcrumb() {
-        if (navigationStack.isEmpty()) {
+        if (navigationPage.isEmpty()) {
             return "Home";
         }
         
         StringBuilder breadcrumb = new StringBuilder();
-        for (int i = 0; i < navigationStack.size(); i++) {
+        for (int i = 0; i < navigationPage.size(); i++) {
             if (i > 0) {
                 breadcrumb.append(" > ");
             }
-            breadcrumb.append(navigationStack.get(i));
+            breadcrumb.append(navigationPage.get(i));
         }
         return breadcrumb.toString();
     }
@@ -99,7 +99,7 @@ public class SystemUtil {
      */
     public static void showNavigationHeader() {
         System.out.println("Navigation: " + getNavigationBreadcrumb());
-        System.out.println("=".repeat(60));
+        System.out.println("=".repeat(80));
     }
     
     /**

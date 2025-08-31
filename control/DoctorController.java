@@ -163,9 +163,29 @@ public class DoctorController {
             }
         }
 
+        // --- Consultation Fee Input ---
+        double consultationFee;
+        while (true) {
+            System.out.print("Enter consultation fee: ");
+            String feeInput = sc.nextLine().trim();
+            if (feeInput.equalsIgnoreCase("exit")) {
+                System.out.println("Doctor registration cancelled.");
+                return;
+            }
+            try {
+                consultationFee = Double.parseDouble(feeInput);
+                if (consultationFee > 0) {
+                    break;
+                } else {
+                    System.out.println("Consultation fee must be greater than 0.");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number for consultation fee.");
+            }
+        }
+
         // Create and save doctor
         String doctorId = generateDoctorId();
-        double consultationFee = 50.0; // Default consultation fee
         Doctor doctor = new Doctor(doctorId, name, gender, birthdate, phone, specialty, consultationFee);
         doctorMap.put(doctorId, doctor);
         DoctorDAO.saveDoctors(doctorMap);
@@ -933,7 +953,7 @@ public class DoctorController {
         String leftAlignFormat = "| %-12s | %-20s | %-6s | %-12s | %-15s | %-20s | %-8s |%n";
 
         // Define border line
-        String borderLine = "+--------------+--------------------+--------+--------------+-----------------+--------------------+----------+";
+        String borderLine = "+--------------+----------------------+--------+--------------+-----------------+----------------------+----------+";
 
         // Print top border
         System.out.println(borderLine);

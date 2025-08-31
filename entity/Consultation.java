@@ -15,7 +15,7 @@ public class Consultation {
     private LocalDateTime consultationTime;
     private String treatmentId; // null until doctor creates treatment
     private String paymentId; // null until payment made
-    private String status; // PENDING, SCHEDULED, COMPLETED
+    private String status; // PENDING, SCHEDULED, TREATMENT_CREATED, MEDICINES_DISPENSED, COMPLETED
     private String queueId; // new: back-reference to PatientQueueEntry
 
     public Consultation(String consultationId, String patientId, String specialty) {
@@ -78,6 +78,19 @@ public class Consultation {
 
     public void completeConsultation(String treatmentId) {
         this.treatmentId = treatmentId;
+        this.status = "COMPLETED";
+    }
+    
+    public void markTreatmentCreated(String treatmentId) {
+        this.treatmentId = treatmentId;
+        this.status = "TREATMENT_CREATED";
+    }
+    
+    public void markMedicinesDispensed() {
+        this.status = "MEDICINES_DISPENSED";
+    }
+    
+    public void markFullyCompleted() {
         this.status = "COMPLETED";
     }
 

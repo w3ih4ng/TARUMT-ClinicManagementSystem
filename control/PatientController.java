@@ -532,6 +532,16 @@ public class PatientController {
      * Add walk-in patient to queue
      */
     public void addWalkIn(String patientId, String specialty) {
+        // Check if patient is already in queue
+        for (String key : queueMap.keySet()) {
+            PatientQueueEntry existingEntry = queueMap.get(key);
+            if (existingEntry.getPatientId().equals(patientId) && 
+                existingEntry.getQueueStatus() == QueueStatus.WAITING) {
+                System.out.println("Patient " + patientId + " is already in the queue with ID: " + existingEntry.getQueueId());
+                return;
+            }
+        }
+        
         String queueId = PatientQueueDAO.generateQueueId();
         PatientQueueEntry entry = new PatientQueueEntry(queueId, patientId, specialty, 
                                                         QueueType.WALK_IN, LocalDateTime.now());
@@ -650,6 +660,38 @@ public class PatientController {
     }
 
     /**
+     * Get patient by ID
+     */
+    public Patient getPatientById(String patientId) {
+        return patientMap.get(patientId);
+    }
+
+    /**
+     * Refresh doctor data from storage
+     */
+    public void refreshDoctorData() {
+        this.doctorMap = DoctorDAO.loadDoctors();
+    }
+
+    /**
+     * Force refresh of all data from storage
+     */
+    public void refreshAllData() {
+        this.patientMap = PatientDAO.loadPatients();
+        this.queueMap = PatientQueueDAO.loadPatientQueue();
+        this.doctorMap = DoctorDAO.loadDoctors();
+    }
+    
+    /**
+     * Clear all queue data and start fresh
+     */
+    public void clearQueue() {
+        PatientQueueDAO.clearAllQueueData();
+        this.queueMap = PatientQueueDAO.loadPatientQueue();
+        System.out.println("Queue cleared successfully. All data reset.");
+    }
+
+    /**
      * Get sorted queue entries for display
      */
     public ListInterface<PatientQueueEntry> getSortedQueueEntries() {
@@ -674,13 +716,37 @@ public class PatientController {
      * Get available doctors for a specialty
      */
     public ListInterface<Doctor> getAvailableDoctorsForSpecialty(String specialty) {
+        // Refresh doctor data to get the latest doctors
+        this.doctorMap = DoctorDAO.loadDoctors();
+        
         ListInterface<Doctor> available = new ArrayList<>();
+        
         for (String key : doctorMap.keySet()) {
             Doctor doctor = doctorMap.get(key);
-            if (!doctor.isDeleted()) {
+            if (doctor != null && !doctor.isDeleted() && doctor.getSpecialty().toString().equals(specialty)) {
                 available.add(doctor);
             }
         }
+        
+        return available;
+    }
+
+    /**
+     * Get available doctors from different specialties
+     */
+    public ListInterface<Doctor> getAvailableDoctorsFromDifferentSpecialties(String specialty) {
+        // Refresh doctor data to get the latest doctors
+        this.doctorMap = DoctorDAO.loadDoctors();
+        
+        ListInterface<Doctor> available = new ArrayList<>();
+        
+        for (String key : doctorMap.keySet()) {
+            Doctor doctor = doctorMap.get(key);
+            if (doctor != null && !doctor.isDeleted() && !doctor.getSpecialty().toString().equals(specialty)) {
+                available.add(doctor);
+            }
+        }
+        
         return available;
     }
 
@@ -804,7 +870,7 @@ public class PatientController {
         System.out.println("This is a walk-in patient. Proceeding with manual doctor assignment...");
 
         // --- Show available doctors for specialty ---
-        ListInterface<Doctor> availableDoctors = getAvailableDoctors(specialty);
+        ListInterface<Doctor> availableDoctors = getAvailableDoctorsForSpecialty(specialty);
         if (availableDoctors.isEmpty()) {
             System.out.println("No doctors available for " + specialty + " specialty.");
             return;
@@ -1049,12 +1115,14 @@ public class PatientController {
 
     private ListInterface<Doctor> getAvailableDoctors(String specialty) {
         ListInterface<Doctor> available = new ArrayList<>();
+        
         for (String key : doctorMap.keySet()) {
             Doctor doctor = doctorMap.get(key);
-            if (!doctor.isDeleted() && doctor.getSpecialty().toString().equals(specialty)) {
+            if (doctor != null && !doctor.isDeleted() && doctor.getSpecialty().toString().equals(specialty)) {
                 available.add(doctor);
             }
         }
+        
         return available;
     }
 

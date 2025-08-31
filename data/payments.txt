@@ -1,1 +1,2 @@
 # PaymentID|ConsultationID|TotalAmount|PaymentMethod|PaymentStatus|PaymentDate
+PAY1001|I1001|C1001|P1000|23.0|CASH|COMPLETED|2025-08-31 18:39:27|||false

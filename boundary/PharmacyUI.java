@@ -405,8 +405,14 @@ public class PharmacyUI {
         // Dispense medicines for the treatment
         boolean success = pharmacyController.dispenseMedicinesForTreatment(treatmentId);
         if (success) {
-            System.out.println("Medicines dispensed successfully for treatment: " + treatmentId);
-            System.out.println("Stock quantities have been updated and invoice generated.");
+            System.out.println("\nMedicines dispensed successfully for treatment: " + treatmentId);
+            System.out.println("Stock quantities have been updated");
+            System.out.println("Invoice has been generated");
+            System.out.println("Consultation workflow has been updated");
+            System.out.println("\nNext steps:");
+            System.out.println("  • Patient can now proceed to payment");
+            System.out.println("  • Consultation is marked as ready for payment");
+            System.out.println("  • Queue status has been updated");
         } else {
             System.out.println("Failed to dispense medicines for treatment: " + treatmentId);
         }

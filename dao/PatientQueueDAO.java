@@ -114,6 +114,73 @@ public class PatientQueueDAO {
     }
 
     public static String generateQueueId() {
+        // Ensure the counter is always higher than existing queue IDs
+        ensureCounterIsValid();
         return "Q" + (queueCounter++);
+    }
+    
+    private static void ensureCounterIsValid() {
+        try {
+            File file = new File(FILE_NAME);
+            if (file.exists()) {
+                int maxId = 1000; // Start from Q1001
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        line = line.trim();
+                        if (!line.isEmpty() && !line.startsWith("#")) {
+                            String[] parts = line.split("\\|");
+                            if (parts.length >= 1) {
+                                String queueId = parts[0];
+                                if (queueId.startsWith("Q")) {
+                                    try {
+                                        int id = Integer.parseInt(queueId.substring(1));
+                                        if (id > maxId) {
+                                            maxId = id;
+                                        }
+                                    } catch (NumberFormatException e) {
+                                        // Skip invalid IDs
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // Set counter to next available ID
+                queueCounter = maxId + 1;
+            }
+        } catch (IOException e) {
+            // If there's an error, just use the current counter
+            System.out.println("Warning: Could not validate queue counter: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Reset the queue counter to start from Q1001
+     * Use this when you want to clear all queue data
+     */
+    public static void resetQueueCounter() {
+        queueCounter = 1001;
+    }
+    
+    /**
+     * Clear all queue data and reset counter
+     * Use this when you want to start fresh
+     */
+    public static void clearAllQueueData() {
+        try {
+            File file = new File(FILE_NAME);
+            if (file.exists()) {
+                // Clear the file content
+                try (PrintWriter pw = new PrintWriter(new FileWriter(file))) {
+                    pw.println("# QueueID|PatientID|Specialty|QueueType|ArrivalTime|ScheduledStartTime|QueueStatus|AssignedDoctorID");
+                }
+                // Reset counter
+                queueCounter = 1001;
+                System.out.println("Queue data cleared and counter reset to Q1001");
+            }
+        } catch (IOException e) {
+            System.out.println("Error clearing queue data: " + e.getMessage());
+        }
     }
 }

@@ -1,2 +1,2 @@
 # TreatmentID|DoctorID|PatientID|ConsultationID|Description|TreatmentFee|PrescribedMedicines
-T1001|D1000|P1000|C1001|fever|55.0|MED009:10,MED001:10
+T1001|D1000|P1000|C1001|fever|55.0|MED001:11

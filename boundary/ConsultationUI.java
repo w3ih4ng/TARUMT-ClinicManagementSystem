@@ -376,22 +376,15 @@ public class ConsultationUI {
             return;
         }
         
-        // Get payment amount
-        double paymentAmount = 0.0;
-        while (true) {
-            System.out.print("Enter payment amount: RM ");
-            String amountStr = sc.nextLine().trim();
-            try {
-                paymentAmount = Double.parseDouble(amountStr);
-                if (paymentAmount > 0) {
-                    break;
-                } else {
-                    System.out.println("Payment amount must be positive.");
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Please enter a valid number.");
-            }
+        // Calculate payment amount automatically
+        double paymentAmount = consultationController.calculateConsultationTotal(consultationId);
+        if (paymentAmount <= 0) {
+            System.out.println("Error: Could not calculate payment amount for consultation: " + consultationId);
+            return;
         }
+        
+        System.out.println("Calculated Payment Amount: RM " + String.format("%.2f", paymentAmount));
+        System.out.println("(Consultation fee + Medicine costs if prescribed)");
         
         // Show payment methods
         System.out.println("\n--- Available Payment Methods ---");

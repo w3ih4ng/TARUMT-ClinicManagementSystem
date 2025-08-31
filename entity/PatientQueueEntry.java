@@ -46,6 +46,18 @@ public class PatientQueueEntry {
         this.assignedDoctorId = doctorId;
         this.queueStatus = QueueStatus.ASSIGNED;
     }
+    
+    public void startConsultation() {
+        this.queueStatus = QueueStatus.IN_CONSULTATION;
+    }
+    
+    public void markTreatmentCreated() {
+        this.queueStatus = QueueStatus.TREATMENT_CREATED;
+    }
+    
+    public void markMedicinesDispensed() {
+        this.queueStatus = QueueStatus.MEDICINES_DISPENSED;
+    }
 
     public void complete() {
         this.queueStatus = QueueStatus.COMPLETED;

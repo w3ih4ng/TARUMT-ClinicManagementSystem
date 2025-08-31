@@ -1,2 +1,2 @@
-# InvoiceID|ConsultationID|TotalAmount|InvoiceDate|IsPaid
-I1001|C1001|15.0|2025-08-31 03:07|false
+# InvoiceID|ConsultationID|PatientID|TotalAmount|InvoiceDate|IsPaid
+I1001|C1001|71.5|2025-08-31 20:26|false

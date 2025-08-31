@@ -927,10 +927,14 @@ public class PharmacyController {
         
         // Show total invoice amount that will be generated
         double totalInvoiceAmount = totalMedicineCost + treatment.getTreatmentFee();
-        System.out.println("\n--- Invoice Summary ---");
-        System.out.println("Medicine cost: RM " + String.format("%.2f", totalMedicineCost));
-        System.out.println("Treatment fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
-        System.out.println("Total invoice amount: RM " + String.format("%.2f", totalInvoiceAmount));
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("           INVOICE SUMMARY");
+        System.out.println("=".repeat(50));
+        System.out.printf("%-20s: RM %8.2f%n", "Medicine Cost", totalMedicineCost);
+        System.out.printf("%-20s: RM %8.2f%n", "Treatment Fee", treatment.getTreatmentFee());
+        System.out.println("-".repeat(50));
+        System.out.printf("%-20s: RM %8.2f%n", "TOTAL AMOUNT", totalInvoiceAmount);
+        System.out.println("=".repeat(50));
         
         return true;
     }
@@ -1050,11 +1054,32 @@ public class PharmacyController {
         }
         
         // All medicines available, complete dispensing
-        System.out.println("\n✅ All medicines dispensed successfully!");
+        System.out.println("\nAll medicines dispensed successfully!");
         System.out.println("Total medicine cost: RM " + String.format("%.2f", totalMedicineCost));
         
         // Generate invoice for medicines
         generateInvoiceForMedicines(treatment, totalMedicineCost);
+        
+        // Update treatment and consultation status after medicine dispensing
+        try {
+            // Get TreatmentController to update consultation status
+            control.TreatmentController treatmentController = new control.TreatmentController();
+            
+            // Mark medicines as dispensed in the treatment
+            treatmentController.markMedicinesDispensed(treatmentId);
+            
+            // Complete the consultation after dispensing
+            treatmentController.completeConsultationAfterDispensing(treatmentId);
+            
+            System.out.println("\nConsultation workflow updated:");
+            System.out.println("  • Treatment status: Medicines dispensed");
+            System.out.println("  • Consultation status: Ready for payment");
+            System.out.println("  • Queue status: Updated to MEDICINES_DISPENSED");
+            
+        } catch (Exception e) {
+            System.out.println("\nWarning: Could not update consultation workflow: " + e.getMessage());
+            System.out.println("Medicines were dispensed, but workflow status may not be updated.");
+        }
         
         return true;
     }
@@ -1065,6 +1090,46 @@ public class PharmacyController {
     public void displayDispensingHistory() {
         System.out.println("Dispensing history functionality not yet implemented.");
         System.out.println("This would show records of all medicine dispensations.");
+    }
+    
+    /**
+     * Display treatments ready for medicine dispensing (new workflow integration)
+     */
+    public void displayTreatmentsReadyForDispensing() {
+        try {
+            control.TreatmentController treatmentController = new control.TreatmentController();
+            ListInterface<entity.Treatment> readyTreatments = treatmentController.getTreatmentsReadyForMedicineDispensing();
+            
+            if (readyTreatments.isEmpty()) {
+                System.out.println("\nNo treatments are currently ready for medicine dispensing.");
+                System.out.println("Treatments must be in 'TREATMENT_CREATED' status to be eligible.");
+                return;
+            }
+            
+            System.out.println("\nTreatments Ready for Medicine Dispensing:");
+            System.out.println("(These treatments have been created and are waiting for medicine dispensing)");
+            
+            String borderLine = "+------------+------------+------------+------------+---------------------------+------------+";
+            System.out.println(borderLine);
+            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+                    "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee");
+            System.out.println(borderLine);
+            
+            for (int i = 0; i < readyTreatments.size(); i++) {
+                entity.Treatment treatment = readyTreatments.get(i);
+                System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+                        treatment.getTreatmentId(),
+                        treatment.getDoctorId(),
+                        treatment.getPatientId(),
+                        treatment.getConsultationId(),
+                        treatment.getDescription(),
+                        String.format("%.2f", treatment.getTreatmentFee()));
+            }
+            System.out.println(borderLine);
+            
+        } catch (Exception e) {
+            System.out.println("Error displaying treatments ready for dispensing: " + e.getMessage());
+        }
     }
 
     // ==================== MEDICINE DISPENSING METHODS ====================

@@ -54,8 +54,49 @@ public class TreatmentController {
         // Save treatment
         treatmentMap.put(treatmentId, treatment);
         TreatmentDAO.saveTreatments(treatmentMap);
+        
+        // Update consultation status to TREATMENT_CREATED
+        updateConsultationStatusAfterTreatment(consultationId, treatmentId);
 
         return treatmentId;
+    }
+    
+    /**
+     * Complete consultation with treatment and medicines in one unified process
+     */
+    public boolean completeConsultationWithTreatmentAndMedicines(String consultationId, 
+            String diagnosis, double treatmentFee, ListInterface<MedicinePrescribed> medicines) {
+        
+        try {
+            // Get consultation details
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation == null) {
+                System.out.println("Consultation not found: " + consultationId);
+                return false;
+            }
+            
+            // Create treatment with medicines
+            String treatmentId = createTreatment(
+                consultation.getDoctorId(), 
+                consultation.getPatientId(), 
+                consultationId, 
+                diagnosis, 
+                treatmentFee, 
+                medicines
+            );
+            
+            if (treatmentId != null) {
+                System.out.println("✅ Treatment created successfully: " + treatmentId);
+                System.out.println("✅ Medicines prescribed: " + medicines.size() + " medicine(s)");
+                return true;
+            } else {
+                return false;
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Error completing consultation with treatment: " + e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -106,6 +147,73 @@ public class TreatmentController {
         }
         return treatments;
     }
+    
+    /**
+     * Get treatments ready for medicine dispensing
+     */
+    public ListInterface<Treatment> getTreatmentsReadyForMedicineDispensing() {
+        ListInterface<Treatment> treatments = new ArrayList<>();
+        for (String key : treatmentMap.keySet()) {
+            Treatment treatment = treatmentMap.get(key);
+            String consultationId = treatment.getConsultationId();
+            Consultation consultation = consultationMap.get(consultationId);
+            
+            if (consultation != null && consultation.getStatus().equals("TREATMENT_CREATED")) {
+                treatments.add(treatment);
+            }
+        }
+        return treatments;
+    }
+    
+    /**
+     * Display treatments ready for medicine dispensing
+     */
+    public void displayTreatmentsReadyForMedicineDispensing() {
+        ListInterface<Treatment> treatments = getTreatmentsReadyForMedicineDispensing();
+        if (treatments.isEmpty()) {
+            System.out.println("No treatments ready for medicine dispensing.");
+            return;
+        }
+        
+        System.out.println("\n--- Treatments Ready for Medicine Dispensing ---");
+        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+                "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee");
+        System.out.println(borderLine);
+        
+        for (int i = 0; i < treatments.size(); i++) {
+            Treatment treatment = treatments.get(i);
+            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s |%n",
+                    treatment.getTreatmentId(),
+                    treatment.getDoctorId(),
+                    treatment.getPatientId(),
+                    treatment.getConsultationId(),
+                    treatment.getDescription(),
+                    String.format("%.2f", treatment.getTreatmentFee()));
+        }
+        System.out.println(borderLine);
+    }
+    
+    
+    /**
+     * Update consultation status after treatment creation
+     */
+    private void updateConsultationStatusAfterTreatment(String consultationId, String treatmentId) {
+        try {
+            // Get consultation and update its status
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation != null) {
+                consultation.markTreatmentCreated(treatmentId);
+                consultationMap.put(consultationId, consultation);
+                ConsultationDAO.saveConsultations(consultationMap);
+                
+                System.out.println("Consultation " + consultationId + " status updated to TREATMENT_CREATED");
+            }
+        } catch (Exception e) {
+            System.out.println("Error updating consultation status: " + e.getMessage());
+        }
+    }
 
     /**
      * Update treatment diagnosis
@@ -154,6 +262,107 @@ public class TreatmentController {
             TreatmentDAO.saveTreatments(treatmentMap);
         }
     }
+    
+    /**
+     * Add medicine to existing treatment
+     */
+    public boolean addMedicineToTreatment(String treatmentId, String medicineId, int quantity) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
+        
+        // Check if medicine already exists in treatment
+        ListInterface<MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
+        for (int i = 0; i < medicines.size(); i++) {
+            MedicinePrescribed existing = medicines.get(i);
+            if (existing.getMedicineId().equals(medicineId)) {
+                System.out.println("Medicine " + medicineId + " already exists in treatment. Use update quantity instead.");
+                return false;
+            }
+        }
+        
+        // Add new medicine
+        MedicinePrescribed newMedicine = new MedicinePrescribed(medicineId, quantity);
+        treatment.addPrescribedMedicine(newMedicine);
+        
+        // Save updated treatment
+        treatmentMap.put(treatmentId, treatment);
+        TreatmentDAO.saveTreatments(treatmentMap);
+        
+        return true;
+    }
+    
+    /**
+     * Remove medicine from treatment
+     */
+    public boolean removeMedicineFromTreatment(String treatmentId, String medicineId) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
+        
+        ListInterface<MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
+        boolean removed = false;
+        
+        // Find and remove the medicine
+        for (int i = 0; i < medicines.size(); i++) {
+            MedicinePrescribed medicine = medicines.get(i);
+            if (medicine.getMedicineId().equals(medicineId)) {
+                medicines.remove(i);
+                removed = true;
+                break;
+            }
+        }
+        
+        if (removed) {
+            // Save updated treatment
+            treatmentMap.put(treatmentId, treatment);
+            TreatmentDAO.saveTreatments(treatmentMap);
+            return true;
+        } else {
+            System.out.println("Medicine " + medicineId + " not found in treatment " + treatmentId);
+            return false;
+        }
+    }
+    
+    /**
+     * Update medicine quantity in treatment
+     */
+    public boolean updateMedicineQuantity(String treatmentId, String medicineId, int newQuantity) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
+        
+        ListInterface<MedicinePrescribed> medicines = treatment.getPrescribedMedicines();
+        
+        // Find and update the medicine quantity
+        for (int i = 0; i < medicines.size(); i++) {
+            MedicinePrescribed medicine = medicines.get(i);
+            if (medicine.getMedicineId().equals(medicineId)) {
+                medicine.setQuantity(newQuantity);
+                
+                // Save updated treatment
+                treatmentMap.put(treatmentId, treatment);
+                TreatmentDAO.saveTreatments(treatmentMap);
+                return true;
+            }
+        }
+        
+        System.out.println("Medicine " + medicineId + " not found in treatment " + treatmentId);
+        return false;
+    }
+    
+    /**
+     * Get medicine by ID (helper method)
+     */
+    public Medicine getMedicineById(String medicineId) {
+        return medicineMap.get(medicineId);
+    }
 
     /**
      * Delete treatment
@@ -167,6 +376,59 @@ public class TreatmentController {
         } else {
             System.out.println("Treatment not found: " + treatmentId);
             return false;
+        }
+    }
+    
+    /**
+     * Mark medicines as dispensed for a treatment
+     */
+    public void markMedicinesDispensed(String treatmentId) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return;
+        }
+        
+        // Update consultation status to MEDICINES_DISPENSED
+        String consultationId = treatment.getConsultationId();
+        Consultation consultation = consultationMap.get(consultationId);
+        
+        if (consultation != null) {
+            consultation.markMedicinesDispensed();
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
+            
+            System.out.println("Medicines dispensed for treatment: " + treatmentId);
+            System.out.println("Consultation " + consultationId + " status updated to MEDICINES_DISPENSED");
+            System.out.println("Consultation ready for final completion.");
+        } else {
+            System.out.println("Consultation not found for treatment: " + consultationId);
+        }
+    }
+    
+    /**
+     * Complete consultation after medicines dispensed
+     */
+    public void completeConsultationAfterDispensing(String treatmentId) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found: " + treatmentId);
+            return;
+        }
+        
+        String consultationId = treatment.getConsultationId();
+        Consultation consultation = consultationMap.get(consultationId);
+        
+        if (consultation != null && consultation.getStatus().equals("MEDICINES_DISPENSED")) {
+            // Mark consultation as ready for payment
+            consultation.markFullyCompleted();
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
+            
+            System.out.println("Consultation " + consultationId + " ready for payment!");
+            System.out.println("Invoice will be generated. Patient can proceed to payment.");
+        } else {
+            System.out.println("Consultation must be in MEDICINES_DISPENSED status to complete.");
         }
     }
 
@@ -215,16 +477,16 @@ public class TreatmentController {
             return;
         }
 
-        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+";
+        String borderLine = "+--------------+------------+------------+------------------+---------------------------+------------+---------------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
+        System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s |%n",
                 "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee", "Medicine Prescribed");
         System.out.println(borderLine);
 
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
             String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
-            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
+            System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s |%n",
                     treatment.getTreatmentId(),
                     treatment.getDoctorId(),
                     treatment.getPatientId(),
@@ -381,7 +643,7 @@ public class TreatmentController {
      * Complete consultation with treatment
      */
     public boolean completeConsultationWithTreatment(String consultationId, String diagnosis, double treatmentFee) {
-        // Check if consultation exists and is ready for completion
+        // Check if consultation exists and is ready for payment
         if (consultationMap == null || !consultationMap.containsKey(consultationId)) {
             System.out.println("Consultation not found: " + consultationId);
             return false;
@@ -389,7 +651,7 @@ public class TreatmentController {
 
         Consultation consultation = consultationMap.get(consultationId);
         if (!consultation.getStatus().equals("SCHEDULED")) {
-            System.out.println("Consultation is not ready for completion. Status: " + consultation.getStatus());
+            System.out.println("Consultation is not ready for payment. Status: " + consultation.getStatus());
             return false;
         }
 
