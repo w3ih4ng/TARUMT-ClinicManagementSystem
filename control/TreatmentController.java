@@ -100,20 +100,24 @@ public class TreatmentController {
     }
 
     /**
-     * Get treatment by ID
+     * Get treatment by ID (excludes deleted treatments)
      */
     public Treatment getTreatmentById(String treatmentId) {
-        return treatmentMap.get(treatmentId);
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment != null && !treatment.isDeleted()) {
+            return treatment;
+        }
+        return null;
     }
 
     /**
-     * Get treatments by consultation ID
+     * Get treatments by consultation ID (excludes deleted treatments)
      */
     public ListInterface<Treatment> getTreatmentsByConsultation(String consultationId) {
         ListInterface<Treatment> treatments = new ArrayList<>();
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
-            if (treatment.getConsultationId().equals(consultationId)) {
+            if (!treatment.isDeleted() && treatment.getConsultationId().equals(consultationId)) {
                 treatments.add(treatment);
             }
         }
@@ -121,13 +125,13 @@ public class TreatmentController {
     }
 
     /**
-     * Get treatments by doctor ID
+     * Get treatments by doctor ID (excludes deleted treatments)
      */
     public ListInterface<Treatment> getTreatmentsByDoctor(String doctorId) {
         ListInterface<Treatment> treatments = new ArrayList<>();
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
-            if (treatment.getDoctorId().equals(doctorId)) {
+            if (!treatment.isDeleted() && treatment.getDoctorId().equals(doctorId)) {
                 treatments.add(treatment);
             }
         }
@@ -135,13 +139,13 @@ public class TreatmentController {
     }
 
     /**
-     * Get treatments by patient ID
+     * Get treatments by patient ID (excludes deleted treatments)
      */
     public ListInterface<Treatment> getTreatmentsByPatient(String patientId) {
         ListInterface<Treatment> treatments = new ArrayList<>();
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
-            if (treatment.getPatientId().equals(patientId)) {
+            if (!treatment.isDeleted() && treatment.getPatientId().equals(patientId)) {
                 treatments.add(treatment);
             }
         }
@@ -161,11 +165,13 @@ public class TreatmentController {
 
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
-            String consultationId = treatment.getConsultationId();
-            Consultation consultation = consultationMap.get(consultationId);
+            if (!treatment.isDeleted()) {
+                String consultationId = treatment.getConsultationId();
+                Consultation consultation = consultationMap.get(consultationId);
 
-            if (consultation != null && consultation.getStatus().equals("TREATMENT_CREATED")) {
-                treatments.add(treatment);
+                if (consultation != null && consultation.getStatus().equals("MEDICINE_PRESCRIBED")) {
+                    treatments.add(treatment);
+                }
             }
         }
 
@@ -214,11 +220,24 @@ public class TreatmentController {
             // Get consultation and update its status
             Consultation consultation = consultationMap.get(consultationId);
             if (consultation != null) {
-                consultation.completeConsultation(treatmentId);
+                // Set treatment ID first
+                consultation.setTreatmentId(treatmentId);
+
+                // Get the treatment to check if it has medicines
+                Treatment treatment = treatmentMap.get(treatmentId);
+                if (treatment != null) {
+                    boolean hasMedicines = !treatment.getPrescribedMedicines().isEmpty();
+                    consultation.updateStatusBasedOnMedicinePrescription(hasMedicines);
+                } else {
+                    // If treatment not found, default to TREATMENT_CREATED
+                    consultation.setStatus("TREATMENT_CREATED");
+                }
+
                 consultationMap.put(consultationId, consultation);
                 ConsultationDAO.saveConsultations(consultationMap);
-                
-                System.out.println("Consultation " + consultationId + " status updated to COMPLETED");
+
+                String status = consultation.getStatus();
+                System.out.println("Consultation " + consultationId + " status updated to " + status);
             }
         } catch (Exception e) {
             System.out.println("Error updating consultation status: " + e.getMessage());
@@ -226,9 +245,54 @@ public class TreatmentController {
     }
 
     /**
+     * Update consultation status to MEDICINE_PRESCRIBED when medicines are added
+     */
+    private void updateConsultationStatusToMedicinePrescribed(String consultationId) {
+        try {
+            // Refresh consultation data to get latest changes
+            consultationMap = ConsultationDAO.loadConsultations();
+
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation != null) {
+                // Update status to MEDICINE_PRESCRIBED
+                consultation.setStatus("MEDICINE_PRESCRIBED");
+                consultationMap.put(consultationId, consultation);
+                ConsultationDAO.saveConsultations(consultationMap);
+
+                System.out.println("Consultation " + consultationId + " status updated to MEDICINE_PRESCRIBED");
+            }
+        } catch (Exception e) {
+            System.out.println("Error updating consultation status to MEDICINE_PRESCRIBED: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Check if treatment can be updated (consultation not completed)
+     */
+    private boolean canUpdateTreatment(String treatmentId) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment == null) {
+            return false;
+        }
+        
+        // Check if consultation is completed
+        String consultationId = treatment.getConsultationId();
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && consultation.getStatus().equals("COMPLETED")) {
+            System.out.println("Cannot update treatment " + treatmentId + " - consultation is completed and locked.");
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Update treatment diagnosis
      */
     public void updateTreatmentDiagnosis(String treatmentId, String newDiagnosis) {
+        if (!canUpdateTreatment(treatmentId)) {
+            return;
+        }
+        
         Treatment treatment = treatmentMap.get(treatmentId);
         if (treatment != null) {
             treatment.setDescription(newDiagnosis);
@@ -240,6 +304,10 @@ public class TreatmentController {
      * Update treatment fee
      */
     public void updateTreatmentFee(String treatmentId, double newFee) {
+        if (!canUpdateTreatment(treatmentId)) {
+            return;
+        }
+        
         Treatment treatment = treatmentMap.get(treatmentId);
         if (treatment != null) {
             treatment.setTreatmentFee(newFee);
@@ -251,6 +319,10 @@ public class TreatmentController {
      * Update prescribed medicines
      */
     public void updatePrescribedMedicines(String treatmentId, ListInterface<MedicinePrescribed> newMedicines) {
+        if (!canUpdateTreatment(treatmentId)) {
+            return;
+        }
+
         Treatment treatment = treatmentMap.get(treatmentId);
         if (treatment != null) {
             // Create a new treatment with updated medicines
@@ -270,6 +342,12 @@ public class TreatmentController {
             // Replace in map
             treatmentMap.put(treatmentId, updatedTreatment);
             TreatmentDAO.saveTreatments(treatmentMap);
+
+            // Update consultation status if medicines were added
+            if (!newMedicines.isEmpty()) {
+                String consultationId = treatment.getConsultationId();
+                updateConsultationStatusToMedicinePrescribed(consultationId);
+            }
         }
     }
     
@@ -277,6 +355,10 @@ public class TreatmentController {
      * Add medicine to existing treatment
      */
     public boolean addMedicineToTreatment(String treatmentId, String medicineId, int quantity) {
+        if (!canUpdateTreatment(treatmentId)) {
+            return false;
+        }
+        
         Treatment treatment = treatmentMap.get(treatmentId);
         if (treatment == null) {
             System.out.println("Treatment not found: " + treatmentId);
@@ -296,6 +378,10 @@ public class TreatmentController {
         // Add new medicine
         MedicinePrescribed newMedicine = new MedicinePrescribed(medicineId, quantity);
         treatment.addPrescribedMedicine(newMedicine);
+
+        // Update consultation status to MEDICINE_PRESCRIBED
+        String consultationId = treatment.getConsultationId();
+        updateConsultationStatusToMedicinePrescribed(consultationId);
         
         // Save updated treatment
         treatmentMap.put(treatmentId, treatment);
@@ -308,6 +394,10 @@ public class TreatmentController {
      * Remove medicine from treatment
      */
     public boolean removeMedicineFromTreatment(String treatmentId, String medicineId) {
+        if (!canUpdateTreatment(treatmentId)) {
+            return false;
+        }
+        
         Treatment treatment = treatmentMap.get(treatmentId);
         if (treatment == null) {
             System.out.println("Treatment not found: " + treatmentId);
@@ -328,6 +418,15 @@ public class TreatmentController {
         }
         
         if (removed) {
+            // Update consultation status based on remaining medicines
+            String consultationId = treatment.getConsultationId();
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation != null) {
+                boolean hasMedicines = !treatment.getPrescribedMedicines().isEmpty();
+                consultation.updateStatusBasedOnMedicinePrescription(hasMedicines);
+                ConsultationDAO.saveConsultations(consultationMap);
+            }
+            
             // Save updated treatment
             treatmentMap.put(treatmentId, treatment);
             TreatmentDAO.saveTreatments(treatmentMap);
@@ -342,6 +441,10 @@ public class TreatmentController {
      * Update medicine quantity in treatment
      */
     public boolean updateMedicineQuantity(String treatmentId, String medicineId, int newQuantity) {
+        if (!canUpdateTreatment(treatmentId)) {
+            return false;
+        }
+        
         Treatment treatment = treatmentMap.get(treatmentId);
         if (treatment == null) {
             System.out.println("Treatment not found: " + treatmentId);
@@ -375,14 +478,78 @@ public class TreatmentController {
     }
 
     /**
-     * Delete treatment
+     * Delete treatment (soft delete)
      */
     public boolean deleteTreatment(String treatmentId) {
-        if (treatmentMap.containsKey(treatmentId)) {
-            treatmentMap.remove(treatmentId);
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment != null && !treatment.isDeleted()) {
+            // Check if consultation is completed
+            String consultationId = treatment.getConsultationId();
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation != null && consultation.getStatus().equals("COMPLETED")) {
+                System.out.println("Cannot delete treatment " + treatmentId + " - consultation is completed and locked.");
+                return false;
+            }
+            
+            // Soft delete the treatment
+            treatment.delete();
+            
+            // Update consultation status back to IN_PROGRESS
+            if (consultation != null) {
+                consultation.setStatus("IN_PROGRESS");
+                consultation.setTreatmentId(null); // Remove treatment reference
+                
+                // Save consultation changes
+                ConsultationDAO.saveConsultations(consultationMap);
+            }
+            
+            // Save treatment changes
             TreatmentDAO.saveTreatments(treatmentMap);
-            System.out.println("Treatment deleted successfully: " + treatmentId);
+            
             return true;
+        } else if (treatment != null && treatment.isDeleted()) {
+            System.out.println("Treatment is already deleted: " + treatmentId);
+            return false;
+        } else {
+            System.out.println("Treatment not found: " + treatmentId);
+            return false;
+        }
+    }
+
+    /**
+     * Restore treatment (soft restore)
+     */
+    public boolean restoreTreatment(String treatmentId) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment != null && treatment.isDeleted()) {
+            // Check if consultation was completed before deletion
+            String consultationId = treatment.getConsultationId();
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation != null && consultation.getStatus().equals("COMPLETED")) {
+                System.out.println("Cannot restore treatment " + treatmentId + " - consultation was completed and should remain locked.");
+                return false;
+            }
+            
+            // Restore the treatment
+            treatment.restore();
+            
+            // Update consultation status based on medicine prescription
+            if (consultation != null) {
+                consultation.setTreatmentId(treatmentId); // Restore treatment reference
+                boolean hasMedicines = !treatment.getPrescribedMedicines().isEmpty();
+                consultation.updateStatusBasedOnMedicinePrescription(hasMedicines);
+                
+                // Save consultation changes
+                ConsultationDAO.saveConsultations(consultationMap);
+            }
+            
+            // Save treatment changes
+            TreatmentDAO.saveTreatments(treatmentMap);
+            
+            return true;
+        } else if (treatment != null && !treatment.isDeleted()) {
+            System.out.println("Treatment is already active: " + treatmentId);
+            return false;
         } else {
             System.out.println("Treatment not found: " + treatmentId);
             return false;
@@ -514,33 +681,71 @@ public class TreatmentController {
     }
 
     /**
-     * Display all treatments in table format
+     * Display all treatments in table format (includes both active and deleted treatments)
      */
     public void displayAllTreatments() {
+        displayTreatmentsWithFilter(true); // Show all treatments including deleted
+    }
+
+    /**
+     * Display only active treatments in table format (excludes soft-deleted treatments)
+     */
+    public void displayActiveTreatmentsOnly() {
+        displayTreatmentsWithFilter(false); // Show only active treatments
+    }
+
+    /**
+     * Display treatments with optional filter for deleted status
+     */
+    private void displayTreatmentsWithFilter(boolean includeDeleted) {
         if (treatmentMap.isEmpty()) {
             System.out.println("No treatments found.");
             return;
         }
 
-        String borderLine = "+--------------+------------+------------+------------------+---------------------------+------------+---------------------+";
+        String borderLine = "+--------------+------------+------------+------------------+---------------------------+------------+---------------------+------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s |%n",
-                "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee", "Medicine Prescribed");
+        System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s | %-10s |%n",
+                "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee", "Medicine Prescribed", "Status");
         System.out.println(borderLine);
+
+        int activeCount = 0;
+        int deletedCount = 0;
 
         for (String key : treatmentMap.keySet()) {
             Treatment treatment = treatmentMap.get(key);
+            
+            // Skip deleted treatments if not including them
+            if (!includeDeleted && treatment.isDeleted()) {
+                continue;
+            }
+            
             String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
-            System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s |%n",
+            String status = treatment.isDeleted() ? "DELETED" : "ACTIVE";
+            
+            if (treatment.isDeleted()) {
+                deletedCount++;
+            } else {
+                activeCount++;
+            }
+            
+            System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s | %-10s |%n",
                     treatment.getTreatmentId(),
                     treatment.getDoctorId(),
                     treatment.getPatientId(),
                     treatment.getConsultationId(),
                     treatment.getDescription(),
                     "RM " + String.format("%.2f", treatment.getTreatmentFee()),
-                    medicineStatus);
+                    medicineStatus,
+                    status);
         }
         System.out.println(borderLine);
+        
+        if (includeDeleted) {
+            System.out.println("Summary: " + activeCount + " active treatments, " + deletedCount + " deleted treatments");
+        } else {
+            System.out.println("Showing " + activeCount + " active treatments (deleted treatments hidden)");
+        }
     }
 
     // ==================== FILTERING OPERATIONS ====================
@@ -746,8 +951,13 @@ public class TreatmentController {
         treatmentMap.put(treatmentId, treatment);
         TreatmentDAO.saveTreatments(treatmentMap);
 
+        // Update consultation status to MEDICINE_PRESCRIBED
+        String consultationId = treatment.getConsultationId();
+        updateConsultationStatusToMedicinePrescribed(consultationId);
+
         System.out.println("\nMedicine prescription added successfully!");
-        System.out.println("\nMedicine: " + medicineId + ", Quantity: " + quantity);
+        System.out.println("Medicine: " + medicineId + ", Quantity: " + quantity);
+        System.out.println("Consultation status updated to MEDICINE_PRESCRIBED");
         return true;
     }
 

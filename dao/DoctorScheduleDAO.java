@@ -35,7 +35,7 @@ public class DoctorScheduleDAO {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
             // Write header comment
-            pw.println("# ScheduleID|DoctorID|Specialty|AppointmentDate|StartTime|EndTime|isBooked|PatientID");
+            pw.println("# ScheduleID|DoctorID|Specialty|AppointmentDate|StartTime|EndTime|Status|PatientID");
             
             for (int i = 0; i < scheduleMap.keySet().size(); i++) {
                 String key = scheduleMap.keySet().get(i);
@@ -82,7 +82,7 @@ public class DoctorScheduleDAO {
                 schedule.getAppointmentDate().format(dateFormatter),
                 schedule.getStartTime().format(timeFormatter),
                 schedule.getEndTime().format(timeFormatter),
-                String.valueOf(schedule.isBooked()),
+                schedule.getStatus(),
                 patientId
         );
     }
@@ -100,13 +100,17 @@ public class DoctorScheduleDAO {
             LocalDate appointmentDate = LocalDate.parse(parts[3], dateFormatter);
             LocalTime startTime = LocalTime.parse(parts[4], timeFormatter);
             LocalTime endTime = LocalTime.parse(parts[5], timeFormatter);
-            boolean isBooked = Boolean.parseBoolean(parts[6]);
+            String status = parts[6];
             String patientId = parts[7].equals("NONE") ? null : parts[7];
 
             DoctorSchedule schedule = new DoctorSchedule(scheduleId, doctorId, specialty, appointmentDate, startTime, endTime);
-
-            if (isBooked && patientId != null) {
-                schedule.bookSlot(patientId);
+            
+            // Set the status
+            schedule.setStatus(status);
+            
+            // Set patient ID if exists
+            if (patientId != null) {
+                schedule.setPatientId(patientId);
             }
 
             return schedule;

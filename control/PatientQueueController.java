@@ -254,16 +254,38 @@ public class PatientQueueController {
             }
         }
 
+        // Sort appointments by time in ascending order
+        sortAppointmentsByTime(todaysAppointments);
+
         return todaysAppointments;
     }
 
-    // Check if patient is already in queue for a specific doctor
+    // Sort appointments by Schedule ID in ascending order
+    private void sortAppointmentsByTime(ListInterface<DoctorSchedule> appointments) {
+        // Simple bubble sort to sort by Schedule ID
+        for (int i = 0; i < appointments.size() - 1; i++) {
+            for (int j = 0; j < appointments.size() - i - 1; j++) {
+                DoctorSchedule current = appointments.get(j);
+                DoctorSchedule next = appointments.get(j + 1);
+                
+                if (current.getScheduleId().compareTo(next.getScheduleId()) > 0) {
+                    // Swap appointments
+                    appointments.set(j, next);
+                    appointments.set(j + 1, current);
+                }
+            }
+        }
+    }
+
+    // Check if patient is already in active queue for a specific doctor
     public boolean isPatientInQueue(String patientId, String doctorId) {
         for (int i = 0; i < queueMap.keySet().size(); i++) {
             String key = queueMap.keySet().get(i);
             PatientQueueEntry entry = queueMap.get(key);
             if (entry != null && entry.getPatientId().equals(patientId) &&
-                entry.getAssignedDoctorId() != null && entry.getAssignedDoctorId().equals(doctorId)) {
+                entry.getAssignedDoctorId() != null && entry.getAssignedDoctorId().equals(doctorId) &&
+                entry.getQueueStatus() != QueueStatus.COMPLETED) {
+                // Only block if patient is in an active queue (not completed)
                 return true;
             }
         }

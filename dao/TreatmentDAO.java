@@ -31,7 +31,7 @@ public class TreatmentDAO {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
             // Write header comment
-            pw.println("# TreatmentID|DoctorID|PatientID|ConsultationID|Description|TreatmentFee|PrescribedMedicines");
+            pw.println("# TreatmentID|DoctorID|PatientID|ConsultationID|Description|TreatmentFee|PrescribedMedicines|isDeleted");
             
             for (int i = 0; i < treatmentMap.keySet().size(); i++) {
                 String key = treatmentMap.keySet().get(i);
@@ -107,14 +107,16 @@ public class TreatmentDAO {
             }
         }
         
+        sb.append("|").append(Boolean.toString(t.isDeleted()));
+        
         return sb.toString();
     }
 
     private static Treatment fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length != 7) {
-                throw new IllegalArgumentException("Expected 7 columns, got " + parts.length);
+            if (parts.length < 7) {
+                throw new IllegalArgumentException("Expected at least 7 columns, got " + parts.length);
             }
             
             String treatmentId = parts[0];
@@ -139,6 +141,12 @@ public class TreatmentDAO {
                         treatment.addPrescribedMedicine(medicine);
                     }
                 }
+            }
+            
+            // Parse isDeleted field (optional for backward compatibility)
+            if (parts.length > 7) {
+                boolean isDeleted = Boolean.parseBoolean(parts[7]);
+                treatment.setIsDeleted(isDeleted);
             }
             
             return treatment;

@@ -343,7 +343,7 @@ public class PatientUI {
      * Add scheduled appointment patient to queue (when patient arrives)
      */
     private void addScheduledAppointmentPatient() {
-        System.out.println("\n--- Add Scheduled Appointment Patient to Queue ---");
+        System.out.println("\n---------------------------- Add Scheduled Appointment Patient to Queue ----------------------------");
         System.out.println("This will show all today's appointments and allow you to add patients to the queue.");
 
         // Get ALL today's appointments from all doctors
@@ -356,30 +356,48 @@ public class PatientUI {
         }
 
         // Display today's appointments from all doctors
-        System.out.println("\n=== ALL TODAY'S APPOINTMENTS ===");
+        System.out.println("\n============================== ALL TODAY'S APPOINTMENTS ==============================");
         System.out.println("Date: " + java.time.LocalDate.now());
-        System.out.println("-".repeat(80));
+        System.out.println("-".repeat(100));
         System.out.printf("%-3s %-15s %-10s %-12s %-20s %-20s %-10s%n",
             "No", "Schedule ID", "Doctor ID", "Patient ID", "Specialty", "Time", "Status");
-        System.out.println("-".repeat(80));
+        System.out.println("-".repeat(100));
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now();
 
+        int displayIndex = 1;
         for (int i = 0; i < todaysAppointments.size(); i++) {
             entity.DoctorSchedule schedule = todaysAppointments.get(i);
+            
+            // Skip missed appointments - they shouldn't be shown for queue addition
+            if (schedule.isMissed()) {
+                continue;
+            }
+            
             String patientId = schedule.getPatientId() != null ? schedule.getPatientId() : "N/A";
             String timeSlot = schedule.getTimeSlotString();
-            String status = schedule.isBooked() ? "Booked" : "Available";
+            
+            // Determine status based on the actual status field
+            String status;
+            if (schedule.isBooked()) {
+                status = "Booked";
+            } else if (schedule.isCancelled()) {
+                status = "Cancelled";
+            } else if (schedule.isCompleted()) {
+                status = "Completed";
+            } else {
+                status = "Available";
+            }
 
             java.time.LocalDateTime appointmentTime = java.time.LocalDateTime.of(
                 schedule.getAppointmentDate(),
                 schedule.getStartTime()
             );
 
-
             System.out.printf("%-3d %-15s %-10s %-12s %-20s %-20s %-10s%n",
-                (i + 1), schedule.getScheduleId(), schedule.getDoctorId(), patientId,
+                displayIndex, schedule.getScheduleId(), schedule.getDoctorId(), patientId,
                 schedule.getSpecialty(), timeSlot, status);
+            displayIndex++;
         }
 
         System.out.println("-".repeat(100));
@@ -390,21 +408,36 @@ public class PatientUI {
         String choice = sc.nextLine().trim();
 
         try {
-            int appointmentIndex = Integer.parseInt(choice) - 1;
+            int selectedDisplayIndex = Integer.parseInt(choice);
 
-            if (appointmentIndex == -1) { // User entered 0
+            if (selectedDisplayIndex == 0) { // User entered 0
                 System.out.println("Operation cancelled.");
                 utility.SystemUtil.pauseForUser();
                 return;
             }
 
-            if (appointmentIndex < 0 || appointmentIndex >= todaysAppointments.size()) {
+            // Find the actual appointment index based on display index
+            int actualAppointmentIndex = -1;
+            int currentDisplayIndex = 1;
+            
+            for (int i = 0; i < todaysAppointments.size(); i++) {
+                entity.DoctorSchedule schedule = todaysAppointments.get(i);
+                if (!schedule.isMissed()) {
+                    if (currentDisplayIndex == selectedDisplayIndex) {
+                        actualAppointmentIndex = i;
+                        break;
+                    }
+                    currentDisplayIndex++;
+                }
+            }
+
+            if (actualAppointmentIndex == -1) {
                 System.out.println("Invalid appointment number.");
                 utility.SystemUtil.pauseForUser();
                 return;
             }
 
-            entity.DoctorSchedule selectedSchedule = todaysAppointments.get(appointmentIndex);
+            entity.DoctorSchedule selectedSchedule = todaysAppointments.get(actualAppointmentIndex);
 
             // Validate the selected appointment
             if (!selectedSchedule.isBooked()) {

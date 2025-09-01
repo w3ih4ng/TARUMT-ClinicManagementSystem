@@ -121,6 +121,10 @@ public class PaymentController {
         Consultation consultation = consultationMap.get(consultationId);
         if (consultation != null) {
             consultation.setPayment(paymentId);
+            // Update consultation status to COMPLETED after payment
+            if (consultation.getStatus().equals("MEDICINE_DISPENSED")) {
+                consultation.setStatus("COMPLETED");
+            }
             consultationMap.put(consultationId, consultation);
             ConsultationDAO.saveConsultations(consultationMap);
         }

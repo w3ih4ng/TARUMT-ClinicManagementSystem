@@ -1,1 +1,2 @@
 # DoctorID|Name|Gender|Birthdate|Phone|Specialty|ConsultationFee|isDeleted
+D1000|werwefwf|M|2000-01-01|12312312123|GENERAL_MEDICINE|123.0|false

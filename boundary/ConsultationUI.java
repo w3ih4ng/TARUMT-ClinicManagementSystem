@@ -78,10 +78,11 @@ public class ConsultationUI {
             System.out.println("  2. View All Consultations");
             System.out.println("  3. Update Consultation");
             System.out.println("  4. Delete Consultation");
+            System.out.println("  5. Complete Consultation with No Medicine");
             System.out.println("  0. Back to Consultation Management");
             System.out.println();
             System.out.println("=".repeat(60));
-            System.out.print("\n\nEnter your choice (1-4, 0): ");
+            System.out.print("\n\nEnter your choice (1-5, 0): ");
 
             String choice = sc.nextLine().trim();
 
@@ -106,10 +107,15 @@ public class ConsultationUI {
                     deleteConsultation();
                     utility.SystemUtil.pauseForUser();
                     break;
+                case "5":
+                    utility.SystemUtil.showSectionHeader("Complete Consultation with No Medicine");
+                    completeConsultationWithNoMedicine();
+                    utility.SystemUtil.pauseForUser();
+                    break;
                 case "0":
                     return;
                 default:
-                    System.out.println("Invalid choice. Please select 1-4 or 0.");
+                    System.out.println("Invalid choice. Please select 1-5 or 0.");
                     utility.SystemUtil.pauseForUser();
             }
         }
@@ -125,12 +131,16 @@ public class ConsultationUI {
             System.out.println("  2. View All Appointments");
             System.out.println("  3. Update Appointment");
             System.out.println("  4. Delete Appointment");
-            System.out.println("  5. View Doctor Schedules");
-            System.out.println("  6. View Available Time Slots");
+            System.out.println("  5. Manage Appointment Status");
+            System.out.println("  6. View Doctor Schedules");
+            System.out.println("  7. View Available Time Slots");
+            System.out.println("  8. View Appointment Statistics");
+            System.out.println("  9. Check Past Appointments");
+            System.out.println("  10. Test Appointment Status");
             System.out.println("  0. Back to Consultation Management");
             System.out.println();
             System.out.println("=".repeat(60));
-            System.out.print("\n\nEnter your choice (1-6, 0): ");
+            System.out.print("\n\nEnter your choice (1-10, 0): ");
 
             String choice = sc.nextLine().trim();
 
@@ -142,7 +152,7 @@ public class ConsultationUI {
                     break;
                 case "2":
                     utility.SystemUtil.showSectionHeader("View All Appointments");
-                    viewDoctorSchedules();
+                    consultationController.viewAllAppointments();
                     utility.SystemUtil.pauseForUser();
                     break;
                 case "3":
@@ -156,19 +166,39 @@ public class ConsultationUI {
                     utility.SystemUtil.pauseForUser();
                     break;
                 case "5":
+                    utility.SystemUtil.showSectionHeader("Manage Appointment Status");
+                    manageAppointmentStatus();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                case "6":
                     utility.SystemUtil.showSectionHeader("View Doctor Schedules");
                     viewDoctorSchedules();
                     utility.SystemUtil.pauseForUser();
                     break;
-                case "6":
+                case "7":
                     utility.SystemUtil.showSectionHeader("View Available Time Slots");
                     viewAvailableTimeSlots();
                     utility.SystemUtil.pauseForUser();
                     break;
+                case "8":
+                    utility.SystemUtil.showSectionHeader("View Appointment Statistics");
+                    consultationController.getAppointmentStatistics();
+                    utility.SystemUtil.pauseForUser();
+                    break;
+                            case "9":
+                utility.SystemUtil.showSectionHeader("Check Past Appointments");
+                consultationController.checkAndUpdatePastAppointments();
+                utility.SystemUtil.pauseForUser();
+                break;
+            case "10":
+                utility.SystemUtil.showSectionHeader("Test Appointment Status");
+                testAppointmentStatus();
+                utility.SystemUtil.pauseForUser();
+                break;
                 case "0":
                     return;
                 default:
-                    System.out.println("Invalid choice. Please select 1-6 or 0.");
+                    System.out.println("Invalid choice. Please select 1-10 or 0.");
                     utility.SystemUtil.pauseForUser();
             }
         }
@@ -224,6 +254,14 @@ public class ConsultationUI {
         }
 
         Consultation consultation = consultationController.getConsultation(consultationId);
+        
+        // Check if consultation is completed and locked
+        if (consultation.getStatus().equals("COMPLETED")) {
+            System.out.println("Cannot update consultation " + consultationId + " - consultation is completed and locked.");
+            System.out.println("Completed consultations cannot be modified.");
+            return;
+        }
+        
         System.out.println("Current Status: " + consultation.getStatus());
 
         System.out.println("\nAvailable Status Options:");
@@ -231,8 +269,10 @@ public class ConsultationUI {
         System.out.println("2. SCHEDULED");
         System.out.println("3. IN_PROGRESS");
         System.out.println("4. TREATMENT_CREATED");
-        System.out.println("5. COMPLETED");
-        System.out.print("Select new status (1-5): ");
+        System.out.println("5. MEDICINE_PRESCRIBED");
+        System.out.println("6. MEDICINE_DISPENSED");
+        System.out.println("Note: COMPLETED status can only be set automatically after payment processing.");
+        System.out.print("Select new status (1-6): ");
 
         try {
             int choice = Integer.parseInt(sc.nextLine().trim());
@@ -242,14 +282,19 @@ public class ConsultationUI {
                 case 2: newStatus = "SCHEDULED"; break;
                 case 3: newStatus = "IN_PROGRESS"; break;
                 case 4: newStatus = "TREATMENT_CREATED"; break;
-                case 5: newStatus = "COMPLETED"; break;
+                case 5: newStatus = "MEDICINE_PRESCRIBED"; break;
+                case 6: newStatus = "MEDICINE_DISPENSED"; break;
                 default:
                     System.out.println("Invalid choice.");
                     return;
             }
 
-            consultationController.updateConsultationStatus(consultationId, newStatus);
-            System.out.println("Consultation status updated successfully.");
+            boolean success = consultationController.updateConsultationStatus(consultationId, newStatus);
+            if (success) {
+                System.out.println("Consultation status updated successfully.");
+            } else {
+                System.out.println("Failed to update consultation status.");
+            }
         } catch (NumberFormatException e) {
             System.out.println("Please enter a valid number.");
         }
@@ -265,27 +310,268 @@ public class ConsultationUI {
             return;
         }
 
-        System.out.print("Are you sure you want to delete this consultation? (yes/no): ");
+        // Check if consultation is completed and locked
+        Consultation consultation = consultationController.getConsultation(consultationId);
+        if (consultation != null && consultation.getStatus().equals("COMPLETED")) {
+            System.out.println("Cannot delete consultation " + consultationId + " - consultation is completed and locked.");
+            System.out.println("Completed consultations cannot be deleted.");
+            return;
+        }
+
+        System.out.println("Warning: This will soft delete the consultation!");
+        System.out.print("Are you sure you want to delete this consultation? (y/n): ");
         String confirm = sc.nextLine().trim().toLowerCase();
 
-        if (confirm.equals("yes") || confirm.equals("y")) {
-            consultationController.deleteConsultation(consultationId);
-            System.out.println("Consultation deleted successfully.");
+        if (confirm.equals("y")) {
+            boolean success = consultationController.deleteConsultation(consultationId);
+            if (success) {
+                System.out.println("Consultation soft deleted successfully!");
+            } else {
+                System.out.println("Failed to delete consultation or consultation already deleted.");
+            }
         } else {
             System.out.println("Deletion cancelled.");
         }
     }
 
+    private void restoreDeletedConsultation() {
+        System.out.println("\n--- Restore Deleted Consultation ---");
+        
+        // Show deleted consultations first
+        System.out.println("Available deleted consultations:");
+        consultationController.viewDeletedConsultationsOnly();
+        
+        System.out.print("\nEnter Consultation ID to restore: ");
+        String consultationId = sc.nextLine().trim();
+        
+        if (consultationId.isEmpty()) {
+            System.out.println("Consultation ID cannot be empty.");
+            return;
+        }
+        
+        // Check if consultation exists
+        if (!consultationController.consultationExists(consultationId)) {
+            System.out.println("Consultation not found.");
+            return;
+        }
+        
+        // Get consultation to check if it's deleted
+        entity.Consultation consultation = consultationController.getConsultationMap().get(consultationId);
+        if (consultation == null) {
+            System.out.println("Consultation not found.");
+            return;
+        }
+        
+        if (!consultation.isDeleted()) {
+            System.out.println("Consultation is not deleted. No need to restore.");
+            return;
+        }
+        
+        System.out.println("Warning: This will restore the consultation!");
+        System.out.print("Are you sure? (Y/N): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        
+        if (confirm.equals("y")) {
+            boolean success = consultationController.restoreConsultation(consultationId);
+            if (success) {
+                System.out.println("Consultation restored successfully!");
+            } else {
+                System.out.println("Failed to restore consultation.");
+            }
+        } else {
+            System.out.println("Consultation restoration cancelled.");
+        }
+    }
+
     private void updateAppointment() {
         System.out.println("\n--- Update Appointment ---");
-        System.out.println("Appointment update functionality not implemented yet.");
-        System.out.println("This would allow changing appointment time, doctor, etc.");
+        
+        // Show all appointments first
+        consultationController.viewAllAppointments();
+        
+        System.out.print("Enter Schedule ID to update: ");
+        String scheduleId = sc.nextLine().trim();
+        
+        if (scheduleId.isEmpty()) {
+            System.out.println("Schedule ID cannot be empty.");
+            return;
+        }
+        
+        // Get appointment details
+        DoctorSchedule appointment = consultationController.getAppointment(scheduleId);
+        if (appointment == null) {
+            System.out.println("Appointment not found.");
+            return;
+        }
+        
+        // Check if appointment can be updated
+        if (appointment.isCompleted()) {
+            System.out.println("Cannot update completed appointment.");
+            return;
+        }
+        
+        System.out.println("\nCurrent appointment details:");
+        System.out.println("Schedule ID: " + appointment.getScheduleId());
+        System.out.println("Doctor ID: " + appointment.getDoctorId());
+        System.out.println("Patient ID: " + (appointment.getPatientId() != null ? appointment.getPatientId() : "N/A"));
+        System.out.println("Specialty: " + appointment.getSpecialty());
+        System.out.println("Date: " + appointment.getAppointmentDate());
+        System.out.println("Time: " + appointment.getStartTime() + " - " + appointment.getEndTime());
+        System.out.println("Status: " + appointment.getStatus());
+        
+        // Get new details
+        System.out.println("\n--- Enter New Details ---");
+        
+        // New Patient ID
+        System.out.print("Enter new Patient ID (or press Enter to keep current): ");
+        String newPatientId = sc.nextLine().trim();
+        if (newPatientId.isEmpty()) {
+            newPatientId = appointment.getPatientId();
+        } else if (!consultationController.patientExists(newPatientId)) {
+            System.out.println("Patient ID '" + newPatientId + "' does not exist.");
+            return;
+        }
+        
+        // New Doctor ID
+        System.out.print("Enter new Doctor ID (or press Enter to keep current): ");
+        String newDoctorId = sc.nextLine().trim();
+        if (newDoctorId.isEmpty()) {
+            newDoctorId = appointment.getDoctorId();
+        } else if (!consultationController.doctorExists(newDoctorId)) {
+            System.out.println("Doctor ID '" + newDoctorId + "' does not exist.");
+            return;
+        }
+        
+        // New Date
+        String newDateStr;
+        System.out.print("Enter new date (yyyy-MM-dd) or press Enter to keep current (" + appointment.getAppointmentDate() + "): ");
+        newDateStr = sc.nextLine().trim();
+        if (newDateStr.isEmpty()) {
+            newDateStr = appointment.getAppointmentDate().toString();
+        } else {
+            try {
+                java.time.LocalDate.parse(newDateStr);
+            } catch (Exception e) {
+                System.out.println("Invalid date format. Please use yyyy-MM-dd.");
+                return;
+            }
+        }
+        
+        // New Time
+        String newTimeStr;
+        System.out.println("Current time: " + appointment.getStartTime());
+        System.out.println("Available time slots:");
+        System.out.println("1. 09:00");
+        System.out.println("2. 10:00");
+        System.out.println("3. 11:00");
+        System.out.println("4. 14:00");
+        System.out.println("5. 15:00");
+        System.out.println("6. 16:00");
+        System.out.println("7. Custom time");
+        System.out.print("Choose new time slot (1-7) or press Enter to keep current: ");
+        
+        String timeChoice = sc.nextLine().trim();
+        if (timeChoice.isEmpty()) {
+            newTimeStr = appointment.getStartTime().toString();
+        } else {
+            switch (timeChoice) {
+                case "1": newTimeStr = "09:00"; break;
+                case "2": newTimeStr = "10:00"; break;
+                case "3": newTimeStr = "11:00"; break;
+                case "4": newTimeStr = "14:00"; break;
+                case "5": newTimeStr = "15:00"; break;
+                case "6": newTimeStr = "16:00"; break;
+                case "7":
+                    System.out.print("Enter custom time (HH:mm): ");
+                    newTimeStr = sc.nextLine().trim();
+                    break;
+                default:
+                    System.out.println("Invalid choice. Keeping current time.");
+                    newTimeStr = appointment.getStartTime().toString();
+            }
+        }
+        
+        // New Specialty
+        String newSpecialty;
+        System.out.print("Enter new specialty (or press Enter to keep current): ");
+        newSpecialty = sc.nextLine().trim();
+        if (newSpecialty.isEmpty()) {
+            newSpecialty = appointment.getSpecialty();
+        }
+        
+        // Confirm update
+        System.out.println("\n--- Confirm Update ---");
+        System.out.println("New Patient ID: " + newPatientId);
+        System.out.println("New Doctor ID: " + newDoctorId);
+        System.out.println("New Date: " + newDateStr);
+        System.out.println("New Time: " + newTimeStr);
+        System.out.println("New Specialty: " + newSpecialty);
+        
+        System.out.print("Confirm update? (y/n): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        
+        if (confirm.equals("y") || confirm.equals("yes")) {
+            boolean success = consultationController.updateAppointment(scheduleId, newPatientId, newDoctorId, 
+                                                                     newDateStr, newTimeStr, newSpecialty);
+            if (success) {
+                System.out.println("Appointment updated successfully!");
+            } else {
+                System.out.println("Failed to update appointment.");
+            }
+        } else {
+            System.out.println("Update cancelled.");
+        }
     }
 
     private void deleteAppointment() {
-        System.out.println("\n--- Delete Appointment ---");
-        System.out.println("Appointment deletion functionality not implemented yet.");
-        System.out.println("This would allow cancelling scheduled appointments.");
+        System.out.println("\n--- Delete/Cancel Appointment ---");
+        
+        // Show all appointments first
+        consultationController.viewAllAppointments();
+        
+        System.out.print("Enter Schedule ID to cancel: ");
+        String scheduleId = sc.nextLine().trim();
+        
+        if (scheduleId.isEmpty()) {
+            System.out.println("Schedule ID cannot be empty.");
+            return;
+        }
+        
+        // Get appointment details
+        DoctorSchedule appointment = consultationController.getAppointment(scheduleId);
+        if (appointment == null) {
+            System.out.println("Appointment not found.");
+            return;
+        }
+        
+        // Check if appointment can be cancelled
+        if (appointment.isCompleted()) {
+            System.out.println("Cannot cancel completed appointment.");
+            return;
+        }
+        
+        System.out.println("\nAppointment details:");
+        System.out.println("Schedule ID: " + appointment.getScheduleId());
+        System.out.println("Doctor ID: " + appointment.getDoctorId());
+        System.out.println("Patient ID: " + (appointment.getPatientId() != null ? appointment.getPatientId() : "N/A"));
+        System.out.println("Specialty: " + appointment.getSpecialty());
+        System.out.println("Date: " + appointment.getAppointmentDate());
+        System.out.println("Time: " + appointment.getStartTime() + " - " + appointment.getEndTime());
+        System.out.println("Status: " + appointment.getStatus());
+        
+        System.out.print("\nAre you sure you want to cancel this appointment? (y/n): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        
+        if (confirm.equals("y") || confirm.equals("yes")) {
+            boolean success = consultationController.deleteAppointment(scheduleId);
+            if (success) {
+                System.out.println("Appointment cancelled successfully!");
+            } else {
+                System.out.println("Failed to cancel appointment.");
+            }
+        } else {
+            System.out.println("Cancellation cancelled.");
+        }
     }
 
     private void viewPaymentHistory() {
@@ -395,7 +681,7 @@ public class ConsultationUI {
         while (true) {
             // Show consultations first
             System.out.println("\n" + "=".repeat(80));
-            System.out.println("ACTIVE CONSULTATIONS");
+            System.out.println("ALL CONSULTATIONS (Active and Deleted)");
             System.out.println("=".repeat(80));
             consultationController.viewAllConsultations();
             
@@ -453,7 +739,10 @@ public class ConsultationUI {
         System.out.println("1. Filter by Status (Pending/Completed)");
         System.out.println("2. Filter by Doctor");
         System.out.println("3. Filter by Patient");
-        System.out.println("4. View All Consultations (Including Completed)");
+        System.out.println("4. Show Active Consultations Only");
+        System.out.println("5. Show Deleted Consultations Only");
+        System.out.println("6. Restore Deleted Consultation");
+        System.out.println("7. View All Consultations (Including Completed)");
         System.out.println("0. Back to View All Consultations");
         System.out.print("\n\nChoose: ");
         String choice = sc.nextLine().trim();
@@ -480,6 +769,18 @@ public class ConsultationUI {
                 consultationController.viewConsultationsByPatient();
                 break;
             case "4": 
+                utility.SystemUtil.showSectionHeader("Active Consultations Only");
+                consultationController.viewActiveConsultationsOnly();
+                break;
+            case "5": 
+                utility.SystemUtil.showSectionHeader("Deleted Consultations Only");
+                consultationController.viewDeletedConsultationsOnly();
+                break;
+            case "6": 
+                utility.SystemUtil.showSectionHeader("Restore Deleted Consultation");
+                restoreDeletedConsultation();
+                break;
+            case "7": 
                 consultationController.viewAllConsultationsIncludingCompleted();
                 break;
             case "0": 
@@ -569,6 +870,70 @@ public class ConsultationUI {
     private void viewDoctorSchedules() {
         System.out.println("\n--- Doctor Schedules ---");
         consultationController.viewDoctorSchedules();
+    }
+
+    private void manageAppointmentStatus() {
+        System.out.println("\n--- Manage Appointment Status ---");
+        
+        // Show all appointments first
+        consultationController.viewAllAppointments();
+        
+        System.out.print("Enter Schedule ID to manage: ");
+        String scheduleId = sc.nextLine().trim();
+        
+        if (scheduleId.isEmpty()) {
+            System.out.println("Schedule ID cannot be empty.");
+            return;
+        }
+        
+        // Get appointment details
+        DoctorSchedule appointment = consultationController.getAppointment(scheduleId);
+        if (appointment == null) {
+            System.out.println("Appointment not found.");
+            return;
+        }
+        
+        System.out.println("\nCurrent appointment details:");
+        System.out.println("Schedule ID: " + appointment.getScheduleId());
+        System.out.println("Doctor ID: " + appointment.getDoctorId());
+        System.out.println("Patient ID: " + (appointment.getPatientId() != null ? appointment.getPatientId() : "N/A"));
+        System.out.println("Specialty: " + appointment.getSpecialty());
+        System.out.println("Date: " + appointment.getAppointmentDate());
+        System.out.println("Time: " + appointment.getStartTime() + " - " + appointment.getEndTime());
+        System.out.println("Current Status: " + appointment.getStatus());
+        
+        System.out.println("\n--- Change Status ---");
+        System.out.println("1. Mark as Missed");
+        System.out.println("2. Mark as Completed");
+        System.out.println("3. Cancel");
+        System.out.println("0. Back");
+        
+        System.out.print("Choose action (0-3): ");
+        String choice = sc.nextLine().trim();
+        
+        boolean success = false;
+        switch (choice) {
+            case "1":
+                success = consultationController.markAppointmentAsMissed(scheduleId);
+                break;
+            case "2":
+                success = consultationController.markAppointmentAsCompleted(scheduleId);
+                break;
+            case "3":
+                success = consultationController.deleteAppointment(scheduleId);
+                break;
+            case "0":
+                return;
+            default:
+                System.out.println("Invalid choice.");
+                return;
+        }
+        
+        if (success) {
+            System.out.println("Status updated successfully!");
+        } else {
+            System.out.println("Failed to update status.");
+        }
     }
 
     private void makeAppointment() {
@@ -796,7 +1161,7 @@ public class ConsultationUI {
         System.out.println("\n--- Process Payment for Consultation ---");
         
         // Show consultations that need payment
-        System.out.println("Consultations requiring payment:");
+        System.out.println("\nConsultations requiring payment:");
         consultationController.viewConsultationsForPayment();
         
         if (consultationController.getConsultationsForPaymentCount() == 0) {
@@ -1023,6 +1388,209 @@ public class ConsultationUI {
             System.out.println("Consultation created successfully from queue entry: " + queueEntryId);
         } else {
             System.out.println("Failed to create consultation from queue entry: " + queueEntryId);
+        }
+    }
+
+    // ==================== COMPLETE CONSULTATION WITH NO MEDICINE ====================
+
+    private void completeConsultationWithNoMedicine() {
+        System.out.println("\n--- Complete Consultation with No Medicine ---");
+        
+        // Show available consultations with TREATMENT_CREATED status
+        System.out.println("Available consultations with treatments ready for completion:");
+        ListInterface<Consultation> readyConsultations = consultationController.getConsultationsWithTreatmentCreated();
+        if (readyConsultations.isEmpty()) {
+            System.out.println("No consultations with treatments ready for completion at this time.");
+            return;
+        }
+
+        // Display consultations
+        System.out.println("\n=== CONSULTATIONS WITH TREATMENTS READY FOR COMPLETION ===");
+        System.out.printf("%-15s %-10s %-10s %-20s %-15s %-15s%n",
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Status", "Treatment ID");
+        System.out.println("-".repeat(90));
+
+        for (int i = 0; i < readyConsultations.size(); i++) {
+            Consultation consultation = readyConsultations.get(i);
+            System.out.printf("%-15s %-10s %-10s %-20s %-15s %-15s%n",
+                consultation.getConsultationId(),
+                consultation.getPatientId(),
+                consultation.getDoctorId() != null ? consultation.getDoctorId() : "N/A",
+                consultation.getSpecialty(),
+                consultation.getStatus(),
+                consultation.getTreatmentId() != null ? consultation.getTreatmentId() : "N/A");
+        }
+        
+        System.out.print("\nEnter Consultation ID to complete: ");
+        String consultationId = sc.nextLine().trim();
+        
+        if (consultationId.isEmpty()) {
+            System.out.println("Consultation ID cannot be empty.");
+            return;
+        }
+        
+        // Validate consultation exists and has TREATMENT_CREATED status
+        Consultation consultation = consultationController.getConsultation(consultationId);
+        if (consultation == null) {
+            System.out.println("Consultation not found.");
+            return;
+        }
+        
+        if (!consultation.getStatus().equals("TREATMENT_CREATED")) {
+            System.out.println("Consultation must be in TREATMENT_CREATED status to complete.");
+            return;
+        }
+        
+        // Check if treatment exists
+        if (consultation.getTreatmentId() == null) {
+            System.out.println("No treatment found for this consultation. Please create treatment first.");
+            return;
+        }
+        
+        // Get treatment details
+        String treatmentId = consultation.getTreatmentId();
+        double treatmentFee = consultationController.getTreatmentFee(treatmentId);
+        double consultationFee = consultationController.getConsultationFee();
+        
+        if (treatmentFee < 0) {
+            System.out.println("Treatment not found or invalid.");
+            return;
+        }
+        
+        // Show fee breakdown
+        System.out.println("\n--- Fee Breakdown ---");
+        System.out.println("Consultation Fee: RM " + String.format("%.2f", consultationFee));
+        System.out.println("Treatment Fee: RM " + String.format("%.2f", treatmentFee));
+        double totalAmount = consultationFee + treatmentFee;
+        System.out.println("Total Amount: RM " + String.format("%.2f", totalAmount));
+        
+        // Generate invoice
+        System.out.println("\n--- Generating Invoice ---");
+        String invoiceId = consultationController.generateInvoiceForConsultationAndTreatment(
+            consultationId, treatmentId, consultationFee, treatmentFee);
+        
+        if (invoiceId != null) {
+            System.out.println("Invoice generated successfully! Invoice ID: " + invoiceId);
+            
+            // Process payment
+            System.out.println("\n--- Payment Processing ---");
+            processPaymentForConsultationAndTreatment(consultationId, totalAmount);
+        } else {
+            System.out.println("Failed to generate invoice.");
+        }
+    }
+    
+    private void processPaymentForConsultationAndTreatment(String consultationId, double amount) {
+        System.out.println("Processing payment for consultation: " + consultationId);
+        System.out.println("Amount: RM " + String.format("%.2f", amount));
+        
+        // Show payment methods
+        System.out.println("\n--- Payment Methods ---");
+        System.out.println("1. Cash");
+        System.out.println("2. Credit Card");
+        System.out.println("3. Debit Card");
+        System.out.println("4. Bank Transfer");
+        System.out.println("5. Insurance");
+        System.out.println("6. Online Payment");
+        
+        int paymentMethodChoice = 0;
+        while (true) {
+            System.out.print("Select payment method (1-6): ");
+            String choiceStr = sc.nextLine().trim();
+            try {
+                paymentMethodChoice = Integer.parseInt(choiceStr);
+                if (paymentMethodChoice >= 1 && paymentMethodChoice <= 6) {
+                    break;
+                } else {
+                    System.out.println("Please select a valid option (1-6).");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+        
+        // Process payment
+        boolean paymentSuccess = consultationController.processPaymentForConsultationAndTreatment(
+            consultationId, amount, getPaymentMethodFromChoice(paymentMethodChoice));
+        
+        if (paymentSuccess) {
+            System.out.println("\n" + "=".repeat(40));
+            System.out.println("PAYMENT PROCESSED SUCCESSFULLY");
+            System.out.println("=".repeat(40));
+            System.out.println("Consultation ID: " + consultationId);
+            System.out.println("Amount Paid: RM " + String.format("%.2f", amount));
+            System.out.println("Payment Method: " + getPaymentMethodFromChoice(paymentMethodChoice));
+            System.out.println("=".repeat(40));
+            System.out.println("Thank you for your payment!");
+        } else {
+            System.out.println("Failed to process payment for consultation: " + consultationId);
+        }
+    }
+
+    // ==================== TEST APPOINTMENT STATUS ====================
+
+    private void testAppointmentStatus() {
+        System.out.println("\n=== TEST APPOINTMENT STATUS ===");
+
+        // Show current date/time
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        System.out.println("Current Date/Time: " + now);
+        System.out.println("Current Date: " + now.toLocalDate());
+
+        // Test specific appointment SCH1000
+        System.out.println("\n--- Testing SCH1000 ---");
+        DoctorSchedule schedule = consultationController.getAppointment("SCH1000");
+        if (schedule != null) {
+            System.out.println("Schedule ID: " + schedule.getScheduleId());
+            System.out.println("Appointment Date: " + schedule.getAppointmentDate());
+            System.out.println("Start Time: " + schedule.getStartTime());
+            System.out.println("End Time: " + schedule.getEndTime());
+            System.out.println("Status: " + schedule.getStatus());
+            System.out.println("Is Booked: " + schedule.isBooked());
+
+            // Check if appointment is in the past
+            java.time.LocalDateTime appointmentTime = java.time.LocalDateTime.of(
+                schedule.getAppointmentDate(),
+                schedule.getStartTime()
+            );
+            System.out.println("Appointment DateTime: " + appointmentTime);
+            System.out.println("Is before now: " + appointmentTime.isBefore(now));
+            System.out.println("Hours difference: " + java.time.Duration.between(appointmentTime, now).toHours() + " hours");
+
+            // Test the condition
+            boolean shouldBeMarkedMissed = schedule.isBooked() && appointmentTime.isBefore(now);
+            System.out.println("Should be marked MISSED: " + shouldBeMarkedMissed);
+        } else {
+            System.out.println("SCH1000 not found!");
+        }
+
+        // Test SCH1001
+        System.out.println("\n--- Testing SCH1001 ---");
+        schedule = consultationController.getAppointment("SCH1001");
+        if (schedule != null) {
+            System.out.println("Schedule ID: " + schedule.getScheduleId());
+            System.out.println("Appointment Date: " + schedule.getAppointmentDate());
+            System.out.println("Start Time: " + schedule.getStartTime());
+            System.out.println("End Time: " + schedule.getEndTime());
+            System.out.println("Status: " + schedule.getStatus());
+            System.out.println("Is Booked: " + schedule.isBooked());
+
+            // Check if appointment is in the past
+            java.time.LocalDateTime appointmentTime = java.time.LocalDateTime.of(
+                schedule.getAppointmentDate(),
+                schedule.getStartTime()
+            );
+            System.out.println("Appointment DateTime: " + appointmentTime);
+            System.out.println("Is before now: " + appointmentTime.isBefore(now));
+            if (appointmentTime.isAfter(now)) {
+                System.out.println("Hours until appointment: " + java.time.Duration.between(now, appointmentTime).toHours() + " hours");
+            }
+
+            // Test the condition
+            boolean shouldBeMarkedMissed = schedule.isBooked() && appointmentTime.isBefore(now);
+            System.out.println("Should be marked MISSED: " + shouldBeMarkedMissed);
+        } else {
+            System.out.println("SCH1001 not found!");
         }
     }
 

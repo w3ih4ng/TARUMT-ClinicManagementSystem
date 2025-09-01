@@ -4,6 +4,7 @@ import entity.*;
 import adt.*;
 import dao.MedicineDAO;
 import dao.StockDAO;
+import dao.DispensedMedicineDAO;
 import utility.FilterCriteriaUtil;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +18,7 @@ import java.util.Scanner;
 public class PharmacyController {
     private HashMapInterface<String, Medicine> medicineMap;
     private HashMapInterface<String, Stock> stockMap;
+    private HashMapInterface<String, DispensedMedicine> dispensedMedicineMap;
     private Scanner sc;
     private int medicineCounter = 1; // start from MED001
     private final FilterCriteriaUtil criteriaUtil = new FilterCriteriaUtil();
@@ -24,6 +26,7 @@ public class PharmacyController {
     public PharmacyController() {
         this.medicineMap = MedicineDAO.loadMedicines();
         this.stockMap = StockDAO.loadStocks();
+        this.dispensedMedicineMap = DispensedMedicineDAO.loadDispensedMedicines();
         this.sc = new Scanner(System.in);
         initCounterFromMap();
     }
@@ -1001,6 +1004,15 @@ public class PharmacyController {
             return false;
         }
         
+        // Check if consultation is completed and locked
+        String consultationId = treatment.getConsultationId();
+        HashMapInterface<String, entity.Consultation> consultationMap = dao.ConsultationDAO.loadConsultations();
+        entity.Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && consultation.getStatus().equals("COMPLETED")) {
+            System.out.println("Cannot dispense medicines for treatment " + treatmentId + " - consultation is completed and locked.");
+            return false;
+        }
+        
         if (treatment.getPrescribedMedicines().isEmpty()) {
             System.out.println("No medicines prescribed for this treatment.");
             return false;
@@ -1057,6 +1069,9 @@ public class PharmacyController {
         System.out.println("\nAll medicines dispensed successfully!");
         System.out.println("Total medicine cost: RM " + String.format("%.2f", totalMedicineCost));
         
+        // Record dispensed medicines
+        recordDispensedMedicines(treatment, totalMedicineCost);
+        
         // Generate invoice for medicines
         generateInvoiceForMedicines(treatment, totalMedicineCost);
         
@@ -1071,16 +1086,16 @@ public class PharmacyController {
             // Complete the consultation after dispensing
             treatmentController.completeConsultationAfterDispensing(treatmentId);
 
-            // Update consultation status to COMPLETED (ready for payment)
+            // Update consultation status to MEDICINE_DISPENSED (ready for payment)
             control.ConsultationController consultationController = new control.ConsultationController();
             entity.Treatment currentTreatment = treatmentController.getTreatmentById(treatmentId);
             if (currentTreatment != null) {
-                consultationController.updateConsultationStatus(currentTreatment.getConsultationId(), "COMPLETED");
+                consultationController.updateConsultationStatus(currentTreatment.getConsultationId(), "MEDICINE_DISPENSED");
             }
             
             System.out.println("\nConsultation workflow updated:");
             System.out.println("  - Treatment status: Medicines dispensed");
-            System.out.println("  - Consultation status: COMPLETED (Ready for payment)");
+            System.out.println("  - Consultation status: MEDICINE_DISPENSED (Ready for payment)");
             System.out.println("  - Queue status: Updated");
             
         } catch (Exception e) {
@@ -1141,11 +1156,207 @@ public class PharmacyController {
     }
 
     /**
+     * Record dispensed medicines for a treatment
+     */
+    private void recordDispensedMedicines(entity.Treatment treatment, double totalMedicineCost) {
+        try {
+            for (int i = 0; i < treatment.getPrescribedMedicines().size(); i++) {
+                entity.MedicinePrescribed prescribed = treatment.getPrescribedMedicines().get(i);
+                String medicineId = prescribed.getMedicineId();
+                int quantity = prescribed.getQuantity();
+                
+                // Get medicine details
+                Medicine medicine = medicineMap.get(medicineId);
+                if (medicine != null) {
+                    // Generate dispense ID
+                    String dispenseId = DispensedMedicineDAO.generateDispenseId();
+                    
+                    // Get stock ID for this medicine
+                    String stockId = getStockIdForMedicine(medicineId, quantity);
+                    
+                    // Create dispensed medicine record
+                    entity.DispensedMedicine dispensedMedicine = new entity.DispensedMedicine(
+                        dispenseId,
+                        treatment.getTreatmentId(),
+                        treatment.getConsultationId(),
+                        treatment.getPatientId(),
+                        medicineId,
+                        quantity,
+                        medicine.getPrice(),
+                        stockId
+                    );
+                    
+                    // Add to map
+                    dispensedMedicineMap.put(dispenseId, dispensedMedicine);
+                }
+            }
+            
+            // Save to file
+            DispensedMedicineDAO.saveDispensedMedicines(dispensedMedicineMap);
+            
+        } catch (Exception e) {
+            System.out.println("Error recording dispensed medicines: " + e.getMessage());
+        }
+    }
+
+    /**
      * Display dispensing history
      */
     public void displayDispensingHistory() {
-        System.out.println("Dispensing history functionality not yet implemented.");
-        System.out.println("This would show records of all medicine dispensations.");
+        if (dispensedMedicineMap.isEmpty()) {
+            System.out.println("No dispensing records found.");
+            return;
+        }
+        
+        String borderLine = "+------------+--------------+------------+------------+---------------------------+------------+------------+------------+------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-10s | %-12s | %-10s | %-10s | %-25s | %-10s | %-10s | %-10s | %-10s |%n",
+            "DispenseID", "TreatmentID", "PatientID", "MedicineID", "Medicine Name", "Quantity", "Unit Price", "Total", "StockBatch");
+        System.out.println(borderLine);
+        
+        double totalDispensed = 0.0;
+        int totalRecords = 0;
+        
+        for (String key : dispensedMedicineMap.keySet()) {
+            entity.DispensedMedicine dispensed = dispensedMedicineMap.get(key);
+            if (dispensed != null && !dispensed.isDeleted()) {
+                totalRecords++;
+                totalDispensed += dispensed.getTotalPrice();
+                
+                // Get medicine name from medicine map
+                Medicine medicine = medicineMap.get(dispensed.getMedicineId());
+                String medicineName = medicine != null ? medicine.getName() : dispensed.getMedicineId();
+                if (medicineName.length() > 23) {
+                    medicineName = medicineName.substring(0, 20) + "...";
+                }
+                
+                System.out.printf("| %-10s | %-12s | %-10s | %-10s | %-25s | %-10s | %-10s | %-10s | %-10s |%n",
+                    dispensed.getDispenseId(),
+                    dispensed.getTreatmentId(),
+                    dispensed.getPatientId(),
+                    dispensed.getMedicineId(),
+                    medicineName,
+                    dispensed.getQuantity(),
+                    String.format("%.2f", dispensed.getUnitPrice()),
+                    String.format("%.2f", dispensed.getTotalPrice()),
+                    dispensed.getStockId());
+            }
+        }
+        
+        System.out.println(borderLine);
+        System.out.printf("Total Records: %d | Total Amount Dispensed: RM %.2f%n", totalRecords, totalDispensed);
+    }
+
+    /**
+     * Display dispensing history for a specific treatment
+     */
+    public void displayDispensingHistoryForTreatment(String treatmentId) {
+        System.out.println("\n=== DISPENSING HISTORY FOR TREATMENT " + treatmentId + " ===");
+        
+        boolean found = false;
+        double totalForTreatment = 0.0;
+        
+        for (String key : dispensedMedicineMap.keySet()) {
+            entity.DispensedMedicine dispensed = dispensedMedicineMap.get(key);
+            if (dispensed != null && !dispensed.isDeleted() && 
+                dispensed.getTreatmentId().equals(treatmentId)) {
+                
+                if (!found) {
+                    System.out.printf("%-15s %-20s %-10s %-10s %-15s%n",
+                        "DispenseID", "Medicine Name", "Quantity", "Unit Price", "Total");
+                    System.out.println("-".repeat(80));
+                    found = true;
+                }
+                
+                totalForTreatment += dispensed.getTotalPrice();
+                
+                // Get medicine name from medicine map
+                Medicine medicine = medicineMap.get(dispensed.getMedicineId());
+                String medicineName = medicine != null ? medicine.getName() : dispensed.getMedicineId();
+                
+                System.out.printf("%-15s %-20s %-10s %-10s %-15s%n",
+                    dispensed.getDispenseId(),
+                    medicineName,
+                    dispensed.getQuantity(),
+                    String.format("RM %.2f", dispensed.getUnitPrice()),
+                    String.format("RM %.2f", dispensed.getTotalPrice()));
+            }
+        }
+        
+        if (found) {
+            System.out.println("-".repeat(80));
+            System.out.printf("Total for Treatment %s: RM %.2f%n", treatmentId, totalForTreatment);
+        } else {
+            System.out.println("No dispensing records found for treatment: " + treatmentId);
+        }
+    }
+
+    /**
+     * Get stock ID for a medicine when dispensing
+     */
+    private String getStockIdForMedicine(String medicineId, int quantity) {
+        // Find the oldest stock with sufficient quantity
+        String selectedStockId = null;
+        int remainingQuantity = quantity;
+        
+        for (String key : stockMap.keySet()) {
+            Stock stock = stockMap.get(key);
+            if (stock != null && !stock.isDeleted() && 
+                stock.getMedicineId().equals(medicineId) && 
+                stock.getQuantity() > 0) {
+                
+                // Use this stock
+                selectedStockId = stock.getStockId();
+                break; // Use the first available stock (FIFO)
+            }
+        }
+        
+        return selectedStockId != null ? selectedStockId : "UNKNOWN";
+    }
+
+    /**
+     * Display dispensing history for a specific patient
+     */
+    public void displayDispensingHistoryForPatient(String patientId) {
+        System.out.println("\n=== DISPENSING HISTORY FOR PATIENT " + patientId + " ===");
+        
+        boolean found = false;
+        double totalForPatient = 0.0;
+        
+        for (String key : dispensedMedicineMap.keySet()) {
+            entity.DispensedMedicine dispensed = dispensedMedicineMap.get(key);
+            if (dispensed != null && !dispensed.isDeleted() && 
+                dispensed.getPatientId().equals(patientId)) {
+                
+                if (!found) {
+                    System.out.printf("%-15s %-15s %-20s %-10s %-10s %-15s%n",
+                        "DispenseID", "TreatmentID", "Medicine Name", "Quantity", "Unit Price", "Total");
+                    System.out.println("-".repeat(100));
+                    found = true;
+                }
+                
+                totalForPatient += dispensed.getTotalPrice();
+                
+                // Get medicine name from medicine map
+                Medicine medicine = medicineMap.get(dispensed.getMedicineId());
+                String medicineName = medicine != null ? medicine.getName() : dispensed.getMedicineId();
+                
+                System.out.printf("%-15s %-15s %-20s %-10s %-10s %-15s%n",
+                    dispensed.getDispenseId(),
+                    dispensed.getTreatmentId(),
+                    medicineName,
+                    dispensed.getQuantity(),
+                    String.format("RM %.2f", dispensed.getUnitPrice()),
+                    String.format("RM %.2f", dispensed.getTotalPrice()));
+            }
+        }
+        
+        if (found) {
+            System.out.println("-".repeat(100));
+            System.out.printf("Total for Patient %s: RM %.2f%n", patientId, totalForPatient);
+        } else {
+            System.out.println("No dispensing records found for patient: " + patientId);
+        }
     }
     
     /**

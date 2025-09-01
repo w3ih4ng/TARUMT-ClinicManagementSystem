@@ -1,1 +1,2 @@
 # Type|PatientID|Name|Gender|Birthdate|Phone|isDeleted|RoleID|Faculty|Department
+Student|P1000|weihang|M|2005-05-23|0111111111|false|dqsdwqd

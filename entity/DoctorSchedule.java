@@ -14,7 +14,7 @@ public class DoctorSchedule {
     private LocalDate appointmentDate;
     private LocalTime startTime;
     private LocalTime endTime;
-    private boolean isBooked;
+    private String status; // BOOKED, CANCELLED, MISSED, COMPLETED
     private String patientId; // patient for this appointment
 
     public DoctorSchedule(String scheduleId, String doctorId, String specialty, LocalDate appointmentDate,
@@ -25,7 +25,7 @@ public class DoctorSchedule {
         this.appointmentDate = appointmentDate;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.isBooked = false;
+        this.status = "BOOKED"; // Default status when created
         this.patientId = null;
     }
 
@@ -53,26 +53,58 @@ public class DoctorSchedule {
         return endTime;
     }
 
-    public boolean isBooked() {
-        return isBooked;
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getPatientId() {
         return patientId;
     }
 
-    public void bookSlot(String patientId) {
-        this.isBooked = true;
+    public void setPatientId(String patientId) {
         this.patientId = patientId;
     }
 
-    public void freeSlot() {
-        this.isBooked = false;
+    public void bookSlot(String patientId) {
+        this.status = "BOOKED";
+        this.patientId = patientId;
+    }
+
+    public void cancelSlot() {
+        this.status = "CANCELLED";
         this.patientId = null;
     }
 
+    public void markAsMissed() {
+        this.status = "MISSED";
+    }
+
+    public void markAsCompleted() {
+        this.status = "COMPLETED";
+    }
+
+    public boolean isBooked() {
+        return "BOOKED".equals(status);
+    }
+
+    public boolean isCancelled() {
+        return "CANCELLED".equals(status);
+    }
+
+    public boolean isMissed() {
+        return "MISSED".equals(status);
+    }
+
+    public boolean isCompleted() {
+        return "COMPLETED".equals(status);
+    }
+
     public boolean isAvailable() {
-        return !isBooked;
+        return "CANCELLED".equals(status) || "MISSED".equals(status);
     }
 
     public String getTimeSlotString() {
@@ -89,6 +121,6 @@ public class DoctorSchedule {
             appointmentDate.toString(), 
             getTimeSlotString(), 
             specialty, 
-            isBooked ? "Booked" : "Available");
+            status);
     }
 }

@@ -425,10 +425,10 @@ public class PharmacyUI {
     }
 
     private void viewDispensingHistory() {
-        System.out.println("\n--- Dispensing History ---");
-        // This would need to be implemented in PharmacyController
         pharmacyController.displayDispensingHistory();
     }
+
+
 
 
 

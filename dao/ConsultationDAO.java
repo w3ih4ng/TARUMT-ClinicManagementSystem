@@ -33,7 +33,7 @@ public class ConsultationDAO {
         ensureFile();
         try (PrintWriter pw = new PrintWriter(new FileWriter(FILE_NAME))) {
             // Write header comment
-            pw.println("# ConsultationID|PatientID|DoctorID|Specialty|ScheduleID|ConsultationTime|TreatmentID|PaymentID|Status|QueueID");
+            pw.println("# ConsultationID|PatientID|DoctorID|Specialty|ScheduleID|ConsultationTime|TreatmentID|PaymentID|Status|QueueID|isDeleted");
             
             for (int i = 0; i < consultationMap.keySet().size(); i++) {
                 String key = consultationMap.keySet().get(i);
@@ -107,14 +107,15 @@ public class ConsultationDAO {
                 treatmentId,
                 paymentId,
                 c.getStatus(),
-                queueId); // column 10
+                queueId,
+                Boolean.toString(c.isDeleted())); // column 11
     }
 
     private static Consultation fromFileString(String line) {
         try {
             String[] parts = line.split("\\|");
-            if (parts.length != 10) {
-                throw new IllegalArgumentException("Expected 10 columns, got " + parts.length);
+            if (parts.length < 10) {
+                throw new IllegalArgumentException("Expected at least 10 columns, got " + parts.length);
             }
             
             String consultationId = parts[0];
@@ -128,6 +129,12 @@ public class ConsultationDAO {
             String paymentId = parts[7].equals("NONE") ? null : parts[7];
             String status = parts[8];
             String queueId = parts[9].equals("NONE") ? null : parts[9];
+            
+            // Handle isDeleted field (column 11) - default to false if not present
+            boolean isDeleted = false;
+            if (parts.length > 10) {
+                isDeleted = Boolean.parseBoolean(parts[10]);
+            }
 
             Consultation c = new Consultation(consultationId, patientId, specialty, queueId);
             if (doctorId != null && consultationTime != null) {
@@ -138,6 +145,9 @@ public class ConsultationDAO {
 
             // Set the status from the file (this will override any default status set above)
             c.setStatus(status);
+            
+            // Set the isDeleted flag
+            c.setIsDeleted(isDeleted);
 
             return c;
         } catch (Exception e) {

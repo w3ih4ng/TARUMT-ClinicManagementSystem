@@ -1,1 +1,11 @@
 # MedicineID|Name|Dosage|Unit|Price|isDeleted
+MED001|Paracetamol|500|MG|5.0|false
+MED002|Ibuprofen|400|MG|8.0|false
+MED003|Amoxicillin|250|MG|12.0|false
+MED004|Cetirizine|10|MG|6.0|false
+MED005|Omeprazole|20|MG|15.0|false
+MED006|Aspirin|100|MG|4.0|false
+MED007|Metformin|500|MG|10.0|false
+MED008|Lisinopril|10|MG|18.0|false
+MED009|Atorvastatin|20|MG|25.0|false
+MED010|Vitamin C|500|MG|3.0|false

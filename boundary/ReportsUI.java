@@ -36,7 +36,7 @@ public class ReportsUI {
             System.out.println("3: Consultation Management Reports");
             System.out.println("4: Medical Treatment Reports");
             System.out.println("5: Pharmacy Management Reports");
-            System.out.println("Generate All Reports");
+            System.out.println("6: Generate All Reports");
             System.out.println("0. Return to Main Menu");
             System.out.println("=================================================");
             System.out.print("Select Report Category (1-6, 0): ");

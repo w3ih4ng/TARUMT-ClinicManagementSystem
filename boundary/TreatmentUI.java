@@ -43,17 +43,16 @@ public class TreatmentUI {
 
             System.out.println("=== TREATMENT OPERATIONS ===");
             System.out.println("  1. Create Treatment for Consultation");
-            System.out.println("  2. Edit Treatment Diagnosis");
-            System.out.println("  3. Edit Medicine Prescriptions");
-            System.out.println("  4. View All Treatments");
-            System.out.println("  5. View Treatment Details");
+            System.out.println("  2. Edit Treatment");
+            System.out.println("  3. View All Treatments");
+            System.out.println("  4. View Treatment Details");
             System.out.println("  0. Back to Staff Menu");
             System.out.println();
             System.out.println("Note: Create treatment first, then use Pharmacy Module to dispense medicines");
             System.out.println("      After dispensing, invoice will be generated for payment processing");
             System.out.println();
             System.out.println("=".repeat(80));
-            System.out.print("\n\nEnter your choice (1-5, 0): ");
+            System.out.print("\n\nEnter your choice (1-4, 0): ");
 
             String choice = sc.nextLine().trim();
 
@@ -64,36 +63,19 @@ public class TreatmentUI {
                     utility.SystemUtil.pauseForUser();
                     break;
                 case "2":
-                    utility.SystemUtil.showSectionHeader("Edit Treatment Diagnosis");
-                    editTreatmentDiagnosis();
+                    utility.SystemUtil.showSectionHeader("Edit Treatment");
+                    editTreatment();
                     utility.SystemUtil.pauseForUser();
                     break;
                 case "3":
-                    utility.SystemUtil.showSectionHeader("Edit Medicine Prescriptions");
-                    editMedicinePrescriptions();
-                    utility.SystemUtil.pauseForUser();
-                    break;
-                case "4":
                     utility.SystemUtil.pushNavigation("View All Treatments");
                     viewAllTreatments();
                     utility.SystemUtil.popNavigation();
                     break;
-                case "5":
+                case "4":
                     utility.SystemUtil.showSectionHeader("View Treatment Details");
                     viewTreatmentDetails();
                     utility.SystemUtil.pauseForUser();
-                    break;
-                case "6":
-                    utility.SystemUtil.showSectionHeader("Patient Treatment History Report");
-                    generatePatientTreatmentHistoryReport();
-                    break;
-                case "7":
-                    utility.SystemUtil.showSectionHeader("Doctor Treatment Performance Report");
-                    generateDoctorPerformanceReport();
-                    break;
-                case "8":
-                    utility.SystemUtil.showSectionHeader("Medicine Prescription Analysis Report");
-                    generateMedicinePrescriptionReport();
                     break;
                 case "0": 
                     utility.SystemUtil.popNavigation();
@@ -120,6 +102,9 @@ public class TreatmentUI {
             System.out.println("\n--- Treatment Options ---");
             System.out.println("1. Sort Treatments");
             System.out.println("2. Search Treatments");
+            System.out.println("3. Show Active Treatments Only");
+            System.out.println("4. Show Deleted Treatments Only");
+            System.out.println("5. Restore Deleted Treatment");
             System.out.println("0. Back to Treatment Management");
             System.out.print("\nChoose option: ");
             
@@ -133,6 +118,18 @@ public class TreatmentUI {
                 case "2":
                     utility.SystemUtil.showSectionHeader("Search Treatments");
                     searchTreatments();
+                    break;
+                case "3":
+                    utility.SystemUtil.showSectionHeader("Active Treatments Only");
+                    treatmentController.displayActiveTreatmentsOnly();
+                    break;
+                case "4":
+                    utility.SystemUtil.showSectionHeader("Deleted Treatments Only");
+                    displayDeletedTreatmentsOnly();
+                    break;
+                case "5":
+                    utility.SystemUtil.showSectionHeader("Restore Deleted Treatment");
+                    restoreDeletedTreatment();
                     break;
                 case "0":
                     return;
@@ -278,6 +275,14 @@ public class TreatmentUI {
     
     private void showTreatmentManagementOptions(String treatmentId) {
         while (true) {
+            // Check if treatment still exists (not soft-deleted)
+            Treatment treatment = treatmentController.getTreatmentById(treatmentId);
+            if (treatment == null) {
+                System.out.println("\nTreatment " + treatmentId + " has been deleted.");
+                System.out.println("Returning to Treatment Management Menu...");
+                return;
+            }
+            
             System.out.println("\n=== Treatment Management Options ===");
             System.out.println("1. Edit Prescribed Medicines");
             System.out.println("2. Update Treatment Diagnosis");
@@ -701,6 +706,101 @@ public class TreatmentUI {
         }
     }
 
+    /**
+     * Restore a deleted treatment
+     */
+    private void restoreDeletedTreatment() {
+        System.out.println("\n--- Restore Deleted Treatment ---");
+        
+        // Show deleted treatments first
+        System.out.println("Available deleted treatments:");
+        displayDeletedTreatmentsOnly();
+        
+        System.out.print("\nEnter Treatment ID to restore: ");
+        String treatmentId = sc.nextLine().trim();
+        
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+        
+        // Check if treatment exists and is deleted
+        Treatment treatment = treatmentController.getTreatmentMap().get(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found.");
+            return;
+        }
+        
+        if (!treatment.isDeleted()) {
+            System.out.println("Treatment is not deleted. No need to restore.");
+            return;
+        }
+        
+        System.out.println("Warning: This will restore the treatment and update the consultation status based on medicine prescription!");
+        System.out.print("Are you sure? (Y/N): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+        
+        if (confirm.equals("y")) {
+            boolean success = treatmentController.restoreTreatment(treatmentId);
+            if (success) {
+                System.out.println("Treatment restored successfully!");
+                System.out.println("Consultation status has been updated based on medicine prescription.");
+            } else {
+                System.out.println("Failed to restore treatment.");
+            }
+        } else {
+            System.out.println("Treatment restoration cancelled.");
+        }
+    }
+
+    /**
+     * Display only deleted treatments
+     */
+    private void displayDeletedTreatmentsOnly() {
+        if (treatmentController.getTreatmentMap().isEmpty()) {
+            System.out.println("No treatments found.");
+            return;
+        }
+
+        String borderLine = "+--------------+------------+------------+------------------+---------------------------+------------+---------------------+------------+";
+        System.out.println(borderLine);
+        System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s | %-10s |%n",
+                "TreatmentID", "DoctorID", "PatientID", "ConsultationID", "Diagnosis", "Fee", "Medicine Prescribed", "Status");
+        System.out.println(borderLine);
+
+        int deletedCount = 0;
+
+        for (String key : treatmentController.getTreatmentMap().keySet()) {
+            Treatment treatment = treatmentController.getTreatmentMap().get(key);
+            
+            // Only show deleted treatments
+            if (!treatment.isDeleted()) {
+                continue;
+            }
+            
+            deletedCount++;
+            String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
+            String status = "DELETED";
+            
+            System.out.printf("| %-12s | %-10s | %-10s | %-16s | %-25s | %-10s | %-19s | %-10s |%n",
+                    treatment.getTreatmentId(),
+                    treatment.getDoctorId(),
+                    treatment.getPatientId(),
+                    treatment.getConsultationId(),
+                    treatment.getDescription(),
+                    "RM " + String.format("%.2f", treatment.getTreatmentFee()),
+                    medicineStatus,
+                    status);
+        }
+        System.out.println(borderLine);
+        
+        if (deletedCount == 0) {
+            System.out.println("No deleted treatments found.");
+        } else {
+            System.out.println("Showing " + deletedCount + " deleted treatments");
+        }
+    }
+
     private void viewAvailableConsultations() {
         consultationController.viewAvailableConsultations();
     }
@@ -750,14 +850,15 @@ public class TreatmentUI {
     private void deleteTreatment(String treatmentId) {
         System.out.println("\n--- Delete Treatment ---");
         
-        System.out.println("Warning: This will permanently delete the treatment!");
-        System.out.print("Are you sure? (yes/no): ");
+        System.out.println("Warning: This will delete the treatment and set the consultation status back to IN_PROGRESS!");
+        System.out.print("Are you sure? (Y/N): ");
         String confirm = sc.nextLine().trim().toLowerCase();
         
-        if (confirm.equals("yes")) {
+        if (confirm.equals("y")) {
             boolean success = treatmentController.deleteTreatment(treatmentId);
             if (success) {
                 System.out.println("Treatment deleted successfully!");
+                System.out.println("Consultation status has been set back to IN_PROGRESS.");
             } else {
                 System.out.println("Failed to delete treatment.");
             }
@@ -791,10 +892,10 @@ public class TreatmentUI {
             return;
         }
 
-        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+";
+        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n", 
-            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee", "Medicine Prescribed");
+        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s | %-10s |%n", 
+            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee", "Medicine Prescribed", "Status");
         System.out.println(borderLine);
 
         for (String key : treatmentMap.keySet()) {
@@ -805,14 +906,16 @@ public class TreatmentUI {
             }
             
             String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
-            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
+            String status = treatment.isDeleted() ? "DELETED" : "ACTIVE";
+            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s | %-10s |%n",
                     treatment.getTreatmentId(),
                     treatment.getDoctorId(),
                     treatment.getPatientId(),
                     treatment.getConsultationId(),
                     description,
                     String.format("%.2f", treatment.getTreatmentFee()),
-                    medicineStatus);
+                    medicineStatus,
+                    status);
         }
         System.out.println(borderLine);
     }
@@ -823,10 +926,10 @@ public class TreatmentUI {
             return;
         }
 
-        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+";
+        String borderLine = "+------------+------------+------------+------------+---------------------------+------------+------------------+------------+";
         System.out.println(borderLine);
-        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n", 
-            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee", "Medicine Prescribed");
+        System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s | %-10s |%n", 
+            "Treatment ID", "Doctor ID", "Patient ID", "Consultation ID", "Description", "Fee", "Medicine Prescribed", "Status");
         System.out.println(borderLine);
 
         for (int i = 0; i < treatmentList.size(); i++) {
@@ -837,14 +940,16 @@ public class TreatmentUI {
             }
             
             String medicineStatus = treatment.getPrescribedMedicines().isEmpty() ? "No" : "Yes";
-            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s |%n",
+            String status = treatment.isDeleted() ? "DELETED" : "ACTIVE";
+            System.out.printf("| %-10s | %-10s | %-10s | %-10s | %-25s | %-10s | %-16s | %-10s |%n",
                     treatment.getTreatmentId(),
                     treatment.getDoctorId(),
                     treatment.getPatientId(),
                     treatment.getConsultationId(),
                     description,
                     String.format("%.2f", treatment.getTreatmentFee()),
-                    medicineStatus);
+                    medicineStatus,
+                    status);
         }
         System.out.println(borderLine);
     }
@@ -916,10 +1021,10 @@ public class TreatmentUI {
             doctorId, consultation.getPatientId(), consultationId, diagnosis, treatmentFee, new adt.ArrayList<>());
 
         if (treatmentId != null) {
-            // Update consultation status to TREATMENT_CREATED
-            boolean statusUpdated = consultationController.updateConsultationStatus(consultationId, "TREATMENT_CREATED");
-            if (statusUpdated) {
-                System.out.println("Consultation status updated to TREATMENT_CREATED.");
+            // Get the updated consultation to show the correct status
+            Consultation updatedConsultation = consultationController.getConsultation(consultationId);
+            if (updatedConsultation != null) {
+                System.out.println("Consultation status updated to " + updatedConsultation.getStatus() + ".");
             }
 
             System.out.println("\nTreatment created successfully! Treatment ID: " + treatmentId);
@@ -984,10 +1089,78 @@ public class TreatmentUI {
         }
     }
 
+    private void editTreatment() {
+        // Show available treatments (only active ones)
+        System.out.println("\nAvailable Treatments (Active Only):");
+        treatmentController.displayActiveTreatmentsOnly();
+
+        System.out.print("\nEnter Treatment ID to edit: ");
+        String treatmentId = sc.nextLine().trim();
+
+        if (treatmentId.isEmpty()) {
+            System.out.println("Treatment ID cannot be empty.");
+            return;
+        }
+
+        Treatment treatment = treatmentController.getTreatmentById(treatmentId);
+        if (treatment == null) {
+            System.out.println("Treatment not found.");
+            return;
+        }
+
+        if (treatment.isDeleted()) {
+            System.out.println("Cannot edit deleted treatment.");
+            return;
+        }
+
+        // Show current treatment details
+        System.out.println("\n=== Current Treatment Details ===");
+        System.out.println("Treatment ID: " + treatment.getTreatmentId());
+        System.out.println("Diagnosis: " + treatment.getDescription());
+        System.out.println("Fee: RM " + String.format("%.2f", treatment.getTreatmentFee()));
+        
+        // Show current medicines
+        System.out.println("\n=== Current Medicines ===");
+        ListInterface<MedicinePrescribed> currentMedicines = treatment.getPrescribedMedicines();
+        if (currentMedicines.isEmpty()) {
+            System.out.println("No medicines currently prescribed.");
+        } else {
+            displayTreatmentMedicines(currentMedicines);
+        }
+
+        // Edit menu
+        while (true) {
+            System.out.println("\n=== Edit Treatment Options ===");
+            System.out.println("1. Update Diagnosis");
+            System.out.println("2. Update Treatment Fee");
+            System.out.println("3. Edit Medicine Prescriptions");
+            System.out.println("0. Back to Treatment Menu");
+            System.out.print("\nChoose option: ");
+
+            String choice = sc.nextLine().trim();
+
+            switch (choice) {
+                case "1":
+                    updateTreatmentDiagnosis(treatmentId);
+                    break;
+                case "2":
+                    updateTreatmentFee(treatmentId);
+                    break;
+                case "3":
+                    editPrescribedMedicinesForTreatment(treatmentId);
+                    break;
+                case "0":
+                    return;
+                default:
+                    System.out.println("Invalid choice, try again.");
+            }
+        }
+    }
+
     private void editTreatmentDiagnosis() {
-        // Show available treatments
-        System.out.println("\nAvailable Treatments:");
-        treatmentController.displayAllTreatments();
+        // Show available treatments (only active ones)
+        System.out.println("\nAvailable Treatments (Active Only):");
+        treatmentController.displayActiveTreatmentsOnly();
 
         System.out.print("\nEnter Treatment ID to edit diagnosis: ");
         String treatmentId = sc.nextLine().trim();
@@ -1003,7 +1176,12 @@ public class TreatmentUI {
             return;
         }
 
-        System.out.println("Current Diagnosis: " + treatment.getDiagnosis());
+        if (treatment.isDeleted()) {
+            System.out.println("Cannot edit deleted treatment.");
+            return;
+        }
+
+        System.out.println("Current Diagnosis: " + treatment.getDescription());
         System.out.print("Enter new diagnosis: ");
         String newDiagnosis = sc.nextLine().trim();
 
@@ -1017,9 +1195,9 @@ public class TreatmentUI {
     }
 
     private void editMedicinePrescriptions() {
-        // Show available treatments
-        System.out.println("\nAvailable Treatments:");
-        treatmentController.displayAllTreatments();
+        // Show available treatments (only active ones)
+        System.out.println("\nAvailable Treatments (Active Only):");
+        treatmentController.displayActiveTreatmentsOnly();
 
         System.out.print("\nEnter Treatment ID to edit medicine prescriptions: ");
         String treatmentId = sc.nextLine().trim();
@@ -1032,6 +1210,11 @@ public class TreatmentUI {
         Treatment treatment = treatmentController.getTreatmentById(treatmentId);
         if (treatment == null) {
             System.out.println("Treatment not found.");
+            return;
+        }
+
+        if (treatment.isDeleted()) {
+            System.out.println("Cannot edit deleted treatment.");
             return;
         }
 

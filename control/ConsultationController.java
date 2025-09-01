@@ -7,6 +7,9 @@ import dao.PatientQueueDAO;
 import dao.DoctorDAO;
 import dao.PatientDAO;
 import dao.DoctorScheduleDAO;
+import dao.TreatmentDAO;
+import dao.InvoiceDAO;
+import dao.PaymentDAO;
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
@@ -24,6 +27,9 @@ public class ConsultationController {
     private HashMapInterface<String, Patient> patientMap;
     private HashMapInterface<String, Medicine> medicineMap;
     private HashMapInterface<String, DoctorSchedule> scheduleMap;
+    private HashMapInterface<String, Treatment> treatmentMap;
+    private HashMapInterface<String, Invoice> invoiceMap;
+    private HashMapInterface<String, Payment> paymentMap;
     private static int scheduleCounter = 1000; // Start from SCH1000
     private Scanner sc;
 
@@ -34,7 +40,13 @@ public class ConsultationController {
         this.patientMap = PatientDAO.loadPatients();
         this.medicineMap = dao.MedicineDAO.loadMedicines();
         this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+        this.treatmentMap = TreatmentDAO.loadTreatments();
+        this.invoiceMap = InvoiceDAO.loadInvoices();
+        this.paymentMap = PaymentDAO.loadPayments();
         this.sc = new Scanner(System.in);
+        
+        // Check and update past appointments on system load
+        checkAndUpdatePastAppointments();
     }
 
     // ==================== CONSULTATION CRUD METHODS ====================
@@ -42,6 +54,11 @@ public class ConsultationController {
     public boolean updateConsultationStatus(String consultationId, String newStatus) {
         Consultation consultation = consultationMap.get(consultationId);
         if (consultation != null) {
+            // Check if consultation is completed and locked
+            if (consultation.getStatus().equals("COMPLETED")) {
+                System.out.println("Cannot update consultation " + consultationId + " - consultation is completed and locked.");
+                return false;
+            }
             consultation.setStatus(newStatus);
             ConsultationDAO.saveConsultations(consultationMap);
             return true;
@@ -50,12 +67,94 @@ public class ConsultationController {
     }
 
     public boolean deleteConsultation(String consultationId) {
-        Consultation consultation = consultationMap.remove(consultationId);
-        if (consultation != null) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && !consultation.isDeleted()) {
+            // Check if consultation is completed and locked
+            if (consultation.getStatus().equals("COMPLETED")) {
+                System.out.println("Cannot delete consultation " + consultationId + " - consultation is completed and locked.");
+                return false;
+            }
+            // Soft delete the consultation
+            consultation.delete();
             ConsultationDAO.saveConsultations(consultationMap);
             return true;
         }
         return false;
+    }
+
+    public boolean restoreConsultation(String consultationId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && consultation.isDeleted()) {
+            // Check if consultation was completed before deletion
+            if (consultation.getStatus().equals("COMPLETED")) {
+                System.out.println("Cannot restore consultation " + consultationId + " - consultation was completed and should remain locked.");
+                return false;
+            }
+            // Restore the consultation
+            consultation.restore();
+            ConsultationDAO.saveConsultations(consultationMap);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean updateConsultationToMedicineDispensed(String consultationId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && consultation.getStatus().equals("MEDICINE_PRESCRIBED")) {
+            consultation.setStatus("MEDICINE_DISPENSED");
+            ConsultationDAO.saveConsultations(consultationMap);
+            return true;
+        }
+        return false;
+    }
+
+    // --- Get consultations with TREATMENT_CREATED status ---
+    public ListInterface<Consultation> getConsultationsWithTreatmentCreated() {
+        // Refresh consultation data from file to get latest status updates
+        this.consultationMap = ConsultationDAO.loadConsultations();
+
+        ListInterface<Consultation> readyConsultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation consultation = consultationMap.get(key);
+            if (consultation != null && !consultation.isDeleted() && consultation.getStatus().equals("TREATMENT_CREATED")) {
+                readyConsultations.add(consultation);
+            }
+        }
+        return readyConsultations;
+    }
+
+    // --- Get treatment fee ---
+    public double getTreatmentFee(String treatmentId) {
+        Treatment treatment = treatmentMap.get(treatmentId);
+        if (treatment != null) {
+            return treatment.getTreatmentFee();
+        }
+        return -1.0; // Return -1 if treatment not found
+    }
+
+    // --- Get consultation fee (standard fee) ---
+    public double getConsultationFee() {
+        return 50.0; // Standard consultation fee
+    }
+
+    // --- Check if consultation is completed and locked ---
+    public boolean isConsultationCompleted(String consultationId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        return consultation != null && consultation.getStatus().equals("COMPLETED");
+    }
+
+    // --- Check if consultation can be updated ---
+    public boolean canUpdateConsultation(String consultationId) {
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation == null) {
+            return false;
+        }
+        return !consultation.getStatus().equals("COMPLETED");
+    }
+
+    public HashMapInterface<String, Consultation> getConsultationMap() {
+        return consultationMap;
     }
 
     // ==================== GETTER METHODS ====================
@@ -65,7 +164,11 @@ public class ConsultationController {
     }
 
     public Consultation getConsultation(String consultationId) {
-        return consultationMap.get(consultationId);
+        Consultation consultation = consultationMap.get(consultationId);
+        if (consultation != null && consultation.isDeleted()) {
+            return null; // Return null if consultation is soft-deleted
+        }
+        return consultation;
     }
 
     // --- Create consultation manually from queue entry ---
@@ -131,7 +234,23 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation consultation = consultationMap.get(key);
-            if (consultation != null && consultation.getStatus().equals("IN_PROGRESS")) {
+            if (consultation != null && !consultation.isDeleted() && consultation.getStatus().equals("IN_PROGRESS")) {
+                readyConsultations.add(consultation);
+            }
+        }
+        return readyConsultations;
+    }
+
+    // --- Get consultations ready for medicine dispensing ---
+    public ListInterface<Consultation> getConsultationsReadyForMedicineDispensing() {
+        // Refresh consultation data from file to get latest status updates
+        this.consultationMap = ConsultationDAO.loadConsultations();
+
+        ListInterface<Consultation> readyConsultations = new ArrayList<Consultation>();
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation consultation = consultationMap.get(key);
+            if (consultation != null && !consultation.isDeleted() && consultation.getStatus().equals("MEDICINE_PRESCRIBED")) {
                 readyConsultations.add(consultation);
             }
         }
@@ -190,7 +309,7 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
+            if (c != null && !c.isDeleted() && c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
                 doctorConsultations.add(c);
             }
         }
@@ -204,7 +323,7 @@ public class ConsultationController {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
             
-            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
+            if (c != null && !c.isDeleted() && c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
                 c.getStatus().equals("SCHEDULED")) {
                 pendingConsultations.add(c);
             }
@@ -219,7 +338,7 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
+            if (c != null && !c.isDeleted() && c.getDoctorId() != null && c.getDoctorId().equals(doctorId)) {
                 allConsultations.add(c);
             }
         }
@@ -376,7 +495,7 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c != null && c.getPatientId().equals(patientId)) {
+            if (c != null && !c.isDeleted() && c.getPatientId().equals(patientId)) {
                 patientConsultations.add(c);
             }
         }
@@ -389,7 +508,7 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c != null && c.getStatus().equals("SCHEDULED")) {
+            if (c != null && !c.isDeleted() && c.getStatus().equals("SCHEDULED")) {
                 pending.add(c);
             }
         }
@@ -402,7 +521,7 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c != null && c.getStatus().equals("COMPLETED")) {
+            if (c != null && !c.isDeleted() && c.getStatus().equals("COMPLETED")) {
                 completed.add(c);
             }
         }
@@ -415,41 +534,112 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c != null && c.getStatus().equals(status)) {
+            if (c != null && !c.isDeleted() && c.getStatus().equals(status)) {
                 consultations.add(c);
             }
         }
         return consultations;
     }
     
-    // --- View all consultations ---
+    // --- View all consultations (including both active and deleted) ---
     public void viewAllConsultations() {
+        viewConsultationsWithFilter(true); // Show all consultations including deleted
+    }
+
+    // --- View only active consultations ---
+    public void viewActiveConsultationsOnly() {
+        viewConsultationsWithFilter(false); // Show only active consultations
+    }
+
+    // --- View only deleted consultations ---
+    public void viewDeletedConsultationsOnly() {
+        System.out.println("\n=== DELETED CONSULTATIONS ===\n");
+        if (consultationMap.isEmpty()) {
+            System.out.println("No consultations found.");
+            return;
+        }
+
+        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status", "Status");
+        System.out.println("-".repeat(120));
+
+        int deletedCount = 0;
+        for (int i = 0; i < consultationMap.keySet().size(); i++) {
+            String key = consultationMap.keySet().get(i);
+            Consultation c = consultationMap.get(key);
+            if (c != null && c.isDeleted()) {
+                deletedCount++;
+                String consultationTime = c.getConsultationTime() != null ? 
+                    c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "N/A";
+                String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
+                
+                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n",
+                    c.getConsultationId(),
+                    c.getPatientId(),
+                    doctorId,
+                    c.getSpecialty(),
+                    consultationTime,
+                    c.getStatus(),
+                    "DELETED");
+            }
+        }
+        
+        if (deletedCount == 0) {
+            System.out.println("No deleted consultations found.");
+        } else {
+            System.out.println("\nShowing " + deletedCount + " deleted consultations");
+        }
+    }
+
+    // --- Helper method to display consultations with filter ---
+    private void viewConsultationsWithFilter(boolean includeDeleted) {
         System.out.println("\n=== ALL CONSULTATIONS ===\n");
         if (consultationMap.isEmpty()) {
             System.out.println("No consultations found.");
             return;
         }
 
-        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s%n", 
-            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status");
-        System.out.println("-".repeat(100));
+        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status", "Status");
+        System.out.println("-".repeat(120));
 
+        int activeCount = 0;
+        int deletedCount = 0;
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-        if (c != null) {
+            if (c != null) {
+                // Skip deleted consultations if not including them
+                if (!includeDeleted && c.isDeleted()) {
+                    continue;
+                }
+                
+                if (c.isDeleted()) {
+                    deletedCount++;
+                } else {
+                    activeCount++;
+                }
+                
                 String consultationTime = c.getConsultationTime() != null ? 
                     c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "N/A";
                 String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
+                String status = c.isDeleted() ? "DELETED" : "ACTIVE";
                 
-                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s%n",
+                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n",
                     c.getConsultationId(),
                     c.getPatientId(),
                     doctorId,
                     c.getSpecialty(),
                     consultationTime,
-                    c.getStatus());
+                    c.getStatus(),
+                    status);
             }
+        }
+        
+        if (includeDeleted) {
+            System.out.println("\nSummary: " + activeCount + " active consultations, " + deletedCount + " deleted consultations");
+        } else {
+            System.out.println("\nShowing " + activeCount + " active consultations");
         }
     }
 
@@ -743,14 +933,15 @@ public class ConsultationController {
 
     // --- Check for scheduling conflicts ---
     private boolean hasSchedulingConflict(String doctorId, LocalDateTime appointmentTime) {
-        // Check if doctor already has an appointment at this time
-        for (int i = 0; i < consultationMap.keySet().size(); i++) {
-            String key = consultationMap.keySet().get(i);
-            Consultation c = consultationMap.get(key);
-            if (c != null && c.getDoctorId() != null && c.getDoctorId().equals(doctorId) && 
-                c.getConsultationTime() != null && 
-                c.getConsultationTime().toLocalDate().equals(appointmentTime.toLocalDate()) &&
-                Math.abs(c.getConsultationTime().getHour() - appointmentTime.getHour()) < 1) {
+        // Check if doctor already has a booked appointment at this time
+        for (int i = 0; i < scheduleMap.keySet().size(); i++) {
+            String key = scheduleMap.keySet().get(i);
+            DoctorSchedule schedule = scheduleMap.get(key);
+            if (schedule != null && 
+                schedule.getDoctorId().equals(doctorId) && 
+                schedule.getAppointmentDate().equals(appointmentTime.toLocalDate()) &&
+                Math.abs(schedule.getStartTime().getHour() - appointmentTime.getHour()) < 1 &&
+                schedule.isBooked()) {
                 return true;
             }
         }
@@ -1008,9 +1199,9 @@ public class ConsultationController {
                     System.out.println(slot + " - Available");
                 } else {
                     System.out.println(slot + " - Booked");
-                    }
                 }
-            } catch (Exception e) {
+            }
+        } catch (Exception e) {
             System.out.println("Error parsing date: " + e.getMessage());
         }
     }
@@ -1062,14 +1253,14 @@ public class ConsultationController {
         // Refresh consultation data to get latest status updates
         this.consultationMap = ConsultationDAO.loadConsultations();
 
-        System.out.println("\n=== CONSULTATIONS FOR PAYMENT ===");
+        System.out.println("\n==================== CONSULTATIONS FOR PAYMENT ====================");
         ListInterface<Consultation> consultationsForPayment = new ArrayList<>();
 
         // Collect consultations that need payment
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation consultation = consultationMap.get(key);
-            if (consultation != null && consultation.getStatus().equals("COMPLETED") &&
+            if (consultation != null && consultation.getStatus().equals("MEDICINE_DISPENSED") &&
                 consultation.getPaymentId() == null) {
                 consultationsForPayment.add(consultation);
             }
@@ -1080,18 +1271,20 @@ public class ConsultationController {
             return;
         }
 
-        System.out.printf("%-15s %-10s %-10s %-20s %-15s%n",
-            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Status");
-        System.out.println("-".repeat(80));
+        System.out.printf("%-20s %-10s %-10s %-12s %-20s %-15s%n",
+            "Consultation ID", "Patient ID", "Doctor ID", "Treatment ID", "Specialty", "Status");
+        System.out.println("-".repeat(100));
 
         // Display consultations for payment
         for (int i = 0; i < consultationsForPayment.size(); i++) {
             Consultation consultation = consultationsForPayment.get(i);
             String doctorId = (consultation.getDoctorId() != null) ? consultation.getDoctorId() : "N/A";
-            System.out.printf("%-15s %-10s %-10s %-20s %-15s%n",
+            String treatmentId = (consultation.getTreatmentId() != null) ? consultation.getTreatmentId() : "N/A";
+            System.out.printf("%-20s %-10s %-10s %-12s %-20s %-15s%n",
                 consultation.getConsultationId(),
                 consultation.getPatientId(),
                 doctorId,
+                treatmentId,
                 consultation.getSpecialty(),
                 consultation.getStatus());
         }
@@ -1106,7 +1299,7 @@ public class ConsultationController {
         for (int i = 0; i < consultationMap.keySet().size(); i++) {
             String key = consultationMap.keySet().get(i);
             Consultation c = consultationMap.get(key);
-            if (c != null && c.getStatus().equals("COMPLETED") && c.getPaymentId() == null) {
+            if (c != null && c.getStatus().equals("MEDICINE_DISPENSED") && c.getPaymentId() == null) {
                 count++;
             }
         }
@@ -1122,7 +1315,7 @@ public class ConsultationController {
         if (consultation == null) {
             return false;
         }
-        return consultation.getStatus().equals("COMPLETED") && consultation.getPaymentId() == null;
+        return consultation.getStatus().equals("MEDICINE_DISPENSED") && consultation.getPaymentId() == null;
     }
     
     // --- Calculate consultation total ---
@@ -1281,6 +1474,9 @@ public class ConsultationController {
                         System.out.println("Queue entry " + consultation.getQueueId() + " status updated to COMPLETED");
                     }
                 }
+
+                // Check if patient has an appointment and mark it as COMPLETED
+                updateAppointmentStatusAfterConsultation(consultation.getPatientId(), consultation.getDoctorId());
 
                 System.out.println("Payment processed successfully for consultation: " + consultationId);
                 System.out.println("Invoice " + invoiceId + " marked as PAID");
@@ -1476,5 +1672,482 @@ public class ConsultationController {
         System.out.println("=".repeat(90));
         System.out.println("END OF REPORT");
         System.out.println("=".repeat(90));
+    }
+
+    // ==================== TREATMENT AND INVOICE METHODS ====================
+
+    /**
+     * Create treatment with no medicines
+     */
+    public String createTreatmentWithNoMedicine(String doctorId, String patientId, String consultationId, 
+                                               String diagnosis, double treatmentFee) {
+        try {
+            // Generate treatment ID
+            String treatmentId = TreatmentDAO.generateTreatmentId();
+
+            // Create treatment with no medicines
+            Treatment treatment = new Treatment(treatmentId, doctorId, patientId, consultationId, diagnosis, treatmentFee);
+
+            // Save treatment
+            treatmentMap.put(treatmentId, treatment);
+            TreatmentDAO.saveTreatments(treatmentMap);
+
+            // Update consultation status to TREATMENT_CREATED
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation != null) {
+                consultation.setTreatmentId(treatmentId);
+                consultation.updateStatusBasedOnMedicinePrescription(false); // No medicines
+                consultationMap.put(consultationId, consultation);
+                ConsultationDAO.saveConsultations(consultationMap);
+            }
+
+            return treatmentId;
+        } catch (Exception e) {
+            System.out.println("Error creating treatment: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Generate invoice for consultation and treatment (no medicines)
+     */
+    public String generateInvoiceForConsultationAndTreatment(String consultationId, String treatmentId, 
+                                                           double consultationFee, double treatmentFee) {
+        try {
+            // Generate invoice ID
+            String invoiceId = InvoiceDAO.generateInvoiceId();
+
+            // Get consultation details
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation == null) {
+                System.out.println("Consultation not found: " + consultationId);
+                return null;
+            }
+
+            // Create invoice for consultation fee + treatment fee
+            Invoice invoice = new Invoice(invoiceId, consultationId, consultationFee, treatmentFee, 0.0);
+
+            // Save invoice
+            invoiceMap.put(invoiceId, invoice);
+            InvoiceDAO.saveInvoices(invoiceMap);
+
+            return invoiceId;
+        } catch (Exception e) {
+            System.out.println("Error generating invoice: " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Process payment for consultation and treatment
+     */
+    public boolean processPaymentForConsultationAndTreatment(String consultationId, double amount, Payment.PaymentMethod paymentMethod) {
+        try {
+            // Generate payment ID
+            String paymentId = PaymentDAO.generatePaymentId();
+
+            // Get consultation details
+            Consultation consultation = consultationMap.get(consultationId);
+            if (consultation == null) {
+                System.out.println("Consultation not found: " + consultationId);
+                return false;
+            }
+
+            // Create payment
+            Payment payment = new Payment(paymentId, null, consultationId, consultation.getPatientId(), paymentMethod);
+            payment.markPaid(); // Mark as paid
+
+            // Save payment
+            paymentMap.put(paymentId, payment);
+            PaymentDAO.savePayments(paymentMap);
+
+            // Update consultation with payment ID
+            consultation.setPayment(paymentId);
+            // Update consultation status to COMPLETED after payment
+            if (consultation.getStatus().equals("MEDICINE_DISPENSED")) {
+                consultation.setStatus("COMPLETED");
+            }
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
+
+            // Check if patient has an appointment and mark it as COMPLETED
+            updateAppointmentStatusAfterConsultation(consultation.getPatientId(), consultation.getDoctorId());
+
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error processing payment: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ==================== APPOINTMENT UPDATE AND DELETE METHODS ====================
+
+    /**
+     * Update appointment details
+     */
+    public boolean updateAppointment(String scheduleId, String newPatientId, String newDoctorId, 
+                                   String newDateStr, String newTimeStr, String newSpecialty) {
+        try {
+            // Refresh schedule data
+            this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+            
+            DoctorSchedule schedule = scheduleMap.get(scheduleId);
+            if (schedule == null) {
+                System.out.println("Schedule not found: " + scheduleId);
+                return false;
+            }
+
+            // Check if schedule can be updated (not completed)
+            if (schedule.isCompleted()) {
+                System.out.println("Cannot update completed appointment.");
+                return false;
+            }
+
+            // Parse new date and time
+            LocalDateTime newAppointmentTime = LocalDateTime.parse(newDateStr + " " + newTimeStr,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
+            if (newAppointmentTime.isBefore(LocalDateTime.now())) {
+                System.out.println("Cannot schedule appointments in the past.");
+                return false;
+            }
+
+            // Check for scheduling conflicts with new time
+            if (hasSchedulingConflict(newDoctorId, newAppointmentTime, scheduleId)) {
+                System.out.println("Time slot is not available. Please choose another time.");
+                return false;
+            }
+
+            // Update schedule details
+            schedule.setPatientId(newPatientId);
+            schedule.setStatus("BOOKED");
+            
+            // Create new schedule with updated details
+            DoctorSchedule updatedSchedule = new DoctorSchedule(
+                scheduleId,
+                newDoctorId,
+                newSpecialty,
+                newAppointmentTime.toLocalDate(),
+                newAppointmentTime.toLocalTime(),
+                newAppointmentTime.toLocalTime().plusHours(1)
+            );
+            updatedSchedule.setPatientId(newPatientId);
+            updatedSchedule.setStatus("BOOKED");
+
+            // Replace old schedule with updated one
+            scheduleMap.put(scheduleId, updatedSchedule);
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+
+            System.out.println("Appointment updated successfully!");
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("Error updating appointment: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Delete appointment (cancel it)
+     */
+    public boolean deleteAppointment(String scheduleId) {
+        try {
+            // Refresh schedule data
+            this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+            
+            DoctorSchedule schedule = scheduleMap.get(scheduleId);
+            if (schedule == null) {
+                System.out.println("Schedule not found: " + scheduleId);
+                return false;
+            }
+
+            // Check if schedule can be cancelled (not completed)
+            if (schedule.isCompleted()) {
+                System.out.println("Cannot cancel completed appointment.");
+                return false;
+            }
+
+            // Cancel the appointment
+            schedule.cancelSlot();
+            scheduleMap.put(scheduleId, schedule);
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+
+            System.out.println("Appointment cancelled successfully!");
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("Error cancelling appointment: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Mark appointment as missed
+     */
+    public boolean markAppointmentAsMissed(String scheduleId) {
+        try {
+            // Refresh schedule data
+            this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+            
+            DoctorSchedule schedule = scheduleMap.get(scheduleId);
+            if (schedule == null) {
+                System.out.println("Schedule not found: " + scheduleId);
+                return false;
+            }
+
+            // Mark as missed
+            schedule.markAsMissed();
+            scheduleMap.put(scheduleId, schedule);
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+
+            System.out.println("Appointment marked as missed!");
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("Error marking appointment as missed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Mark appointment as completed
+     */
+    public boolean markAppointmentAsCompleted(String scheduleId) {
+        try {
+            // Refresh schedule data
+            this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+            
+            DoctorSchedule schedule = scheduleMap.get(scheduleId);
+            if (schedule == null) {
+                System.out.println("Schedule not found: " + scheduleId);
+                return false;
+            }
+
+            // Mark as completed
+            schedule.markAsCompleted();
+            scheduleMap.put(scheduleId, schedule);
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+
+            System.out.println("Appointment marked as completed!");
+            return true;
+
+        } catch (Exception e) {
+            System.out.println("Error marking appointment as completed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get appointment by schedule ID
+     */
+    public DoctorSchedule getAppointment(String scheduleId) {
+        // Refresh schedule data
+        this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+        return scheduleMap.get(scheduleId);
+    }
+
+    /**
+     * View all appointments
+     */
+    public void viewAllAppointments() {
+        // Refresh schedule data
+        this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+        
+        if (scheduleMap.isEmpty()) {
+            System.out.println("No appointments found.");
+            return;
+        }
+
+        // Convert to list for sorting
+        ListInterface<DoctorSchedule> appointmentList = new ArrayList<>();
+        for (int i = 0; i < scheduleMap.keySet().size(); i++) {
+            String key = scheduleMap.keySet().get(i);
+            DoctorSchedule schedule = scheduleMap.get(key);
+            if (schedule != null) {
+                appointmentList.add(schedule);
+            }
+        }
+
+        // Sort appointments by date and time
+        sortAppointmentsByDateTime(appointmentList);
+
+        System.out.println("\n=== ALL APPOINTMENTS ===");
+        System.out.printf("%-12s %-10s %-10s %-20s %-15s %-15s %-12s%n",
+            "Schedule ID", "Doctor ID", "Patient ID", "Specialty", "Date", "Time", "Status");
+        System.out.println("-".repeat(100));
+
+        for (int i = 0; i < appointmentList.size(); i++) {
+            DoctorSchedule schedule = appointmentList.get(i);
+            String patientId = schedule.getPatientId() != null ? schedule.getPatientId() : "N/A";
+            String timeSlot = schedule.getStartTime().toString() + " - " + schedule.getEndTime().toString();
+            
+            System.out.printf("%-12s %-10s %-10s %-20s %-15s %-15s %-12s%n",
+                schedule.getScheduleId(),
+                schedule.getDoctorId(),
+                patientId,
+                schedule.getSpecialty(),
+                schedule.getAppointmentDate(),
+                timeSlot,
+                schedule.getStatus());
+        }
+        System.out.println("-".repeat(100));
+    }
+
+    /**
+     * Enhanced scheduling conflict check that excludes a specific schedule ID
+     */
+    private boolean hasSchedulingConflict(String doctorId, LocalDateTime appointmentTime, String excludeScheduleId) {
+        // Check if doctor already has an appointment at this time (excluding the specified schedule)
+        for (int i = 0; i < scheduleMap.keySet().size(); i++) {
+            String key = scheduleMap.keySet().get(i);
+            DoctorSchedule schedule = scheduleMap.get(key);
+            if (schedule != null && 
+                schedule.getDoctorId().equals(doctorId) && 
+                !schedule.getScheduleId().equals(excludeScheduleId) &&
+                schedule.getAppointmentDate().equals(appointmentTime.toLocalDate()) &&
+                Math.abs(schedule.getStartTime().getHour() - appointmentTime.getHour()) < 1 &&
+                schedule.isBooked()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sort appointments by Schedule ID in ascending order
+     */
+    private void sortAppointmentsByDateTime(ListInterface<DoctorSchedule> appointments) {
+        // Simple bubble sort to sort by Schedule ID
+        for (int i = 0; i < appointments.size() - 1; i++) {
+            for (int j = 0; j < appointments.size() - i - 1; j++) {
+                DoctorSchedule current = appointments.get(j);
+                DoctorSchedule next = appointments.get(j + 1);
+                
+                if (current.getScheduleId().compareTo(next.getScheduleId()) > 0) {
+                    // Swap appointments
+                    appointments.set(j, next);
+                    appointments.set(j + 1, current);
+                }
+            }
+        }
+    }
+
+    // ==================== APPOINTMENT STATUS MANAGEMENT ====================
+
+    /**
+     * Update appointment status after consultation completion
+     */
+    private void updateAppointmentStatusAfterConsultation(String patientId, String doctorId) {
+        try {
+            // Refresh schedule data
+            this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+            
+            // Find appointments for this patient and doctor that are still BOOKED
+            for (int i = 0; i < scheduleMap.keySet().size(); i++) {
+                String key = scheduleMap.keySet().get(i);
+                DoctorSchedule schedule = scheduleMap.get(key);
+                if (schedule != null && 
+                    schedule.getPatientId() != null && 
+                    schedule.getPatientId().equals(patientId) &&
+                    schedule.getDoctorId().equals(doctorId) &&
+                    schedule.isBooked()) {
+                    
+                    // Mark appointment as COMPLETED
+                    schedule.markAsCompleted();
+                    scheduleMap.put(key, schedule);
+                    System.out.println("Appointment " + key + " marked as COMPLETED after consultation");
+                }
+            }
+            
+            // Save updated schedules
+            DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+            
+        } catch (Exception e) {
+            System.out.println("Error updating appointment status after consultation: " + e.getMessage());
+        }
+    }
+
+        /**
+     * Check and update past appointments on system load
+     */
+    public void checkAndUpdatePastAppointments() {
+        try {
+            // Refresh schedule data
+            this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+
+            LocalDateTime now = LocalDateTime.now();
+            boolean hasUpdates = false;
+
+            // Check all appointments
+            for (int i = 0; i < scheduleMap.keySet().size(); i++) {
+                String key = scheduleMap.keySet().get(i);
+                DoctorSchedule schedule = scheduleMap.get(key);
+
+                if (schedule != null) {
+                    LocalDateTime appointmentDateTime = LocalDateTime.of(
+                        schedule.getAppointmentDate(),
+                        schedule.getStartTime()
+                    );
+
+                    // Check if appointment is in the past and still booked
+                    if (schedule.isBooked() && appointmentDateTime.isBefore(now)) {
+                        // Mark past appointments as MISSED
+                        schedule.markAsMissed();
+                        scheduleMap.put(key, schedule);
+                        hasUpdates = true;
+                        System.out.println("Past appointment " + key + " marked as MISSED");
+                    }
+                }
+            }
+
+            // Save updates if any were made
+            if (hasUpdates) {
+                DoctorScheduleDAO.saveDoctorSchedules(scheduleMap);
+                System.out.println("Past appointments have been updated.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Error checking past appointments: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get appointment statistics
+     */
+    public void getAppointmentStatistics() {
+        // Refresh schedule data
+        this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+        
+        int totalAppointments = 0;
+        int bookedAppointments = 0;
+        int completedAppointments = 0;
+        int cancelledAppointments = 0;
+        int missedAppointments = 0;
+        
+        for (int i = 0; i < scheduleMap.keySet().size(); i++) {
+            String key = scheduleMap.keySet().get(i);
+            DoctorSchedule schedule = scheduleMap.get(key);
+            if (schedule != null) {
+                totalAppointments++;
+                
+                if (schedule.isBooked()) {
+                    bookedAppointments++;
+                } else if (schedule.isCompleted()) {
+                    completedAppointments++;
+                } else if (schedule.isCancelled()) {
+                    cancelledAppointments++;
+                } else if (schedule.isMissed()) {
+                    missedAppointments++;
+                }
+            }
+        }
+        
+        System.out.println("\n=== APPOINTMENT STATISTICS ===");
+        System.out.println("Total Appointments: " + totalAppointments);
+        System.out.println("Booked: " + bookedAppointments);
+        System.out.println("Completed: " + completedAppointments);
+        System.out.println("Cancelled: " + cancelledAppointments);
+        System.out.println("Missed: " + missedAppointments);
+        System.out.println("=".repeat(30));
     }
 }

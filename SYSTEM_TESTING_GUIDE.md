@@ -1,7 +1,28 @@
 # TARUMT Clinic Management System - Testing Guide
 
 ## System Overview
-This guide provides step-by-step instructions to test the complete Clinic Management System workflow. The system follows a **semi-automatic patient flow** with integrated modules for patient management, consultations, treatments, pharmacy, and payments.
+This guide provides step-by-step instructions to test the complete Clinic Management System workflow. The system features **streamlined navigation** with direct access to all modules from the home screen, following a **semi-automatic patient flow** with integrated modules for patient management, consultations, treatments, pharmacy, and payments.
+
+## Navigation Changes (Latest Update)
+- **Streamlined Access**: All modules are now directly accessible from the home screen
+- **Eliminated Redundancy**: Removed intermediate "Access Management System" and "Module Selection" screens
+- **Faster Workflow**: Users can now access any module in just 1 click instead of 3
+
+## System Startup
+When you start the system, you'll see the main modules menu directly:
+```
+TARUMT CLINIC MANAGEMENT SYSTEM
+=================================================
+1. Patient Management Module
+2. Doctor Management Module
+3. Consultation Management Module
+4. Medical Treatment Management Module
+5. Pharmacy Management Module
+6. Comprehensive Reports Module
+0. Exit System
+=================================================
+Select Module (1-6, 0):
+```
 
 ---
 
@@ -10,7 +31,7 @@ This guide provides step-by-step instructions to test the complete Clinic Manage
 ### **Phase 1: Initial Setup (Required)**
 #### **Step 1.1: Add Doctors**
 ```
-Main Menu -> 2. Doctor Management Module
+Home -> 2. Doctor Management Module
 ├── 1. Add Doctor
 │   ├── Doctor ID: D1000
 │   ├── Name: Smith Johnson
@@ -39,7 +60,7 @@ Main Menu -> 2. Doctor Management Module
 
 #### **Step 1.2: Add Patients**
 ```
-Main Menu -> 1. Patient Management Module -> 2. Add Patient
+Home -> 1. Patient Management Module -> 2. Add Patient
 ├── 1. Add Student Patient
 │   ├── Patient ID: P1000
 │   ├── Name: John Doe
@@ -67,7 +88,7 @@ Main Menu -> 1. Patient Management Module -> 2. Add Patient
 
 #### **Step 1.3: Add Medicines**
 ```
-Main Menu -> 5. Pharmacy Management Module -> 2. Manage Medicines -> 1. Add Medicine
+Home -> 5. Pharmacy Management Module -> 2. Manage Medicines -> 1. Add Medicine
 ├── 1. Add Medicine
 │   ├── Medicine ID: MED001
 │   ├── Name: Paracetamol
@@ -94,7 +115,7 @@ Main Menu -> 5. Pharmacy Management Module -> 2. Manage Medicines -> 1. Add Medi
 
 #### **Step 2.1: Create Appointment**
 ```
-Main Menu -> 3. Consultation Management Module -> 2. Appointments -> 1. Create Appointment
+Home -> 3. Consultation Management Module -> 2. Appointments -> 1. Create Appointment
 ├── Patient ID: P1000
 ├── Expected: Patient validation passed (if P1000 exists)
 ├── Doctor ID: D1000
@@ -115,7 +136,7 @@ Patient P1000 added to queue with ID: Q1001
 
 #### **Step 2.2: View Doctor Schedules (Optional)**
 ```
-Main Menu -> 3. Consultation Management Module -> 2. Appointments -> 5. View Doctor Schedules
+Home -> 3. Consultation Management Module -> 2. Appointments -> 5. View Doctor Schedules
 ├── Enter Doctor ID: D1000
 ├── Expected: Shows all schedules for Smith Johnson from doctor_schedules.txt
 ├── Expected: Shows SCH1000 - 2025-12-20 - 09:00-10:00 - Booked - P1000
@@ -128,7 +149,7 @@ Main Menu -> 3. Consultation Management Module -> 2. Appointments -> 5. View Doc
 
 #### **Step 3.1: Start Consultation**
 ```
-Main Menu -> 3. Consultation Management Module -> 1. Consultations -> 1. Create Consultation
+Home -> 3. Consultation Management Module -> 1. Consultations -> 1. Create Consultation
 ├── System shows queued patients ready for consultation
 ├── Select patient P1000 from the list
 ├── Consultation starts automatically
@@ -137,7 +158,7 @@ Main Menu -> 3. Consultation Management Module -> 1. Consultations -> 1. Create 
 
 #### **Step 3.2: Add Treatment**
 ```
-Main Menu -> 4. Medical Treatment Management Module -> 1. Create Treatment for Consultation
+Home -> 4. Medical Treatment Management Module -> 1. Create Treatment for Consultation
 ├── Consultation ID: C1001 (auto-generated from previous step)
 ├── Diagnosis: Common cold with fever
 ├── Treatment Fee: 30.0
@@ -150,7 +171,7 @@ Main Menu -> 4. Medical Treatment Management Module -> 1. Create Treatment for C
 
 #### **Step 3.3: Dispense Medicine**
 ```
-Main Menu -> 5. Pharmacy Management Module -> 1. Dispense Medicine for Treatment
+Home -> 5. Pharmacy Management Module -> 1. Dispense Medicine for Treatment
 ├── System shows treatments ready for dispensing
 ├── Select treatment T1001
 ├── Confirm dispensing
@@ -163,7 +184,7 @@ Main Menu -> 5. Pharmacy Management Module -> 1. Dispense Medicine for Treatment
 
 #### **Step 4.1: Process Payment**
 ```
-Main Menu -> 3. Consultation Management Module -> 3. Payments -> 1. Process Consultation Payment
+Home -> 3. Consultation Management Module -> 3. Payments -> 1. Process Consultation Payment
 ├── System shows consultations requiring payment
 ├── Select consultation C1001
 ├── System displays detailed cost breakdown:
@@ -179,7 +200,7 @@ Main Menu -> 3. Consultation Management Module -> 3. Payments -> 1. Process Cons
 
 #### **Step 4.2: View Payment History**
 ```
-Main Menu -> 3. Consultation Management Module -> 3. Payments -> 2. View Payment History
+Home -> 3. Consultation Management Module -> 3. Payments -> 2. View Payment History
 ├── Expected: Shows completed payment with full details
 ├── Table includes: Payment ID, Consultation ID, Patient ID, Amount (RM), Method, Date
 ├── Summary shows: Total Paid Payments count and Total Amount Paid
@@ -192,7 +213,7 @@ Main Menu -> 3. Consultation Management Module -> 3. Payments -> 2. View Payment
 
 #### **Step 5.1: Add Walk-in Patient**
 ```
-Main Menu -> 1. Patient Management Module -> 4. Queue Management -> 1. Add Walk-in Patient
+Home -> 1. Patient Management Module -> 4. Queue Management -> 1. Add Walk-in Patient
 ├── Patient ID: P1000 (use existing patient)
 ├── Specialty: GENERAL_MEDICINE
 ├── System assigns available doctor
@@ -201,7 +222,7 @@ Main Menu -> 1. Patient Management Module -> 4. Queue Management -> 1. Add Walk-
 
 #### **Step 5.2: Assign Doctor (if needed)**
 ```
-Main Menu -> 1. Patient Management Module -> 4. Queue Management -> 3. Assign Doctor to Patient
+Home -> 1. Patient Management Module -> 4. Queue Management -> 3. Assign Doctor to Patient
 ├── Select patient from waiting list
 ├── Doctor is auto-assigned based on specialty
 └── Expected: Patient status changes to ASSIGNED
@@ -331,4 +352,26 @@ Repeat Steps 3.1-3.3 and 4.1-4.2 for walk-in patient
 - Complete clinical workflow from appointment to payment
 - Semi-automatic patient flow with manual decision points
 
-**The TARUMT Clinic Management System is fully operational and ready for clinical use!**
+## Recent Updates & Improvements
+
+### **Navigation Enhancement (Latest)**
+- ✅ **Streamlined Interface**: Direct access to all 6 modules from home screen
+- ✅ **Eliminated Redundancy**: Removed 2 intermediate navigation screens
+- ✅ **Faster Access**: Reduced navigation steps from 3 clicks to 1 click
+
+### **Appointment Management Improvements**
+- ✅ **Automatic Status Updates**: Past appointments automatically marked as MISSED
+- ✅ **Enhanced Status Display**: Proper status indicators (BOOKED, CANCELLED, COMPLETED, MISSED)
+- ✅ **Hidden Missed Appointments**: Missed appointments no longer shown in queue management
+
+### **Payment System Enhancements**
+- ✅ **Treatment ID Display**: Payment screen now shows associated treatment IDs
+- ✅ **Detailed Cost Breakdown**: Consultation + Treatment + Medicine costs clearly displayed
+- ✅ **Automatic Status Updates**: Consultation status updates after payment completion
+
+### **Data Integrity Improvements**
+- ✅ **Treatment-Consultation Linking**: Automatic linking when treatments are created
+- ✅ **Status Synchronization**: All related records stay synchronized
+- ✅ **Enhanced Validation**: Better error handling and data validation
+
+**The TARUMT Clinic Management System is fully operational and ready for clinical use with improved efficiency and user experience!**

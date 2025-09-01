@@ -15,6 +15,7 @@ public class Treatment {
     private String description; // doctor's notes / diagnosis
     private double treatmentFee; // cost of the treatment itself
     private ListInterface<MedicinePrescribed> prescribedMedicines;
+    private boolean isDeleted; // soft delete flag
 
     public Treatment(String treatmentId, String doctorId, String patientId, String consultationId, String description,
             double treatmentFee) {
@@ -25,6 +26,7 @@ public class Treatment {
         this.description = description;
         this.treatmentFee = treatmentFee;
         this.prescribedMedicines = new ArrayList<>();
+        this.isDeleted = false;
     }
 
     public String getTreatmentId() {
@@ -55,12 +57,20 @@ public class Treatment {
         return prescribedMedicines;
     }
 
+    public boolean isDeleted() {
+        return isDeleted;
+    }
+
     public void setDescription(String description) {
         this.description = description;
     }
 
     public void setTreatmentFee(double treatmentFee) {
         this.treatmentFee = treatmentFee;
+    }
+
+    public void setIsDeleted(boolean isDeleted) {
+        this.isDeleted = isDeleted;
     }
 
     public String getDiagnosis() {
@@ -73,5 +83,14 @@ public class Treatment {
 
     public void addPrescribedMedicine(MedicinePrescribed medicine) {
         prescribedMedicines.add(medicine);
+    }
+
+    // Business methods for soft delete
+    public void delete() {
+        this.isDeleted = true;
+    }
+
+    public void restore() {
+        this.isDeleted = false;
     }
 }
