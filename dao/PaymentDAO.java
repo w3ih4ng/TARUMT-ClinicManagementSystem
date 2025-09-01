@@ -68,6 +68,9 @@ public class PaymentDAO {
             System.out.println("Error loading payments: " + e.getMessage());
         }
 
+        // Initialize counter from existing data
+        initCounterFromMap(map);
+
         return map;
     }
 
@@ -117,5 +120,22 @@ public class PaymentDAO {
 
     public static String generatePaymentId() {
         return "PAY" + (paymentCounter++);
+    }
+
+    private static void initCounterFromMap(HashMapInterface<String, Payment> map) {
+        int max = 1000; // Start from PAY1001
+        for (String key : map.keySet()) {
+            Payment payment = map.get(key);
+            if (payment != null) {
+                String id = payment.getPaymentId();
+                try {
+                    int num = Integer.parseInt(id.substring(3)); // Remove 'PAY' prefix
+                    if (num > max) max = num;
+                } catch (NumberFormatException e) {
+                    // Ignore invalid IDs
+                }
+            }
+        }
+        paymentCounter = max + 1;
     }
 }

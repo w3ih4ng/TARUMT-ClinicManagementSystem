@@ -1,2 +1,5 @@
 # Type|PatientID|Name|Gender|Birthdate|Phone|isDeleted|RoleID|Faculty|Department
-Student|P1000|weihang|M|2005-05-23|0111111111|false|dqsdwqd
+Student|P1001|wewe|M|2000-01-01|1122221112|false|123123123
+Tutor|P1002|ice|F|2005-09-30|0101010101|false|qweqwe|FOCS
+Staff|P1003|geng|F|2005-02-19|0123123123|false|asdas|IT
+Student|P1000|fire|M|2005-05-23|0111111111|false|dqsdwqd

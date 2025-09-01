@@ -67,6 +67,9 @@ public class InvoiceDAO {
             System.out.println("Error loading invoices: " + e.getMessage());
         }
 
+        // Initialize counter from existing data
+        initCounterFromMap(map);
+
         return map;
     }
 
@@ -132,5 +135,22 @@ public class InvoiceDAO {
 
     public static String generateInvoiceId() {
         return "I" + (invoiceCounter++);
+    }
+
+    private static void initCounterFromMap(HashMapInterface<String, Invoice> map) {
+        int max = 1000; // Start from I1001
+        for (String key : map.keySet()) {
+            Invoice invoice = map.get(key);
+            if (invoice != null) {
+                String id = invoice.getInvoiceId();
+                try {
+                    int num = Integer.parseInt(id.substring(1)); // Remove 'I' prefix
+                    if (num > max) max = num;
+                } catch (NumberFormatException e) {
+                    // Ignore invalid IDs
+                }
+            }
+        }
+        invoiceCounter = max + 1;
     }
 }

@@ -217,27 +217,40 @@ public class TreatmentController {
      */
     private void updateConsultationStatusAfterTreatment(String consultationId, String treatmentId) {
         try {
+            // Refresh data to ensure we have the latest treatments
+            this.treatmentMap = TreatmentDAO.loadTreatments();
+            this.consultationMap = ConsultationDAO.loadConsultations();
+
             // Get consultation and update its status
             Consultation consultation = consultationMap.get(consultationId);
             if (consultation != null) {
+                System.out.println("DEBUG: Before update - Consultation " + consultationId + " TreatmentID: " + consultation.getTreatmentId());
                 // Set treatment ID first
                 consultation.setTreatmentId(treatmentId);
+                System.out.println("DEBUG: After setting TreatmentID - Consultation " + consultationId + " TreatmentID: " + consultation.getTreatmentId());
 
                 // Get the treatment to check if it has medicines
                 Treatment treatment = treatmentMap.get(treatmentId);
                 if (treatment != null) {
                     boolean hasMedicines = !treatment.getPrescribedMedicines().isEmpty();
                     consultation.updateStatusBasedOnMedicinePrescription(hasMedicines);
+                    System.out.println("Treatment " + treatmentId + " found with " +
+                        (hasMedicines ? "" : "no ") + "medicines prescribed");
                 } else {
                     // If treatment not found, default to TREATMENT_CREATED
                     consultation.setStatus("TREATMENT_CREATED");
+                    System.out.println("Treatment " + treatmentId + " not found in map, defaulting to TREATMENT_CREATED");
                 }
 
                 consultationMap.put(consultationId, consultation);
+                System.out.println("DEBUG: About to save consultation " + consultationId + " with TreatmentID: " + consultation.getTreatmentId());
                 ConsultationDAO.saveConsultations(consultationMap);
+                System.out.println("DEBUG: Consultation data saved to file");
 
                 String status = consultation.getStatus();
                 System.out.println("Consultation " + consultationId + " status updated to " + status);
+            } else {
+                System.out.println("Consultation " + consultationId + " not found for status update");
             }
         } catch (Exception e) {
             System.out.println("Error updating consultation status: " + e.getMessage());
@@ -592,26 +605,25 @@ public class TreatmentController {
         }
 
         String consultationId = treatment.getConsultationId();
+
+        // Refresh consultation data to get latest changes
+        this.consultationMap = ConsultationDAO.loadConsultations();
         Consultation consultation = consultationMap.get(consultationId);
 
-        if (consultation != null && consultation.getStatus().equals("COMPLETED")) {
-            // Update queue status to COMPLETED as well
-            if (consultation.getQueueId() != null) {
-                // Refresh queue data and update queue status
-                control.PatientQueueController queueController = new control.PatientQueueController();
-                entity.PatientQueueEntry queueEntry = queueController.getQueueEntry(consultation.getQueueId());
-                if (queueEntry != null) {
-                    queueEntry.complete();
-                    // Save the updated queue entry
-                    queueController.saveQueueData();
-                    System.out.println("Queue entry " + consultation.getQueueId() + " status updated to COMPLETED");
-                }
-            }
+        if (consultation != null) {
+            // Update consultation status to MEDICINE_DISPENSED after medicine dispensing
+            consultation.setStatus("MEDICINE_DISPENSED");
+            consultationMap.put(consultationId, consultation);
+            ConsultationDAO.saveConsultations(consultationMap);
 
-            System.out.println("Consultation " + consultationId + " is already completed!");
+            // Note: Queue status should NOT be set to COMPLETED here
+            // The queue should remain active until payment is processed
+            // Queue will be marked as COMPLETED during payment processing
+
+            System.out.println("Consultation " + consultationId + " status updated to MEDICINE_DISPENSED after medicine dispensing!");
             System.out.println("Treatment and medicines are ready for processing.");
         } else {
-            System.out.println("Consultation must be completed before dispensing medicines.");
+            System.out.println("Consultation not found: " + consultationId);
         }
     }
 

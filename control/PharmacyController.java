@@ -1086,18 +1086,11 @@ public class PharmacyController {
             // Complete the consultation after dispensing
             treatmentController.completeConsultationAfterDispensing(treatmentId);
 
-            // Update consultation status to MEDICINE_DISPENSED (ready for payment)
-            control.ConsultationController consultationController = new control.ConsultationController();
-            entity.Treatment currentTreatment = treatmentController.getTreatmentById(treatmentId);
-            if (currentTreatment != null) {
-                consultationController.updateConsultationStatus(currentTreatment.getConsultationId(), "MEDICINE_DISPENSED");
-            }
-            
             System.out.println("\nConsultation workflow updated:");
             System.out.println("  - Treatment status: Medicines dispensed");
             System.out.println("  - Consultation status: MEDICINE_DISPENSED (Ready for payment)");
-            System.out.println("  - Queue status: Updated");
-            
+            System.out.println("  - Queue status: Active (payment pending)");
+
         } catch (Exception e) {
             System.out.println("\nWarning: Could not update consultation workflow: " + e.getMessage());
             System.out.println("Medicines were dispensed, but workflow status may not be updated.");

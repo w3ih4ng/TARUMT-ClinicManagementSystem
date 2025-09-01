@@ -1,3 +1,1 @@
 # TreatmentID|DoctorID|PatientID|ConsultationID|Description|TreatmentFee|PrescribedMedicines|isDeleted
-T1001|D1000|P1000|C1001|fever|20.0|MED001:100|false
-T1002|D1000|P1000|C1002|cough|200.0|MED001:50|false
