@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
  * @author Your Name
  */
 public class PaymentDAO {
-    private static final String FILE_NAME = "data/payments.txt";
+    private static final String FILE_NAME = "src/data/payments.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static int paymentCounter = 1001; // Start from PAY1001
 

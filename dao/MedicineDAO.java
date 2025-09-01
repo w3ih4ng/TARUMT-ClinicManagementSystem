@@ -11,7 +11,7 @@ import java.io.*;
  * @author Your Name
  */
 public class MedicineDAO {
-    private static final String FILE_NAME = "data/medicines.txt";
+    private static final String FILE_NAME = "src/data/medicines.txt";
 
     // Ensure file exists
     private static void ensureFile() {

@@ -11,7 +11,7 @@ import java.io.*;
  * @author Your Name
  */
 public class TreatmentDAO {
-    private static final String FILE_NAME = "data/treatments.txt";
+    private static final String FILE_NAME = "src/data/treatments.txt";
     private static int treatmentCounter = 1001; // Start from T1001
 
     private static void ensureFile() {

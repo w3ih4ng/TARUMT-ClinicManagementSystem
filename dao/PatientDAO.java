@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
  * @author Your Name
  */
 public class PatientDAO {
-    private static final String FILE_NAME = "data/patients.txt";
+    private static final String FILE_NAME = "src/data/patients.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     // Ensure file exists (create if missing)

@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
  * @author Your Name
  */
 public class InvoiceDAO {
-    private static final String FILE_NAME = "data/invoices.txt";
+    private static final String FILE_NAME = "src/data/invoices.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static int invoiceCounter = 1001; // Start from I1001
 

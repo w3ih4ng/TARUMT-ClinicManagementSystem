@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
  * @author Your Name
  */
 public class DoctorScheduleDAO {
-    private static final String FILE_NAME = "data/doctor_schedules.txt";
+    private static final String FILE_NAME = "src/data/doctor_schedules.txt";
     private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static int scheduleCounter = 1001; // Start from S1001
