@@ -1,3 +1,1 @@
 # DispenseID|TreatmentID|ConsultationID|PatientID|MedicineID|Quantity|UnitPrice|TotalPrice|DispenseDate|StockID|isDeleted
-DISP1000|T1001|C1001|P1001|MED001|100|2.50|250.00|2024-12-19 10:30|S0001|false
-DISP1001|T1002|C1002|P1000|MED001|50|5.00|250.00|2025-09-01 13:46|S0001|false

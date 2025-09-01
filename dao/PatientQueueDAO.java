@@ -14,7 +14,7 @@ import java.time.format.DateTimeFormatter;
  * @author Your Name
  */
 public class PatientQueueDAO {
-    private static final String FILE_NAME = "data/patient_queue.txt";
+    private static final String FILE_NAME = "src/data/patient_queue.txt";
     private static int queueCounter = 1001; // Start from Q1001
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 

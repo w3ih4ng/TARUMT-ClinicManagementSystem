@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
  * @author Your Name
  */
 public class DispensedMedicineDAO {
-    private static final String FILE_PATH = "data/dispensed_medicines.txt";
+    private static final String FILE_PATH = "src/data/dispensed_medicines.txt";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static int dispenseCounter = 1000; // Start from DISP1000
 

@@ -19,6 +19,79 @@ public class PatientQueueController {
 
     public PatientQueueController() {
         this.queueMap = PatientQueueDAO.loadPatientQueue();
+        // Auto-complete expired entries on startup
+        autoCompleteExpiredEntries();
+    }
+
+    /**
+     * Refresh queue data from file to ensure we have latest changes
+     */
+    public void refreshQueueData() {
+        this.queueMap = PatientQueueDAO.loadPatientQueue();
+        // Auto-complete past appointments and expired entries
+        autoCompleteExpiredEntries();
+    }
+
+
+
+    /**
+     * Cancel a queue entry by queue ID
+     */
+    public boolean cancelQueueEntry(String queueId) {
+        if (queueMap.containsKey(queueId)) {
+            PatientQueueEntry entry = queueMap.get(queueId);
+            if (entry != null && entry.getQueueStatus() != QueueStatus.COMPLETED &&
+                entry.getQueueStatus() != QueueStatus.CANCELLED) {
+                // Only cancel entries that are not already completed or cancelled
+                entry.setQueueStatus(QueueStatus.CANCELLED);
+                queueMap.put(queueId, entry);
+                PatientQueueDAO.savePatientQueue(queueMap);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Automatically complete queue entries that have expired or are past their scheduled time
+     */
+    private void autoCompleteExpiredEntries() {
+        LocalDateTime now = LocalDateTime.now();
+        boolean hasChanges = false;
+
+        for (int i = 0; i < queueMap.keySet().size(); i++) {
+            String key = queueMap.keySet().get(i);
+            PatientQueueEntry entry = queueMap.get(key);
+
+            if (entry != null && entry.getQueueStatus() != QueueStatus.COMPLETED) {
+                boolean shouldComplete = false;
+
+                // Complete appointment entries that are past their scheduled time + 1 hour grace period
+                if (entry.getQueueType() == QueueType.APPOINTMENT &&
+                    entry.getScheduledStartTime() != null &&
+                    entry.getScheduledStartTime().plusHours(1).isBefore(now)) {
+                    shouldComplete = true;
+                    System.out.println("Auto-completing expired appointment queue " + key);
+                }
+
+                // Complete walk-in entries that are older than 2 hours (assuming consultation is done)
+                if (entry.getQueueType() == QueueType.WALK_IN &&
+                    entry.getArrivalTime().plusHours(2).isBefore(now)) {
+                    shouldComplete = true;
+                    System.out.println("Auto-completing expired walk-in queue " + key);
+                }
+
+                if (shouldComplete) {
+                    entry.complete();
+                    hasChanges = true;
+                }
+            }
+        }
+
+        if (hasChanges) {
+            PatientQueueDAO.savePatientQueue(queueMap);
+            System.out.println("Auto-completed expired queue entries");
+        }
     }
 
     // Add patient to queue
@@ -83,7 +156,8 @@ public class PatientQueueController {
         for (int i = 0; i < queueMap.keySet().size(); i++) {
             String key = queueMap.keySet().get(i);
             PatientQueueEntry entry = queueMap.get(key);
-            if (entry != null && entry.isAssigned()) {
+            // Only include assigned entries that are NOT completed
+            if (entry != null && entry.isAssigned() && !entry.isCompleted()) {
                 assigned.add(entry);
             }
         }
@@ -283,10 +357,15 @@ public class PatientQueueController {
             String key = queueMap.keySet().get(i);
             PatientQueueEntry entry = queueMap.get(key);
             if (entry != null && entry.getPatientId().equals(patientId) &&
-                entry.getAssignedDoctorId() != null && entry.getAssignedDoctorId().equals(doctorId) &&
-                entry.getQueueStatus() != QueueStatus.COMPLETED) {
-                // Only block if patient is in an active queue (not completed)
-                return true;
+                entry.getAssignedDoctorId() != null && entry.getAssignedDoctorId().equals(doctorId)) {
+                // Found entry for this patient-doctor combination
+                if (entry.getQueueStatus() != QueueStatus.COMPLETED) {
+                    // Only block if patient is in an active queue (not completed)
+                    return true;
+                } else {
+                    // Patient has completed queue entry, should allow new entry
+                    // No debug output needed
+                }
             }
         }
         return false;

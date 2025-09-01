@@ -49,9 +49,27 @@ public class ConsultationController {
         checkAndUpdatePastAppointments();
     }
 
+    /**
+     * Refresh all data from files to ensure latest changes are loaded
+     */
+    public void refreshData() {
+        this.consultationMap = ConsultationDAO.loadConsultations();
+        this.queueMap = PatientQueueDAO.loadPatientQueue();
+        this.doctorMap = DoctorDAO.loadDoctors();
+        this.patientMap = PatientDAO.loadPatients();
+        this.medicineMap = dao.MedicineDAO.loadMedicines();
+        this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
+        this.treatmentMap = TreatmentDAO.loadTreatments();
+        this.invoiceMap = InvoiceDAO.loadInvoices();
+        this.paymentMap = PaymentDAO.loadPayments();
+    }
+
     // ==================== CONSULTATION CRUD METHODS ====================
 
     public boolean updateConsultationStatus(String consultationId, String newStatus) {
+        // Refresh consultation data to get latest changes
+        this.consultationMap = ConsultationDAO.loadConsultations();
+
         Consultation consultation = consultationMap.get(consultationId);
         if (consultation != null) {
             // Check if consultation is completed and locked
@@ -211,7 +229,8 @@ public class ConsultationController {
         for (int i = 0; i < queueMap.keySet().size(); i++) {
             String key = queueMap.keySet().get(i);
             PatientQueueEntry entry = queueMap.get(key);
-            if (entry != null && entry.isAssigned() && entry.getAssignedDoctorId() != null) {
+            // Only include assigned entries that are NOT completed and have an assigned doctor
+            if (entry != null && entry.isAssigned() && !entry.isCompleted() && entry.getAssignedDoctorId() != null) {
                 readyEntries.add(entry);
             }
         }
@@ -559,8 +578,8 @@ public class ConsultationController {
             return;
         }
 
-        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n", 
-            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status", "Status");
+        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-20s %-10s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status", "Condition");
         System.out.println("-".repeat(120));
 
         int deletedCount = 0;
@@ -573,7 +592,7 @@ public class ConsultationController {
                     c.getConsultationTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "N/A";
                 String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
                 
-                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n",
+                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-20s %-10s%n",
                     c.getConsultationId(),
                     c.getPatientId(),
                     doctorId,
@@ -599,8 +618,8 @@ public class ConsultationController {
             return;
         }
 
-        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n", 
-            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status", "Status");
+        System.out.printf("%-15s %-10s %-10s %-20s %-20s %-20s %-10s%n", 
+            "Consultation ID", "Patient ID", "Doctor ID", "Specialty", "Consultation Time", "Status", "Condition");
         System.out.println("-".repeat(120));
 
         int activeCount = 0;
@@ -625,7 +644,7 @@ public class ConsultationController {
                 String doctorId = c.getDoctorId() != null ? c.getDoctorId() : "N/A";
                 String status = c.isDeleted() ? "DELETED" : "ACTIVE";
                 
-                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-15s %-10s%n",
+                System.out.printf("%-15s %-10s %-10s %-20s %-20s %-20s %-10s%n",
                     c.getConsultationId(),
                     c.getPatientId(),
                     doctorId,
@@ -1396,6 +1415,10 @@ public class ConsultationController {
                                            entity.Payment.PaymentMethod paymentMethod,
                                            String remarks) {
         try {
+            // Refresh consultation data to get latest changes
+            this.consultationMap = ConsultationDAO.loadConsultations();
+            this.paymentMap = PaymentDAO.loadPayments();
+
             Consultation consultation = consultationMap.get(consultationId);
             if (consultation == null) {
                 System.out.println("Consultation not found: " + consultationId);
@@ -1460,6 +1483,13 @@ public class ConsultationController {
 
                 // Update consultation with payment ID
                 consultation.setPayment(paymentId);
+
+                // Update consultation status to COMPLETED after payment
+                if (consultation.getStatus().equals("MEDICINE_DISPENSED")) {
+                    consultation.setStatus("COMPLETED");
+                    System.out.println("Consultation " + consultationId + " status updated to COMPLETED after payment");
+                }
+
                 consultationMap.put(consultationId, consultation);
                 ConsultationDAO.saveConsultations(consultationMap);
 
@@ -1741,8 +1771,13 @@ public class ConsultationController {
     /**
      * Process payment for consultation and treatment
      */
-    public boolean processPaymentForConsultationAndTreatment(String consultationId, double amount, Payment.PaymentMethod paymentMethod) {
+    public boolean processPaymentForConsultationAndTreatment(String consultationId, double amount, Payment.PaymentMethod paymentMethod, String invoiceId, String remarks) {
         try {
+            // Refresh data to get latest changes
+            this.consultationMap = ConsultationDAO.loadConsultations();
+            this.invoiceMap = InvoiceDAO.loadInvoices();
+            this.paymentMap = PaymentDAO.loadPayments();
+
             // Generate payment ID
             String paymentId = PaymentDAO.generatePaymentId();
 
@@ -1753,22 +1788,49 @@ public class ConsultationController {
                 return false;
             }
 
-            // Create payment
-            Payment payment = new Payment(paymentId, null, consultationId, consultation.getPatientId(), paymentMethod);
+            // Create payment linked to invoice
+            Payment payment = new Payment(paymentId, invoiceId, consultationId, consultation.getPatientId(), paymentMethod);
+            if (remarks != null && !remarks.isEmpty()) {
+                payment.setRemarks(remarks);
+            }
             payment.markPaid(); // Mark as paid
 
             // Save payment
             paymentMap.put(paymentId, payment);
             PaymentDAO.savePayments(paymentMap);
 
+            // Mark invoice as paid
+            if (invoiceId != null) {
+                Invoice invoice = invoiceMap.get(invoiceId);
+                if (invoice != null) {
+                    invoice.markPaid();
+                    invoiceMap.put(invoiceId, invoice);
+                    InvoiceDAO.saveInvoices(invoiceMap);
+                    System.out.println("Invoice " + invoiceId + " marked as PAID");
+                }
+            }
+
             // Update consultation with payment ID
             consultation.setPayment(paymentId);
             // Update consultation status to COMPLETED after payment
-            if (consultation.getStatus().equals("MEDICINE_DISPENSED")) {
+            if (consultation.getStatus().equals("MEDICINE_DISPENSED") ||
+                consultation.getStatus().equals("TREATMENT_CREATED")) {
                 consultation.setStatus("COMPLETED");
             }
             consultationMap.put(consultationId, consultation);
             ConsultationDAO.saveConsultations(consultationMap);
+
+            // Update queue status to COMPLETED if consultation has a queue entry
+            if (consultation.getQueueId() != null) {
+                HashMapInterface<String, entity.PatientQueueEntry> queueMap = PatientQueueDAO.loadPatientQueue();
+                entity.PatientQueueEntry queueEntry = queueMap.get(consultation.getQueueId());
+                if (queueEntry != null) {
+                    queueEntry.complete(); // Mark queue entry as completed
+                    queueMap.put(consultation.getQueueId(), queueEntry);
+                    PatientQueueDAO.savePatientQueue(queueMap);
+                    System.out.println("Queue entry " + consultation.getQueueId() + " status updated to COMPLETED");
+                }
+            }
 
             // Check if patient has an appointment and mark it as COMPLETED
             updateAppointmentStatusAfterConsultation(consultation.getPatientId(), consultation.getDoctorId());
@@ -2117,19 +2179,19 @@ public class ConsultationController {
     public void getAppointmentStatistics() {
         // Refresh schedule data
         this.scheduleMap = DoctorScheduleDAO.loadDoctorSchedules();
-        
+
         int totalAppointments = 0;
         int bookedAppointments = 0;
         int completedAppointments = 0;
         int cancelledAppointments = 0;
         int missedAppointments = 0;
-        
+
         for (int i = 0; i < scheduleMap.keySet().size(); i++) {
             String key = scheduleMap.keySet().get(i);
             DoctorSchedule schedule = scheduleMap.get(key);
             if (schedule != null) {
                 totalAppointments++;
-                
+
                 if (schedule.isBooked()) {
                     bookedAppointments++;
                 } else if (schedule.isCompleted()) {
@@ -2141,7 +2203,7 @@ public class ConsultationController {
                 }
             }
         }
-        
+
         System.out.println("\n=== APPOINTMENT STATISTICS ===");
         System.out.println("Total Appointments: " + totalAppointments);
         System.out.println("Booked: " + bookedAppointments);
@@ -2150,4 +2212,6 @@ public class ConsultationController {
         System.out.println("Missed: " + missedAppointments);
         System.out.println("=".repeat(30));
     }
+
+   
 }

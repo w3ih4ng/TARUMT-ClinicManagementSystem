@@ -245,13 +245,14 @@ public class PatientUI {
             System.out.println("1. Add Walk-in Patient");
             System.out.println("2. Add Scheduled Appointment Patient");
             System.out.println("3. Assign Doctor to Patient");
+            System.out.println("4. Cancel Queue");
             System.out.println();
             System.out.println("=== QUEUE VIEWING ===");
-            System.out.println("4. View All Queue Entries");
-            System.out.println("5. View Waiting Entries");
-            System.out.println("6. View Assigned Entries");
-            System.out.println("7. View Queue by Specialty");
-            System.out.println("8. View Queue by Patient");
+            System.out.println("5. View All Queue Entries");
+            System.out.println("6. View Waiting Entries");
+            System.out.println("7. View Assigned Entries");
+            System.out.println("8. View Queue by Specialty");
+            System.out.println("9. View Queue by Patient");
             System.out.println();
             System.out.println("0. Back to Patient Management");
             System.out.print("\n\nEnter choice: ");
@@ -269,18 +270,21 @@ public class PatientUI {
                     assignDoctorToPatient();
                     break;
                 case "4":
-                    viewAllQueueEntries();
+                    cancelQueue();
                     break;
                 case "5":
-                    viewWaitingEntries();
+                    viewAllQueueEntries();
                     break;
                 case "6":
-                    viewAssignedEntries();
+                    viewWaitingEntries();
                     break;
                 case "7":
-                    viewQueueBySpecialty();
+                    viewAssignedEntries();
                     break;
                 case "8":
+                    viewQueueBySpecialty();
+                    break;
+                case "9":
                     viewQueueByPatient();
                     break;
                 case "0":
@@ -290,6 +294,68 @@ public class PatientUI {
             }
         }
     }
+
+    /**
+     * Cancel a queue entry
+     */
+    private void cancelQueue() {
+        System.out.println("\n--- Cancel Queue ---");
+        System.out.println();
+
+        System.out.print("Enter Queue ID to cancel: ");
+        String queueId = sc.nextLine().trim();
+
+        if (queueId.isEmpty()) {
+            System.out.println("Queue ID cannot be empty.");
+            utility.SystemUtil.pauseForUser();
+            return;
+        }
+
+        // Refresh queue data first
+        queueController.refreshQueueData();
+
+        // Check if queue entry exists
+        PatientQueueEntry entry = queueController.getQueueEntry(queueId);
+        if (entry == null) {
+            System.out.println("Queue entry " + queueId + " not found.");
+            utility.SystemUtil.pauseForUser();
+            return;
+        }
+
+        // Check if it's already completed or cancelled
+        if (entry.getQueueStatus() == entity.QueueStatus.COMPLETED) {
+            System.out.println("Cannot cancel queue entry " + queueId + " - it is already COMPLETED.");
+            utility.SystemUtil.pauseForUser();
+            return;
+        }
+
+        if (entry.getQueueStatus() == entity.QueueStatus.CANCELLED) {
+            System.out.println("Queue entry " + queueId + " is already CANCELLED.");
+            utility.SystemUtil.pauseForUser();
+            return;
+        }
+
+        // Show current status
+        System.out.println("\nCurrent Status: " + entry.getQueueStatus());
+
+        System.out.print("Cancel this queue entry? (y/n): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+
+        if (confirm.equals("y") || confirm.equals("yes")) {
+            boolean success = queueController.cancelQueueEntry(queueId);
+            if (success) {
+                System.out.println("Queue " + queueId + " cancelled. Status: CANCELLED");
+            } else {
+                System.out.println("Failed to cancel queue " + queueId + ".");
+            }
+        } else {
+            System.out.println("Operation cancelled.");
+        }
+
+        utility.SystemUtil.pauseForUser();
+    }
+
+
 
     /**
      * Add walk-in patient interface
@@ -467,6 +533,10 @@ public class PatientUI {
             // Check if patient is already in queue for this doctor
             String patientId = selectedSchedule.getPatientId();
             String doctorId = selectedSchedule.getDoctorId();
+
+            // Refresh queue data to get latest changes
+            queueController.refreshQueueData();
+
             if (queueController.isPatientInQueue(patientId, doctorId)) {
                 System.out.println("Patient " + patientId + " is already in the queue for doctor " + doctorId + ".");
                 utility.SystemUtil.pauseForUser();
@@ -671,7 +741,7 @@ public class PatientUI {
             PatientQueueEntry entry = entries.get(i);
             String doctorId = entry.getAssignedDoctorId() != null ? entry.getAssignedDoctorId() : "N/A";
             String arrivalTime = entry.getArrivalTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-            
+
             System.out.printf(format,
                 entry.getQueueId(),
                 entry.getPatientId(),

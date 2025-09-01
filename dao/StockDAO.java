@@ -14,7 +14,7 @@ import java.io.*;
  * @author Your Name
  */
 public class StockDAO {
-    private static final String FILE_NAME = "data/stocks.txt";
+    private static final String FILE_NAME = "src/data/stocks.txt";
     private static int stockCounter = 1001; // Start from S1001
 
     private static void ensureFile() {

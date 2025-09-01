@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
  * @author Your Name
  */
 public class ConsultationDAO {
-    private static final String FILE_NAME = "data/consultations.txt";
+    private static final String FILE_NAME = "src/data/consultations.txt";
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static int consultationCounter = 1001; // Start from C1001
 

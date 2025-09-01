@@ -28,7 +28,7 @@ public class ConsultationUI {
         while (true) {
             utility.SystemUtil.showMenuHeader("Consultation Management");
 
-            System.out.println("=== MAIN ===");
+            System.out.println("======== MAIN ========");
             System.out.println("  1. Consultations");
             System.out.println("  2. Appointments");
             System.out.println("  3. Payments");
@@ -136,11 +136,10 @@ public class ConsultationUI {
             System.out.println("  7. View Available Time Slots");
             System.out.println("  8. View Appointment Statistics");
             System.out.println("  9. Check Past Appointments");
-            System.out.println("  10. Test Appointment Status");
             System.out.println("  0. Back to Consultation Management");
             System.out.println();
             System.out.println("=".repeat(60));
-            System.out.print("\n\nEnter your choice (1-10, 0): ");
+            System.out.print("\n\nEnter your choice (1-9, 0): ");
 
             String choice = sc.nextLine().trim();
 
@@ -185,20 +184,15 @@ public class ConsultationUI {
                     consultationController.getAppointmentStatistics();
                     utility.SystemUtil.pauseForUser();
                     break;
-                            case "9":
-                utility.SystemUtil.showSectionHeader("Check Past Appointments");
-                consultationController.checkAndUpdatePastAppointments();
-                utility.SystemUtil.pauseForUser();
-                break;
-            case "10":
-                utility.SystemUtil.showSectionHeader("Test Appointment Status");
-                testAppointmentStatus();
-                utility.SystemUtil.pauseForUser();
-                break;
+                case "9":
+                    utility.SystemUtil.showSectionHeader("Check Past Appointments");
+                    consultationController.checkAndUpdatePastAppointments();
+                    utility.SystemUtil.pauseForUser();
+                    break;
                 case "0":
                     return;
                 default:
-                    System.out.println("Invalid choice. Please select 1-10 or 0.");
+                    System.out.println("Invalid choice. Please select 1-9 or 0.");
                     utility.SystemUtil.pauseForUser();
             }
         }
@@ -1005,8 +999,7 @@ public class ConsultationUI {
         System.out.println("4. 14:00 - 15:00");
         System.out.println("5. 15:00 - 16:00");
         System.out.println("6. 16:00 - 17:00");
-        System.out.println("7. Custom time");
-        System.out.print("Choose time slot (1-7): ");
+        System.out.print("Choose time slot (1-6): ");
         
         String timeChoice = sc.nextLine().trim();
         String timeStr;
@@ -1018,13 +1011,10 @@ public class ConsultationUI {
             case "4": timeStr = "14:00"; break;
             case "5": timeStr = "15:00"; break;
             case "6": timeStr = "16:00"; break;
-            case "7":
-                System.out.print("Enter custom time (HH:mm): ");
-                timeStr = sc.nextLine().trim();
-                break;
+            
             default:
-                System.out.println("Invalid choice. Using 09:00.");
-                timeStr = "09:00";
+                System.out.println("Invalid choice.");
+                return;
         }
         
         // 5. Select Specialty (auto-detect from doctor, but allow override)
@@ -1395,7 +1385,10 @@ public class ConsultationUI {
 
     private void completeConsultationWithNoMedicine() {
         System.out.println("\n--- Complete Consultation with No Medicine ---");
-        
+
+        // Refresh data to ensure we have latest changes
+        consultationController.refreshData();
+
         // Show available consultations with TREATMENT_CREATED status
         System.out.println("Available consultations with treatments ready for completion:");
         ListInterface<Consultation> readyConsultations = consultationController.getConsultationsWithTreatmentCreated();
@@ -1471,16 +1464,16 @@ public class ConsultationUI {
         
         if (invoiceId != null) {
             System.out.println("Invoice generated successfully! Invoice ID: " + invoiceId);
-            
+
             // Process payment
             System.out.println("\n--- Payment Processing ---");
-            processPaymentForConsultationAndTreatment(consultationId, totalAmount);
+            processPaymentForConsultationAndTreatment(consultationId, totalAmount, invoiceId);
         } else {
             System.out.println("Failed to generate invoice.");
         }
     }
     
-    private void processPaymentForConsultationAndTreatment(String consultationId, double amount) {
+    private void processPaymentForConsultationAndTreatment(String consultationId, double amount, String invoiceId) {
         System.out.println("Processing payment for consultation: " + consultationId);
         System.out.println("Amount: RM " + String.format("%.2f", amount));
         
@@ -1492,26 +1485,43 @@ public class ConsultationUI {
         System.out.println("4. Bank Transfer");
         System.out.println("5. Insurance");
         System.out.println("6. Online Payment");
+        System.out.println("0. Cancel/Go Back");
         
         int paymentMethodChoice = 0;
         while (true) {
-            System.out.print("Select payment method (1-6): ");
+            System.out.print("Select payment method (0-6): ");
             String choiceStr = sc.nextLine().trim();
             try {
                 paymentMethodChoice = Integer.parseInt(choiceStr);
-                if (paymentMethodChoice >= 1 && paymentMethodChoice <= 6) {
+                if (paymentMethodChoice == 0) {
+                    System.out.println("Payment cancelled. Returning to consultation menu.");
+                    return;
+                } else if (paymentMethodChoice >= 1 && paymentMethodChoice <= 6) {
                     break;
                 } else {
-                    System.out.println("Please select a valid option (1-6).");
+                    System.out.println("Please select a valid option (0-6).");
                 }
             } catch (NumberFormatException e) {
                 System.out.println("Please enter a valid number.");
             }
         }
-        
+
+        // Confirm payment
+        System.out.print("\nConfirm payment of RM " + String.format("%.2f", amount) + "? (y/n): ");
+        String confirm = sc.nextLine().trim().toLowerCase();
+
+        if (!confirm.equals("y") && !confirm.equals("yes")) {
+            System.out.println("Payment cancelled.");
+            return;
+        }
+
+        // Get remarks (optional)
+        System.out.print("Enter payment remarks (optional): ");
+        String remarks = sc.nextLine().trim();
+
         // Process payment
         boolean paymentSuccess = consultationController.processPaymentForConsultationAndTreatment(
-            consultationId, amount, getPaymentMethodFromChoice(paymentMethodChoice));
+            consultationId, amount, getPaymentMethodFromChoice(paymentMethodChoice), invoiceId, remarks);
         
         if (paymentSuccess) {
             System.out.println("\n" + "=".repeat(40));
@@ -1526,73 +1536,4 @@ public class ConsultationUI {
             System.out.println("Failed to process payment for consultation: " + consultationId);
         }
     }
-
-    // ==================== TEST APPOINTMENT STATUS ====================
-
-    private void testAppointmentStatus() {
-        System.out.println("\n=== TEST APPOINTMENT STATUS ===");
-
-        // Show current date/time
-        java.time.LocalDateTime now = java.time.LocalDateTime.now();
-        System.out.println("Current Date/Time: " + now);
-        System.out.println("Current Date: " + now.toLocalDate());
-
-        // Test specific appointment SCH1000
-        System.out.println("\n--- Testing SCH1000 ---");
-        DoctorSchedule schedule = consultationController.getAppointment("SCH1000");
-        if (schedule != null) {
-            System.out.println("Schedule ID: " + schedule.getScheduleId());
-            System.out.println("Appointment Date: " + schedule.getAppointmentDate());
-            System.out.println("Start Time: " + schedule.getStartTime());
-            System.out.println("End Time: " + schedule.getEndTime());
-            System.out.println("Status: " + schedule.getStatus());
-            System.out.println("Is Booked: " + schedule.isBooked());
-
-            // Check if appointment is in the past
-            java.time.LocalDateTime appointmentTime = java.time.LocalDateTime.of(
-                schedule.getAppointmentDate(),
-                schedule.getStartTime()
-            );
-            System.out.println("Appointment DateTime: " + appointmentTime);
-            System.out.println("Is before now: " + appointmentTime.isBefore(now));
-            System.out.println("Hours difference: " + java.time.Duration.between(appointmentTime, now).toHours() + " hours");
-
-            // Test the condition
-            boolean shouldBeMarkedMissed = schedule.isBooked() && appointmentTime.isBefore(now);
-            System.out.println("Should be marked MISSED: " + shouldBeMarkedMissed);
-        } else {
-            System.out.println("SCH1000 not found!");
-        }
-
-        // Test SCH1001
-        System.out.println("\n--- Testing SCH1001 ---");
-        schedule = consultationController.getAppointment("SCH1001");
-        if (schedule != null) {
-            System.out.println("Schedule ID: " + schedule.getScheduleId());
-            System.out.println("Appointment Date: " + schedule.getAppointmentDate());
-            System.out.println("Start Time: " + schedule.getStartTime());
-            System.out.println("End Time: " + schedule.getEndTime());
-            System.out.println("Status: " + schedule.getStatus());
-            System.out.println("Is Booked: " + schedule.isBooked());
-
-            // Check if appointment is in the past
-            java.time.LocalDateTime appointmentTime = java.time.LocalDateTime.of(
-                schedule.getAppointmentDate(),
-                schedule.getStartTime()
-            );
-            System.out.println("Appointment DateTime: " + appointmentTime);
-            System.out.println("Is before now: " + appointmentTime.isBefore(now));
-            if (appointmentTime.isAfter(now)) {
-                System.out.println("Hours until appointment: " + java.time.Duration.between(now, appointmentTime).toHours() + " hours");
-            }
-
-            // Test the condition
-            boolean shouldBeMarkedMissed = schedule.isBooked() && appointmentTime.isBefore(now);
-            System.out.println("Should be marked MISSED: " + shouldBeMarkedMissed);
-        } else {
-            System.out.println("SCH1001 not found!");
-        }
-    }
-
-
 }

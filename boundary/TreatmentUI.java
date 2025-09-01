@@ -1021,10 +1021,12 @@ public class TreatmentUI {
             doctorId, consultation.getPatientId(), consultationId, diagnosis, treatmentFee, new adt.ArrayList<>());
 
         if (treatmentId != null) {
-            // Get the updated consultation to show the correct status
+            // Refresh consultation data to get the latest status
             Consultation updatedConsultation = consultationController.getConsultation(consultationId);
             if (updatedConsultation != null) {
                 System.out.println("Consultation status updated to " + updatedConsultation.getStatus() + ".");
+            } else {
+                System.out.println("Consultation status updated to TREATMENT_CREATED.");
             }
 
             System.out.println("\nTreatment created successfully! Treatment ID: " + treatmentId);
@@ -1032,8 +1034,6 @@ public class TreatmentUI {
             // Now add medicine prescriptions
             addMedicinePrescriptionsToTreatment(treatmentId);
 
-            System.out.println("\nTreatment created with diagnosis and medicine prescriptions.");
-            System.out.println("Next: Use Pharmacy Module to dispense medicines when ready.");
         } else {
             System.out.println("Failed to create treatment.");
         }
